@@ -1,0 +1,38 @@
+{
+  "app": {
+    "tagline": "gastos compartidos, repartidos de forma justa, siempre sincronizados."
+  },
+  "auth": {
+    "signOut": "cerrar sesión",
+    "authorized": "autorizado",
+    "notAuthorized": "no está en la lista de permitidos",
+    "notConfigured": "inicio de sesión no configurado"
+  },
+  "home": {
+    "thisMonth": "este mes",
+    "total": "total",
+    "addExpense": "añadir gasto",
+    "loading": "cargando…",
+    "empty": "todavía no hay gastos — añade el primero.",
+    "paidBy": "pagado por {{name}}"
+  },
+  "form": {
+    "title": "añadir gasto",
+    "date": "fecha",
+    "description": "descripción",
+    "descriptionPlaceholder": "compra semanal",
+    "category": "categoría",
+    "paidBy": "pagado por",
+    "amount": "importe",
+    "splitPercent": "reparto %",
+    "save": "guardar gasto",
+    "saving": "guardando…",
+    "loading": "cargando…",
+    "signInPrompt": "inicia sesión desde el inicio para añadir un gasto.",
+    "notAllowlisted": "tu cuenta no está en la lista de permitidos de esta hoja.",
+    "errorDescriptionRequired": "la descripción es obligatoria.",
+    "errorAmountInvalid": "introduce un importe válido.",
+    "errorSplitTotal": "el reparto debe sumar 100%.",
+    "splitTotalWarning": "el reparto actualmente suma {{total}}%."
+  }
+}

@@ -25,11 +25,13 @@ flowchart LR
 - 📊 clear monthly and yearly views — average spend, totals, and trends for the shared household budget
 - 🧳 "side-tracked" expenses for trips — each vacation gets its own tab, spun up from a reusable template, kept separate from the everyday household budget
 - ⚙️ settings-driven setup — partner names and preferences configured once, used everywhere
+- 🌍 interface in english, italiano and español
 
 ## tech stack
 
 - [vite](https://vitejs.dev/) + [react](https://react.dev/) + [typescript](https://www.typescriptlang.org/) — static frontend
 - [tailwind css](https://tailwindcss.com/) + [shadcn/ui](https://ui.shadcn.com/) — styling and components
+- [react-i18next](https://react.i18next.com/) — internationalization (english / italiano / español)
 - [google apps script](https://developers.google.com/apps-script) + [clasp](https://github.com/google/clasp) — backend api bound to the sheet
 - [google identity services](https://developers.google.com/identity) — partner sign-in
 - [google sheets](https://www.google.com/sheets/about/) — the database

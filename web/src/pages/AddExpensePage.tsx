@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { addExpense, getCategories, getParticipants } from '@/api/client'
 import type { Participant } from '@/api/types'
 import { useAuth } from '@/auth/AuthProvider'
@@ -31,6 +32,7 @@ function evenSplit(participants: Participant[]): Record<string, number> {
 
 export function AddExpensePage() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const { configured, status, authorized } = useAuth()
   const [participants, setParticipants] = useState<Participant[]>([])
   const [categories, setCategories] = useState<string[]>([])
@@ -63,9 +65,9 @@ export function AddExpensePage() {
     setError('')
 
     const parsedAmount = Number(amount)
-    if (!description.trim()) return setError('description is required.')
-    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) return setError('enter a valid amount.')
-    if (Math.round(splitTotal) !== 100) return setError('splits must add up to 100%.')
+    if (!description.trim()) return setError(t('form.errorDescriptionRequired'))
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) return setError(t('form.errorAmountInvalid'))
+    if (Math.round(splitTotal) !== 100) return setError(t('form.errorSplitTotal'))
 
     setSubmitting(true)
     try {
@@ -80,37 +82,37 @@ export function AddExpensePage() {
     <main className="mx-auto w-full max-w-lg px-4 py-8">
       <Card>
         <CardHeader>
-          <CardTitle>add expense</CardTitle>
+          <CardTitle>{t('form.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           {configured && status !== 'signed-in' && (
-            <p className="text-muted-foreground">sign in from the home page to add an expense.</p>
+            <p className="text-muted-foreground">{t('form.signInPrompt')}</p>
           )}
           {configured && status === 'signed-in' && !authorized && (
-            <p className="text-destructive">your account isn't on the allowlist for this sheet.</p>
+            <p className="text-destructive">{t('form.notAllowlisted')}</p>
           )}
           {(!configured || (status === 'signed-in' && authorized)) && !loaded && (
-            <p className="text-muted-foreground">loading…</p>
+            <p className="text-muted-foreground">{t('form.loading')}</p>
           )}
           {(!configured || (status === 'signed-in' && authorized)) && loaded && (
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="date">date</Label>
+              <Label htmlFor="date">{t('form.date')}</Label>
               <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="description">description</Label>
+              <Label htmlFor="description">{t('form.description')}</Label>
               <Input
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="weekly groceries"
+                placeholder={t('form.descriptionPlaceholder')}
               />
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label>category</Label>
+              <Label>{t('form.category')}</Label>
               <Select value={category} onValueChange={setCategory}>
                 <SelectTrigger>
                   <SelectValue />
@@ -126,7 +128,7 @@ export function AddExpensePage() {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label>paid by</Label>
+              <Label>{t('form.paidBy')}</Label>
               <Select value={payer} onValueChange={setPayer}>
                 <SelectTrigger>
                   <SelectValue />
@@ -142,7 +144,7 @@ export function AddExpensePage() {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="amount">amount</Label>
+              <Label htmlFor="amount">{t('form.amount')}</Label>
               <Input
                 id="amount"
                 type="number"
@@ -155,7 +157,7 @@ export function AddExpensePage() {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label>split %</Label>
+              <Label>{t('form.splitPercent')}</Label>
               <div className="flex gap-3">
                 {participants.map((p) => (
                   <div key={p.name} className="flex flex-1 items-center gap-2">
@@ -173,14 +175,16 @@ export function AddExpensePage() {
                 ))}
               </div>
               {Math.round(splitTotal) !== 100 && (
-                <p className="text-destructive text-sm">splits currently add up to {splitTotal}%.</p>
+                <p className="text-destructive text-sm">
+                  {t('form.splitTotalWarning', { total: splitTotal })}
+                </p>
               )}
             </div>
 
             {error && <p className="text-destructive text-sm">{error}</p>}
 
             <Button type="submit" disabled={submitting}>
-              {submitting ? 'saving…' : 'save expense'}
+              {submitting ? t('form.saving') : t('form.save')}
             </Button>
           </form>
           )}

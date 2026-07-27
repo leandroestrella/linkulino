@@ -1,0 +1,38 @@
+{
+  "app": {
+    "tagline": "spese condivise, divise in modo equo, sempre in sincro."
+  },
+  "auth": {
+    "signOut": "esci",
+    "authorized": "autorizzato",
+    "notAuthorized": "non nella lista consentiti",
+    "notConfigured": "accesso non configurato"
+  },
+  "home": {
+    "thisMonth": "questo mese",
+    "total": "totale",
+    "addExpense": "aggiungi spesa",
+    "loading": "caricamento…",
+    "empty": "nessuna spesa ancora — aggiungi la prima.",
+    "paidBy": "pagato da {{name}}"
+  },
+  "form": {
+    "title": "aggiungi spesa",
+    "date": "data",
+    "description": "descrizione",
+    "descriptionPlaceholder": "spesa settimanale",
+    "category": "categoria",
+    "paidBy": "pagato da",
+    "amount": "importo",
+    "splitPercent": "quota %",
+    "save": "salva spesa",
+    "saving": "salvataggio…",
+    "loading": "caricamento…",
+    "signInPrompt": "accedi dalla home per aggiungere una spesa.",
+    "notAllowlisted": "il tuo account non è nella lista consentiti per questo foglio.",
+    "errorDescriptionRequired": "la descrizione è obbligatoria.",
+    "errorAmountInvalid": "inserisci un importo valido.",
+    "errorSplitTotal": "le quote devono sommare a 100%.",
+    "splitTotalWarning": "le quote attualmente sommano a {{total}}%."
+  }
+}

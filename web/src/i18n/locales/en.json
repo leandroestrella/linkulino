@@ -1,0 +1,38 @@
+{
+  "app": {
+    "tagline": "shared expenses, split fairly, kept in sync."
+  },
+  "auth": {
+    "signOut": "sign out",
+    "authorized": "authorized",
+    "notAuthorized": "not on the allowlist",
+    "notConfigured": "sign-in not configured"
+  },
+  "home": {
+    "thisMonth": "this month",
+    "total": "total",
+    "addExpense": "add expense",
+    "loading": "loading…",
+    "empty": "no expenses yet — add the first one.",
+    "paidBy": "paid by {{name}}"
+  },
+  "form": {
+    "title": "add expense",
+    "date": "date",
+    "description": "description",
+    "descriptionPlaceholder": "weekly groceries",
+    "category": "category",
+    "paidBy": "paid by",
+    "amount": "amount",
+    "splitPercent": "split %",
+    "save": "save expense",
+    "saving": "saving…",
+    "loading": "loading…",
+    "signInPrompt": "sign in from the home page to add an expense.",
+    "notAllowlisted": "your account isn't on the allowlist for this sheet.",
+    "errorDescriptionRequired": "description is required.",
+    "errorAmountInvalid": "enter a valid amount.",
+    "errorSplitTotal": "splits must add up to 100%.",
+    "splitTotalWarning": "splits currently add up to {{total}}%."
+  }
+}

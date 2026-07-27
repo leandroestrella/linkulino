@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { useAuth } from './AuthProvider'
 
@@ -27,9 +28,10 @@ function GoogleButton() {
  */
 export function AuthBar() {
   const { status, user, authorized, configured, googleReady, error, signOut } = useAuth()
+  const { t } = useTranslation()
 
   if (!configured) {
-    return <span className="text-muted-foreground hidden text-xs sm:inline">sign-in not configured</span>
+    return <span className="text-muted-foreground hidden text-xs sm:inline">{t('auth.notConfigured')}</span>
   }
 
   if (status === 'signed-in' && user) {
@@ -37,7 +39,9 @@ export function AuthBar() {
       <div key="signed-in" className="flex min-w-0 items-center gap-2 sm:gap-3">
         <div className="hidden min-w-0 text-right leading-tight sm:block">
           <div className="truncate text-sm">{user.email || user.name}</div>
-          <div className="text-muted-foreground text-xs">{authorized ? 'authorized' : 'not on the allowlist'}</div>
+          <div className="text-muted-foreground text-xs">
+            {authorized ? t('auth.authorized') : t('auth.notAuthorized')}
+          </div>
           {!authorized && error && <div className="text-destructive text-xs">{error}</div>}
         </div>
         {user.picture && (
@@ -50,7 +54,7 @@ export function AuthBar() {
           />
         )}
         <Button variant="outline" size="sm" className="shrink-0" onClick={signOut}>
-          sign out
+          {t('auth.signOut')}
         </Button>
       </div>
     )
