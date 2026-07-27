@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { LoadingDots } from '@/components/LoadingDots'
 import { PersonName } from '@/components/PersonName'
 import { useSubHeaderContainer } from '@/components/subheader'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { formatAmount } from '@/lib/format'
 
 /** Each participant's balance: total paid minus their share of every expense. Positive = owed money. */
@@ -135,9 +136,12 @@ export function ExpenseDashboard({
         {sorted.map((expense) => (
           <Card key={expense.id}>
             <CardContent className="flex items-center gap-3 py-3">
-              <span className="text-2xl" aria-hidden>
-                {categoryIcon(expense.category)}
-              </span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-2xl">{categoryIcon(expense.category)}</span>
+                </TooltipTrigger>
+                <TooltipContent>{expense.category}</TooltipContent>
+              </Tooltip>
               <div className="flex flex-1 items-center justify-between gap-4">
                 <div>
                   <p className="flex items-center gap-1.5 font-medium">

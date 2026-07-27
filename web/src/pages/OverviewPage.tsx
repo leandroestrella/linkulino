@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getCategories, getExpenses, getParticipants, getTrips } from '@/api/client'
 import type { Category, Expense, Participant, Trip } from '@/api/types'
+import { CategoryPieChart } from '@/components/CategoryPieChart'
 import { LoadingDots } from '@/components/LoadingDots'
+import { PersonName } from '@/components/PersonName'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatAmount } from '@/lib/format'
 
@@ -29,15 +31,6 @@ function totalsByParticipant(expenses: Expense[], participants: Participant[]): 
   return [...totals.entries()]
 }
 
-/** Each category's total, sorted highest first. */
-function totalsByCategory(expenses: Expense[]): [string, number][] {
-  const totals = new Map<string, number>()
-  for (const expense of expenses) {
-    totals.set(expense.category, (totals.get(expense.category) ?? 0) + expense.amount)
-  }
-  return [...totals.entries()].sort((a, b) => b[1] - a[1])
-}
-
 /** An expense is "common" when more than one participant has a nonzero share, else "single-user". */
 function isCommon(expense: Expense): boolean {
   return Object.values(expense.splits).filter((pct) => pct > 0).length > 1
@@ -53,21 +46,6 @@ function tripDays(trip: Trip): number {
 
 function sum(expenses: Expense[]): number {
   return expenses.reduce((total, e) => total + e.amount, 0)
-}
-
-/** Compact wrapped list of each category's total, with its emoji. */
-function CategoryBreakdown({ expenses, categories }: { expenses: Expense[]; categories: Category[] }) {
-  const breakdown = totalsByCategory(expenses)
-  if (breakdown.length === 0) return null
-  return (
-    <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1">
-      {breakdown.map(([name, total]) => (
-        <span key={name} className="text-muted-foreground text-xs">
-          {categories.find((c) => c.name === name)?.icon ?? '💸'} {name} {formatAmount(total)}
-        </span>
-      ))}
-    </div>
-  )
 }
 
 export function OverviewPage() {
@@ -121,7 +99,7 @@ export function OverviewPage() {
         <CardHeader>
           <CardTitle>{t('overview.byMonth')}</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col gap-3">
+        <CardContent className="flex flex-col gap-4">
           {byMonth.length === 0 && <p className="text-muted-foreground text-sm">{t('overview.empty')}</p>}
           {byMonth.map(([month, expenses]) => (
             <div key={month}>
@@ -129,7 +107,7 @@ export function OverviewPage() {
                 <span className="text-muted-foreground text-sm">{month}</span>
                 <span className="font-medium">{formatAmount(sum(expenses))}</span>
               </div>
-              <CategoryBreakdown expenses={expenses} categories={categories} />
+              <CategoryPieChart expenses={expenses} categories={categories} />
             </div>
           ))}
         </CardContent>
@@ -139,7 +117,7 @@ export function OverviewPage() {
         <CardHeader>
           <CardTitle>{t('overview.byYear')}</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col gap-3">
+        <CardContent className="flex flex-col gap-4">
           {byYear.length === 0 && <p className="text-muted-foreground text-sm">{t('overview.empty')}</p>}
           {byYear.map(([year, expenses]) => (
             <div key={year}>
@@ -147,7 +125,7 @@ export function OverviewPage() {
                 <span className="text-muted-foreground text-sm">{year}</span>
                 <span className="font-medium">{formatAmount(sum(expenses))}</span>
               </div>
-              <CategoryBreakdown expenses={expenses} categories={categories} />
+              <CategoryPieChart expenses={expenses} categories={categories} />
             </div>
           ))}
         </CardContent>
@@ -157,18 +135,18 @@ export function OverviewPage() {
         <CardHeader>
           <CardTitle>{t('overview.vacationsOverall')}</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-wrap gap-x-8 gap-y-2">
+        <CardContent className="flex items-center justify-between">
           <div>
             <p className="text-muted-foreground text-sm">{t('home.total')}</p>
             <p className="text-xl font-medium">{formatAmount(vacationsTotal)}</p>
           </div>
-          <div>
+          <div className="text-center">
             <p className="text-muted-foreground text-sm">{t('overview.perVacation')}</p>
             <p className="text-xl font-medium">
               {trips.length > 0 ? formatAmount(vacationsTotal / trips.length) : '—'}
             </p>
           </div>
-          <div>
+          <div className="text-right">
             <p className="text-muted-foreground text-sm">{t('overview.perDay')}</p>
             <p className="text-xl font-medium">{totalDays > 0 ? formatAmount(vacationsTotal / totalDays) : '—'}</p>
           </div>
@@ -179,13 +157,18 @@ export function OverviewPage() {
         <CardHeader>
           <CardTitle>{t('overview.byUser')}</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-wrap gap-x-8 gap-y-2">
-          {byUser.map(([name, total]) => (
-            <div key={name}>
-              <p className="text-muted-foreground text-sm">{name}</p>
-              <p className="text-xl font-medium">{formatAmount(total)}</p>
-            </div>
-          ))}
+        <CardContent className="flex items-center justify-between">
+          {byUser.map(([name, total], i) => {
+            const person = participants.find((p) => p.name === name) ?? { name, icon: '' }
+            return (
+              <div key={name} className={i === byUser.length - 1 ? 'text-right' : undefined}>
+                <p className="text-muted-foreground text-sm">
+                  <PersonName person={person} />
+                </p>
+                <p className="text-xl font-medium">{formatAmount(total)}</p>
+              </div>
+            )
+          })}
         </CardContent>
       </Card>
 
@@ -193,33 +176,33 @@ export function OverviewPage() {
         <CardHeader>
           <CardTitle>{t('overview.commonVsSingle')}</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col gap-3">
+        <CardContent className="flex flex-col gap-4">
           <div>
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground text-sm">{t('overview.common')}</span>
               <span className="font-medium">{formatAmount(commonTotal)}</span>
             </div>
-            <CategoryBreakdown expenses={common} categories={categories} />
+            <CategoryPieChart expenses={common} categories={categories} />
           </div>
           <div>
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground text-sm">{t('overview.singleUser')}</span>
               <span className="font-medium">{formatAmount(singleUserTotal)}</span>
             </div>
-            <CategoryBreakdown expenses={singleUser} categories={categories} />
+            <CategoryPieChart expenses={singleUser} categories={categories} />
+            {singleUserTotal > 0 && (
+              <div className="flex flex-wrap gap-x-8 gap-y-2 pt-2">
+                {singleUserByParticipant
+                  .filter(([, total]) => total > 0)
+                  .map(([name, total]) => (
+                    <div key={name}>
+                      <p className="text-muted-foreground text-sm">{name}</p>
+                      <p className="font-medium">{formatAmount(total)}</p>
+                    </div>
+                  ))}
+              </div>
+            )}
           </div>
-          {singleUserTotal > 0 && (
-            <div className="flex flex-wrap gap-x-8 gap-y-2 pt-1">
-              {singleUserByParticipant
-                .filter(([, total]) => total > 0)
-                .map(([name, total]) => (
-                  <div key={name}>
-                    <p className="text-muted-foreground text-sm">{name}</p>
-                    <p className="font-medium">{formatAmount(total)}</p>
-                  </div>
-                ))}
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>

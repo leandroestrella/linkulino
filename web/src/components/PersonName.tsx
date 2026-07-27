@@ -7,7 +7,7 @@ function isImageUrl(icon: string): boolean {
 export function PersonIcon({ icon }: { icon: string }) {
   if (!icon) return null
   if (isImageUrl(icon)) {
-    return <img src={icon} alt="" className="inline-block size-4 rounded-full align-[-3px]" />
+    return <img src={icon} alt="" className="inline-block size-4 align-[-3px]" />
   }
   return <span aria-hidden>{icon}</span>
 }
