@@ -9,6 +9,7 @@ import { useAuth } from '@/auth/AuthProvider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { LoadingDots } from '@/components/LoadingDots'
+import { PersonName } from '@/components/PersonName'
 import { useSubHeaderContainer } from '@/components/subheader'
 import { formatAmount } from '@/lib/format'
 
@@ -36,11 +37,6 @@ function singleBalance(
   const amount = Math.round(Math.abs(balanceA) * 100) / 100
   if (amount < 0.01) return null
   return balanceA > 0 ? { debtor: b, creditor: a, amount } : { debtor: a, creditor: b, amount }
-}
-
-/** `name` with its icon to the right, or just `name` when there's no icon yet. */
-function withIcon(person: { name: string; icon: string }): string {
-  return person.icon ? `${person.name} ${person.icon}` : person.name
 }
 
 /** Totals card + expense list for either the household budget or a single trip. */
@@ -112,7 +108,8 @@ export function ExpenseDashboard({
                     {balance ? (
                       <>
                         <p className="text-muted-foreground text-sm">
-                          {t('home.owes', { debtor: withIcon(balance.debtor), creditor: withIcon(balance.creditor) })}
+                          <PersonName person={balance.debtor} /> {t('home.owesConnector')}{' '}
+                          <PersonName person={balance.creditor} />
                         </p>
                         <p className="text-xl font-medium">{formatAmount(balance.amount)}</p>
                       </>
@@ -157,9 +154,10 @@ export function ExpenseDashboard({
                   <div className="text-right">
                     <p className="font-medium">{formatAmount(expense.amount)}</p>
                     <p className="text-muted-foreground text-sm">
-                      {t('home.paidBy', {
-                        name: withIcon(participants.find((p) => p.name === expense.payer) ?? { name: expense.payer, icon: '' }),
-                      })}
+                      {t('home.paidByPrefix')}{' '}
+                      <PersonName
+                        person={participants.find((p) => p.name === expense.payer) ?? { name: expense.payer, icon: '' }}
+                      />
                     </p>
                   </div>
                   {canWrite && (

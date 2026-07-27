@@ -15,7 +15,10 @@
 
 var USERS_TAB = 'Users'
 var CATEGORIES_TAB = 'Categorie'
-var TEMPLATE_TAB = 'Viaggio - Modello'
+// Must match your trip-template tab's name EXACTLY (createTrip_ duplicates
+// this tab, and classifyTab excludes it by this name so it isn't mistaken
+// for a real trip) — rename this constant if you rename the tab.
+var TEMPLATE_TAB = 'Viaggio - Modello (copiare non modificare)'
 var AUX_TAB_PREFIX = 'wise raw'
 
 // The A1 marker words an expense tab uses to identify its own kind. These are

@@ -22,8 +22,8 @@
     "addExpense": "add expense",
     "loading": "loading",
     "empty": "no expenses yet — add the first one.",
-    "paidBy": "paid by {{name}}",
-    "owes": "{{debtor}} owes {{creditor}}",
+    "paidByPrefix": "paid by",
+    "owesConnector": "owes",
     "settledUp": "all settled up!"
   },
   "form": {
@@ -73,6 +73,8 @@
     "byMonth": "by month",
     "byYear": "by year",
     "vacationsOverall": "vacations overall",
+    "perVacation": "per vacation",
+    "perDay": "per day",
     "byUser": "by user",
     "commonVsSingle": "common vs. single-user expenses",
     "common": "common (split)",

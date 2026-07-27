@@ -1,7 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { Link, Navigate, Route, Routes } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { LuggageIcon, ChartColumnIcon } from 'lucide-react'
 import { AuthBar } from '@/auth/AuthBar'
 import { SubHeaderContext } from '@/components/subheader'
 import { useHideOnScroll } from '@/hooks/useHideOnScroll'
@@ -50,16 +49,24 @@ function Layout({ children }: { children: ReactNode }) {
           <div className="flex items-center gap-1">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Link to="/trips" aria-label={t('nav.trips')} className="hover:bg-accent rounded-md p-2">
-                  <LuggageIcon className="size-5" />
+                <Link
+                  to="/trips"
+                  aria-label={t('nav.trips')}
+                  className="hover:bg-accent rounded-md p-2 text-lg leading-none"
+                >
+                  🧳
                 </Link>
               </TooltipTrigger>
               <TooltipContent>{t('nav.trips')}</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Link to="/overview" aria-label={t('nav.overview')} className="hover:bg-accent rounded-md p-2">
-                  <ChartColumnIcon className="size-5" />
+                <Link
+                  to="/overview"
+                  aria-label={t('nav.overview')}
+                  className="hover:bg-accent rounded-md p-2 text-lg leading-none"
+                >
+                  📊
                 </Link>
               </TooltipTrigger>
               <TooltipContent>{t('nav.overview')}</TooltipContent>

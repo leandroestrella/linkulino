@@ -9,7 +9,8 @@ import type { Category, Expense, Participant, Trip } from './types'
 
 export const MOCK_PARTICIPANTS: Participant[] = [
   { name: 'Alex', icon: '🧮' },
-  { name: 'Sam', icon: '🎯' },
+  // Icons can be a plain emoji (Alex) or an image URL (Sam) — both are supported.
+  { name: 'Sam', icon: 'https://www.leandroestrella.com/img/favicon.ico' },
 ]
 
 export const MOCK_CATEGORIES: Category[] = [

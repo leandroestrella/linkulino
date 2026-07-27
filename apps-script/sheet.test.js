@@ -5,7 +5,7 @@ const sheet = require('./sheet.js')
 test('classifyTab', () => {
   assert.equal(sheet.classifyTab('Users', ''), sheet.TAB_TYPE.ignore)
   assert.equal(sheet.classifyTab('Categorie', ''), sheet.TAB_TYPE.ignore)
-  assert.equal(sheet.classifyTab('Viaggio - Modello', 'viaggio'), sheet.TAB_TYPE.ignore)
+  assert.equal(sheet.classifyTab(sheet.TEMPLATE_TAB, 'viaggio'), sheet.TAB_TYPE.ignore)
   assert.equal(sheet.classifyTab('wise raw copenhagen', ''), sheet.TAB_TYPE.ignore)
   assert.equal(sheet.classifyTab('casa nostra', 'casa'), sheet.TAB_TYPE.household)
   assert.equal(sheet.classifyTab('lisbon 2026', 'viaggio'), sheet.TAB_TYPE.trip)

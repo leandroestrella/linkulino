@@ -22,8 +22,8 @@
     "addExpense": "añadir gasto",
     "loading": "cargando",
     "empty": "todavía no hay gastos — añade el primero.",
-    "paidBy": "pagado por {{name}}",
-    "owes": "{{debtor}} le debe a {{creditor}}",
+    "paidByPrefix": "pagado por",
+    "owesConnector": "le debe a",
     "settledUp": "¡todo saldado!"
   },
   "form": {
@@ -73,6 +73,8 @@
     "byMonth": "por mes",
     "byYear": "por año",
     "vacationsOverall": "viajes en conjunto",
+    "perVacation": "por viaje",
+    "perDay": "por día",
     "byUser": "por persona",
     "commonVsSingle": "gastos comunes vs. individuales",
     "common": "comunes (repartidos)",

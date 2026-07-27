@@ -12,7 +12,7 @@ up your own instance.
 | `Users` | the write allowlist **and** the participant roster — see below |
 | `Categorie` | expense categories and their emoji — see below |
 | one **household** tab (e.g. `casa`) | recurring shared-living expenses (rent, bills, groceries…) |
-| `Viaggio - Modello` (Trip - Template) | an empty template — never edited directly |
+| the trip template tab | an empty template — never edited directly. Its name must exactly match `TEMPLATE_TAB` in `apps-script/sheet.js` (currently `Viaggio - Modello (copiare non modificare)`) — rename one or the other if you rename this tab |
 | one **trip** tab per vacation | duplicated from the template, one per trip |
 | `wise raw *` (optional) | raw exported transaction data kept for manual reconciliation; the backend ignores any tab whose name starts with `wise raw` |
 
@@ -118,7 +118,7 @@ it alone.
 
 ## trips
 
-A trip tab is created by duplicating `Viaggio - Modello` and is named
+A trip tab is created by duplicating the template tab and is named
 `"{emoji} {name}"` (e.g. `🐚 cala gonone`) — the app does this for you (the
 vacations tab in the SPA), or you can still do it by hand (right-click the
 template → Duplicate → rename, then fill in row 1). A trip's status (current /
