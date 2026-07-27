@@ -80,7 +80,7 @@ export function ExpenseFilters({
           value={filters.from}
           onChange={(e) => onChange({ ...filters, from: e.target.value })}
           aria-label={t('filters.from')}
-          className="h-8 w-full sm:h-7 sm:w-auto sm:shrink-0 sm:px-1 sm:text-sm"
+          className="h-8 w-full [&::-webkit-calendar-picker-indicator]:ml-0 [&::-webkit-calendar-picker-indicator]:p-0.5 sm:h-7 sm:w-auto sm:shrink-0 sm:px-1 sm:text-sm"
         />
 
         <Input
@@ -88,7 +88,7 @@ export function ExpenseFilters({
           value={filters.to}
           onChange={(e) => onChange({ ...filters, to: e.target.value })}
           aria-label={t('filters.to')}
-          className="h-8 w-full sm:h-7 sm:w-auto sm:shrink-0 sm:px-1 sm:text-sm"
+          className="h-8 w-full [&::-webkit-calendar-picker-indicator]:ml-0 [&::-webkit-calendar-picker-indicator]:p-0.5 sm:h-7 sm:w-auto sm:shrink-0 sm:px-1 sm:text-sm"
         />
 
         <Select
