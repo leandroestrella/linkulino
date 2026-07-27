@@ -68,6 +68,7 @@ both config values are safe to publish (the oauth client id is public by design,
 ## maintainer guides
 
 - [sheet setup](docs/sheet-setup.md) — the exact tab layout, column positions, and how the backend tells household/trip tabs apart
+- [updating the mascot](docs/updating-the-mascot.md) — regenerating the favicon/avatar copy after changing the source image
 
 ## development
 
