@@ -153,15 +153,13 @@ export function OverviewPage() {
         <CardHeader>
           <CardTitle>{t('overview.commonVsSingle')}</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <CardContent className="grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
+          <span className="text-muted-foreground text-sm">{t('overview.common')}</span>
+          <span className="text-muted-foreground text-sm">{t('overview.singleUser')}</span>
+          <CategoryPieChart expenses={common} categories={categories} linkFilters={{}} />
+          <CategoryPieChart expenses={singleUser} categories={categories} linkFilters={{}} />
+          <span className="font-medium block pt-1">{formatAmount(commonTotal)}</span>
           <div>
-            <span className="text-muted-foreground text-sm block mb-1">{t('overview.common')}</span>
-            <CategoryPieChart expenses={common} categories={categories} linkFilters={{}} />
-            <span className="font-medium block pt-1">{formatAmount(commonTotal)}</span>
-          </div>
-          <div>
-            <span className="text-muted-foreground text-sm block mb-1">{t('overview.singleUser')}</span>
-            <CategoryPieChart expenses={singleUser} categories={categories} linkFilters={{}} />
             <span className="font-medium block pt-1">{formatAmount(singleUserTotal)}</span>
             {singleUserTotal > 0 && (
               <div className="flex flex-wrap gap-x-8 gap-y-2 pt-6">
