@@ -89,7 +89,7 @@ Below the row-1 type marker:
 | row | content |
 | --- | --- |
 | 2 | `Totale speso` (Total spent) \| `€ <sum>` |
-| 3 | `Saldo attuale` (Current balance) \| a plain-language summary of who owes whom |
+| 3 | `Saldo attuale` (Current balance) \| a running-balance figure — a hand-built tab can use a plain-language formula here if you like, but a tab the app generates (see below) just mirrors the `TOTALE` row's Saldo number |
 | 4 | column headers (see below) |
 | 5+ | one row per expense |
 
@@ -145,8 +145,8 @@ configure.
 
 ## recurring expenses
 
-Household expenses flagged recurring (column K, household tab only — not
-trips) are recreated automatically once a month: `runMonthlyRecurringExpenses`
+Household expenses flagged recurring (the `Ricorrente` column, household tab
+only — not trips) are recreated automatically once a month: `runMonthlyRecurringExpenses`
 (in `apps-script/Code.js`) finds, per description, the most recent recurring
 occurrence and — unless that description already has an entry dated this
 month — writes a fresh copy dated today. It's idempotent, so running it twice
@@ -177,7 +177,8 @@ once its date isn't in the current calendar month.
 ## why this shape
 
 The sheet already encodes almost the entire app: participant names, the
-split, and the running balance are all formulas the human template author
-designed by hand. The backend's job is mostly *finding the right cell*, not
-computing anything — quota/saldo math stays in the sheet, where it's visible
+split, and the running balance are all formulas — hand-built on your
+household tab, machine-generated (but in the same shape) on every trip tab.
+The backend's job is mostly *finding the right cell*, not computing anything
+— quota/saldo math stays in the sheet, where it's visible
 and editable without redeploying code.

@@ -27,7 +27,8 @@ flowchart LR
 - 🎨 emoji everywhere — each partner and each category gets an icon (set on the sheet, editable there or added from the app); categories can be created on the fly by authorized users
 - 📊 a monthly dashboard plus a full overview page — totals by month, by year, vacations combined, by person, and common vs. single-user expenses
 - 🔁 recurring expenses — flag a bill (rent, internet…) once and it's recreated automatically every month
-- 🧳 a vacations tab — spin up a new trip from a reusable template, see it grouped as current / upcoming / past, with current and upcoming trips surfaced right on the home page
+- 🧳 a vacations tab — spin up a new trip in one step (the backend builds its tab from scratch, formulas included), see it grouped as current / upcoming / past, with current and upcoming trips surfaced right on the home page
+- 🔍 filter the dashboard by category, payer, or date range — including one-click shortcuts for common timeframes (this/last month, last 7/30/90 days, this/last year…) — and jump straight into a filtered view by clicking any value on the overview page
 - ⚙️ a `Users` tab doing double duty as the participant roster and the write allowlist, configured once, used everywhere
 - 🌍 interface in english, italiano and español
 
@@ -54,13 +55,13 @@ assets/       brand art
 
 linkulino is a template for anyone who wants to track shared expenses with a partner, roommates, or a small group:
 
-1. copy the google sheet template — a `Users` tab (participant roster + write allowlist), a `Categorie` tab (expense categories + emoji), a tab for recurring/household expenses, and a trip template tab to duplicate per vacation (the exact column schema is in [docs/sheet-setup.md](docs/sheet-setup.md)). keep it **private** (the app reads it through the backend, so it never needs to be link-shared)
+1. copy the google sheet template — a `Users` tab (participant roster + write allowlist), a `Categorie` tab (expense categories + emoji), and a tab for recurring/household expenses (the exact column schema is in [docs/sheet-setup.md](docs/sheet-setup.md)). trip tabs don't need any manual setup — the app builds a fresh one from scratch whenever you create a trip. keep the sheet **private** (the app reads it through the backend, so it never needs to be link-shared)
 2. create a bound apps script on your sheet: `cd apps-script`, `npm install`, `npx clasp login`, then `clasp clone <scriptId>` (or create the project via the sheet's Extensions → Apps Script and `clasp push`). deploy it as a web app ("execute as: me", "who has access: anyone"). run any function once from the editor to grant the scopes (spreadsheet + external requests + triggers), clicking through the consent screen
 3. create a google oauth client id (web application) for the sign-in button; add your site's origin to its authorized javascript origins
 4. configure participants & the client id on the backend:
    - fill in the `Users` tab: `Email`, `Name`, `Icon` columns, one row per participant — the first two rows with a name become Persona A and B, in order
    - add a script property `OAUTH_CLIENT_ID` (Project Settings → Script Properties) with the client id from step 3, so the backend can verify sign-in tokens
-5. add a `Ricorrente` column (K) to the household tab only (not trips — recurring doesn't apply there) if you want recurring expenses; then run `installMonthlyRecurringTrigger` once from the Apps Script editor (Run menu) to schedule the monthly auto-recreate job — see [docs/sheet-setup.md](docs/sheet-setup.md#recurring-expenses)
+5. add a `Ricorrente` column (anywhere after column E) to the household tab only (not trips — recurring doesn't apply there) if you want recurring expenses; then run `installMonthlyRecurringTrigger` once from the Apps Script editor (Run menu) to schedule the monthly auto-recreate job — see [docs/sheet-setup.md](docs/sheet-setup.md#recurring-expenses)
 6. copy `web/.env.example` to `web/.env.local` and fill in `VITE_API_URL` (your `/exec` url) and `VITE_GOOGLE_CLIENT_ID` — both are public, so they can also live in github repo secrets for the deploy action
 7. `npm install && npm run build` in `web/`, and host the `dist/` folder anywhere static files live (an `.htaccess` for spa routing + basic headers will be included for apache/cpanel)
 
