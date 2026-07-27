@@ -58,6 +58,7 @@
     "past": "passati",
     "empty": "nessun viaggio ancora.",
     "currentTrip": "viaggio in corso",
+    "upcomingTrip": "prossimo viaggio",
     "errorNameRequired": "la destinazione è obbligatoria.",
     "errorDateRange": "la data di fine deve essere uguale o successiva alla data di inizio."
   }

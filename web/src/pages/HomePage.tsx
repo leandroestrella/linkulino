@@ -8,29 +8,38 @@ import { Card, CardContent } from '@/components/ui/card'
 
 export function HomePage() {
   const { t } = useTranslation()
-  const [activeTrip, setActiveTrip] = useState<Trip | null>(null)
+  const [trips, setTrips] = useState<Trip[]>([])
 
   useEffect(() => {
-    void getTrips().then((trips) => {
-      setActiveTrip(trips.find((trip) => tripStatus(trip) === 'active') ?? null)
+    void getTrips().then((allTrips) => {
+      const relevant = allTrips
+        .filter((trip) => tripStatus(trip) !== 'past')
+        .sort((a, b) => a.startDate.localeCompare(b.startDate))
+      setTrips(relevant)
     })
   }, [])
 
   return (
     <div className="flex flex-col gap-6">
-      {activeTrip && (
-        <Link to={`/trips/${activeTrip.id}`}>
-          <Card className="border-primary/40 hover:bg-accent transition-colors">
-            <CardContent className="flex items-center gap-3 py-3">
-              <span className="text-2xl">{activeTrip.emoji}</span>
-              <div>
-                <p className="font-medium">{t('trips.currentTrip')}</p>
-                <p className="text-muted-foreground text-sm">{activeTrip.name}</p>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-      )}
+      {trips.map((trip) => {
+        const active = tripStatus(trip) === 'active'
+        return (
+          <Link key={trip.id} to={`/trips/${trip.id}`}>
+            <Card className={active ? 'border-primary/40 hover:bg-accent transition-colors' : 'hover:bg-accent transition-colors'}>
+              <CardContent className="flex items-center gap-3 py-3">
+                <span className="text-2xl">{trip.emoji}</span>
+                <div>
+                  <p className="font-medium">{active ? t('trips.currentTrip') : t('trips.upcomingTrip')}</p>
+                  <p className="text-muted-foreground text-sm">
+                    {trip.name}
+                    {!active && ` · ${trip.startDate} → ${trip.endDate}`}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        )
+      })}
       <ExpenseDashboard title={t('home.thisMonth')} addHref="/add" editBase="/expense" />
     </div>
   )

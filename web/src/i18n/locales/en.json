@@ -58,6 +58,7 @@
     "past": "past",
     "empty": "no trips yet.",
     "currentTrip": "current trip",
+    "upcomingTrip": "upcoming trip",
     "errorNameRequired": "destination is required.",
     "errorDateRange": "end date must be on or after the start date."
   }
