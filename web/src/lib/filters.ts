@@ -13,7 +13,12 @@ export interface ExpenseFilterValues {
 export const EMPTY_FILTERS: ExpenseFilterValues = { category: '', payer: '', from: '', to: '' }
 
 export function hasActiveFilters(filters: ExpenseFilterValues): boolean {
-  return Boolean(filters.category || filters.payer || filters.from || filters.to)
+  return activeFilterCount(filters) > 0
+}
+
+/** How many of the four filter fields are set — shown as a badge on the mobile filters toggle. */
+export function activeFilterCount(filters: ExpenseFilterValues): number {
+  return [filters.category, filters.payer, filters.from, filters.to].filter(Boolean).length
 }
 
 /** Applies category/payer (case-insensitive)/date-range filters; blank values are no-ops. */
