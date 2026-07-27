@@ -243,32 +243,57 @@ function writeExpenseRow_(tab, rowNumber, input, participants, cols, includeRecu
 }
 
 /**
- * Finds the trip template tab, tolerating a typographic-dash mismatch against
- * TEMPLATE_TAB (see normalizeTabName in sheet.js) since sheet tab names are
- * hand-typed and easy to get a hyphen vs. en/em dash wrong on.
- * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} ss
- * @return {GoogleAppsScript.Spreadsheet.Sheet|null}
+ * Builds a fresh trip tab's structure: row-1 metadata, the "Totale
+ * speso"/"Saldo attuale" summary cells, the header row, one pre-filled blank
+ * data row with the Quota €/Saldo formulas, and the closing TOTALE row. No
+ * template tab to duplicate — everything's generated directly, so deleting
+ * (or never having) a template tab doesn't block trip creation. The one
+ * blank data row exists so ensureBlankSlotRow_ has a formula row to copy
+ * from the first time this trip runs out of slots (see Code.js).
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} tab a freshly inserted, empty sheet
+ * @param {{name: string, emoji: string, startDate: string, endDate: string}} trip
+ * @param {{a: {name: string}|null, b: {name: string}|null}} participants
  */
-function findTemplateTab_(ss) {
-  var sheets = ss.getSheets()
-  for (var i = 0; i < sheets.length; i++) {
-    if (normalizeTabName(sheets[i].getName()) === normalizeTabName(TEMPLATE_TAB)) return sheets[i]
-  }
-  return null
+function buildTripTab_(tab, trip, participants) {
+  var row1 = buildTripRow1Values(trip)
+  tab.getRange(1, 1, 1, row1.length).setValues([row1])
+
+  var header = buildTripHeaderRow(participants)
+  var headerRow = 4
+  tab.getRange(headerRow, 1, 1, header.length).setValues([header])
+  tab.getRange(headerRow, 1, 1, header.length).setFontWeight('bold')
+
+  var dataRow = headerRow + 1
+  var totaleRow = dataRow + 1
+  var bName = participants && participants.b ? participants.b.name : 'Persona B'
+
+  tab.getRange(dataRow, 6, 1, 2).setValues([[50, 50]]) // F/G: Quota % defaults
+  tab.getRange(dataRow, 8).setFormula('=IF($E' + dataRow + '="","",$E' + dataRow + '*$F' + dataRow + '/100)')
+  tab.getRange(dataRow, 9).setFormula('=IF($E' + dataRow + '="","",$E' + dataRow + '*$G' + dataRow + '/100)')
+  tab
+    .getRange(dataRow, 10)
+    .setFormula('=IF($E' + dataRow + '="","",IF($D' + dataRow + '="' + bName + '",-$H' + dataRow + ',$I' + dataRow + '))')
+
+  tab.getRange(totaleRow, 1).setValue('TOTALE')
+  tab.getRange(totaleRow, 5).setFormula('=SUM(E' + dataRow + ':E' + dataRow + ')')
+  tab.getRange(totaleRow, 8).setFormula('=SUM(H' + dataRow + ':H' + dataRow + ')')
+  tab.getRange(totaleRow, 9).setFormula('=SUM(I' + dataRow + ':I' + dataRow + ')')
+  tab.getRange(totaleRow, 10).setFormula('=SUM(J' + dataRow + ':J' + dataRow + ')')
+  tab.getRange(totaleRow, 1, 1, header.length).setFontWeight('bold')
+
+  // Cosmetic mirrors of the TOTALE row, for a human skimming the raw sheet —
+  // the app itself never reads these two cells.
+  tab.getRange(2, 1, 1, 2).setValues([['Totale speso', '=E' + totaleRow]])
+  tab.getRange(3, 1, 1, 2).setValues([['Saldo attuale', '=J' + totaleRow]])
 }
 
 /**
- * Duplicates the trip template tab, renames it `"{emoji} {name}"`, and sets
- * its row-1 metadata.
+ * Creates a trip tab named `"{emoji} {name}"` and sets its row-1 metadata.
  * @param {{name: string, emoji: string, startDate: string, endDate: string}} input
  * @return {Object} the created trip
  */
 function createTrip_(input) {
   if (!input || !cellToString(input.name)) throw new Error('Trip name is required')
-
-  var ss = getSpreadsheet_()
-  var template = findTemplateTab_(ss)
-  if (!template) throw new Error('Missing template tab: ' + TEMPLATE_TAB)
 
   var trip = {
     name: cellToString(input.name),
@@ -276,16 +301,15 @@ function createTrip_(input) {
     startDate: cellToString(input.startDate),
     endDate: cellToString(input.endDate),
   }
+  var ss = getSpreadsheet_()
   var tabName = tripTabName(trip)
   if (ss.getSheetByName(tabName)) throw new Error('A trip tab named "' + tabName + '" already exists')
 
-  var copy = template.copyTo(ss)
-  copy.setName(tabName)
-  ss.setActiveSheet(copy)
+  var participants = parseParticipants(readValues_(USERS_TAB))
+  var tab = ss.insertSheet(tabName)
+  buildTripTab_(tab, trip, participants)
+  ss.setActiveSheet(tab)
   ss.moveActiveSheet(ss.getNumSheets())
-
-  var row1 = buildTripRow1Values(trip)
-  copy.getRange(1, 1, 1, row1.length).setValues([row1])
 
   return { id: tabName, name: trip.name, emoji: trip.emoji, startDate: trip.startDate, endDate: trip.endDate }
 }

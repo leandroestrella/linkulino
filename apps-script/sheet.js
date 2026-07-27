@@ -165,6 +165,31 @@ function buildTripRow1Values(trip) {
   return [TRIP_MARKER, cellToString(trip.name), isoToDmy(trip.startDate), cellToString(trip.emoji), isoToDmy(trip.endDate)]
 }
 
+/**
+ * Builds the header row for a freshly created trip tab: the fixed A–E labels,
+ * then each participant's "Quota %"/"Quota (€)" columns — no Ricorrente
+ * column, since recurring expenses don't apply to trips (see
+ * resolveExpenseColumns, which expects this exact "Quota %" prefix).
+ * @param {{a: {name: string}|null, b: {name: string}|null}} participants
+ * @return {Array<string>}
+ */
+function buildTripHeaderRow(participants) {
+  var aName = participants && participants.a ? participants.a.name : 'Persona A'
+  var bName = participants && participants.b ? participants.b.name : 'Persona B'
+  return [
+    'Data',
+    'Descrizione',
+    'Categoria',
+    'Pagato da',
+    'Importo (€)',
+    'Quota % ' + aName,
+    'Quota % ' + bName,
+    'Quota ' + aName + ' (€)',
+    'Quota ' + bName + ' (€)',
+    'Saldo (+ = deve a ' + aName + ')',
+  ]
+}
+
 // ---------------------------------------------------------------------------
 // Participants (Users tab)
 // ---------------------------------------------------------------------------
@@ -450,6 +475,7 @@ if (typeof module !== 'undefined' && module.exports) {
     parseTabMeta: parseTabMeta,
     tripTabName: tripTabName,
     buildTripRow1Values: buildTripRow1Values,
+    buildTripHeaderRow: buildTripHeaderRow,
     parseParticipants: parseParticipants,
     parseCategories: parseCategories,
     buildCategoryRowValues: buildCategoryRowValues,

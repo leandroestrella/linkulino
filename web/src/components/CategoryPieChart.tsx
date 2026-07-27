@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Category, Expense } from '@/api/types'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -86,6 +87,7 @@ export function CategoryPieChart({
   linkFilters?: Partial<ExpenseFilterValues>
 }) {
   const navigate = useNavigate()
+  const [hovered, setHovered] = useState<string | null>(null)
   const slices = toSlices(expenses, categories)
   if (slices.length === 0) return null
 
@@ -117,8 +119,11 @@ export function CategoryPieChart({
                 fill={arc.color}
                 stroke="var(--card)"
                 strokeWidth="1"
-                className={clickable(arc.name) ? 'cursor-pointer' : undefined}
+                opacity={hovered && hovered !== arc.name ? 0.4 : 1}
+                className={`transition-opacity ${clickable(arc.name) ? 'cursor-pointer' : ''}`}
                 onClick={() => goToCategory(arc.name)}
+                onMouseEnter={() => setHovered(arc.name)}
+                onMouseLeave={() => setHovered(null)}
               />
             </TooltipTrigger>
             <TooltipContent>
@@ -131,8 +136,10 @@ export function CategoryPieChart({
         {arcs.map((arc) => (
           <div
             key={arc.name}
-            className={`flex items-center gap-1.5 text-xs ${clickable(arc.name) ? 'cursor-pointer hover:opacity-60' : ''}`}
+            className={`flex items-center gap-1.5 rounded-sm px-1 -mx-1 text-xs transition-colors ${clickable(arc.name) ? 'cursor-pointer' : ''} ${hovered === arc.name ? 'bg-muted' : ''}`}
             onClick={() => goToCategory(arc.name)}
+            onMouseEnter={() => setHovered(arc.name)}
+            onMouseLeave={() => setHovered(null)}
           >
             <span className="inline-block size-2.5 shrink-0" style={{ backgroundColor: arc.color }} aria-hidden />
             <Tooltip>

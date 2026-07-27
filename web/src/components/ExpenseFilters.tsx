@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { XIcon } from 'lucide-react'
 import type { Category, Participant } from '@/api/types'
+import { PersonIcon } from '@/components/PersonName'
 import { EMPTY_FILTERS, hasActiveFilters, type ExpenseFilterValues } from '@/lib/filters'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -49,7 +50,7 @@ export function ExpenseFilters({
           <SelectItem value={ALL}>{t('filters.payer')}</SelectItem>
           {participants.map((p) => (
             <SelectItem key={p.name} value={p.name}>
-              {p.name}
+              <PersonIcon icon={p.icon} /> {p.name}
             </SelectItem>
           ))}
         </SelectContent>

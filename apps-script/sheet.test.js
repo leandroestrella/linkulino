@@ -41,6 +41,28 @@ test('buildTripRow1Values builds the row-1 metadata for a new trip tab', () => {
   assert.deepEqual(row1, ['viaggio', 'lisbon', '24/08/2026', '🐚', '30/08/2026'])
 })
 
+test('buildTripHeaderRow builds A-E labels plus each participant\'s Quota columns', () => {
+  const header = sheet.buildTripHeaderRow({ a: { name: 'Alex' }, b: { name: 'Sam' } })
+  assert.deepEqual(header, [
+    'Data',
+    'Descrizione',
+    'Categoria',
+    'Pagato da',
+    'Importo (€)',
+    'Quota % Alex',
+    'Quota % Sam',
+    'Quota Alex (€)',
+    'Quota Sam (€)',
+    'Saldo (+ = deve a Alex)',
+  ])
+})
+
+test('buildTripHeaderRow falls back to placeholder names when participants are missing', () => {
+  const header = sheet.buildTripHeaderRow({ a: null, b: null })
+  assert.equal(header[5], 'Quota % Persona A')
+  assert.equal(header[6], 'Quota % Persona B')
+})
+
 test('parseParticipants reads the first two named rows, in order, with their icon', () => {
   const values = [
     ['Email', 'Name', 'Icon'],
