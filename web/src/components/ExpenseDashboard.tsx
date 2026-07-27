@@ -92,7 +92,11 @@ export function ExpenseDashboard({
     monthFilter && !filters.from && !filters.to ? expenses.filter((e) => e.date.slice(0, 7) === thisMonth) : expenses
   const scoped = filterExpenses(monthScoped, filters)
   const total = scoped.reduce((sum, e) => sum + e.amount, 0)
-  const balance = singleBalance(scoped, participants)
+  // Debt is a whole-picture concept — always computed unfiltered (this month, or
+  // every expense for a trip), never scoped to the category/payer/date-range
+  // filters, since "who owes whom" only makes sense across the full picture.
+  const unfiltered = monthFilter ? expenses.filter((e) => e.date.slice(0, 7) === thisMonth) : expenses
+  const balance = singleBalance(unfiltered, participants)
   const sorted = [...scoped].sort((a, b) => b.date.localeCompare(a.date))
   const categoryIcon = (name: string) => categories.find((c) => c.name === name)?.icon ?? '💸'
 

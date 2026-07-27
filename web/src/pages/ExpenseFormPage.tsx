@@ -12,7 +12,7 @@ import {
 } from '@/api/client'
 import type { Category, Participant } from '@/api/types'
 import { useAuth } from '@/auth/AuthProvider'
-import { PersonName } from '@/components/PersonName'
+import { PersonIcon } from '@/components/PersonName'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -214,7 +214,7 @@ export function ExpenseFormPage({ mode }: { mode: 'add' | 'edit' }) {
                 <SelectContent>
                   {participants.map((p) => (
                     <SelectItem key={p.name} value={p.name}>
-                      <PersonName person={p} />
+                      <PersonIcon icon={p.icon} /> {p.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

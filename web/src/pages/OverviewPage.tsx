@@ -119,42 +119,33 @@ export function OverviewPage() {
       <h2 className="text-xl font-semibold">{t('overview.title')}</h2>
 
       <Card>
-        <CardHeader>
-          <CardTitle>{t('overview.byMonth')}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          {byMonth.length === 0 && <p className="text-muted-foreground text-sm">{t('overview.empty')}</p>}
-          {byMonth.map(([month, expenses]) => (
-            <div key={month}>
-              <FilterLink search={filtersToSearch(monthRange(month))}>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground text-sm">{month}</span>
-                  <span className="font-medium">{formatAmount(sum(expenses))}</span>
-                </div>
-              </FilterLink>
-              <CategoryPieChart expenses={expenses} categories={categories} linkFilters={monthRange(month)} />
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('overview.byYear')}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          {byYear.length === 0 && <p className="text-muted-foreground text-sm">{t('overview.empty')}</p>}
-          {byYear.map(([year, expenses]) => (
-            <div key={year}>
-              <FilterLink search={filtersToSearch(yearRange(year))}>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground text-sm">{year}</span>
-                  <span className="font-medium">{formatAmount(sum(expenses))}</span>
-                </div>
-              </FilterLink>
-              <CategoryPieChart expenses={expenses} categories={categories} linkFilters={yearRange(year)} />
-            </div>
-          ))}
+        <CardContent className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+          <div className="flex flex-col gap-4">
+            <h3 className="text-muted-foreground text-xs font-medium uppercase">{t('overview.byMonth')}</h3>
+            {byMonth.length === 0 && <p className="text-muted-foreground text-sm">{t('overview.empty')}</p>}
+            {byMonth.map(([month, expenses]) => (
+              <div key={month}>
+                <span className="text-muted-foreground text-sm block mb-1">{month}</span>
+                <CategoryPieChart expenses={expenses} categories={categories} linkFilters={monthRange(month)} />
+                <FilterLink search={filtersToSearch(monthRange(month))}>
+                  <span className="font-medium block pt-1">{formatAmount(sum(expenses))}</span>
+                </FilterLink>
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-col gap-4">
+            <h3 className="text-muted-foreground text-xs font-medium uppercase">{t('overview.byYear')}</h3>
+            {byYear.length === 0 && <p className="text-muted-foreground text-sm">{t('overview.empty')}</p>}
+            {byYear.map(([year, expenses]) => (
+              <div key={year}>
+                <span className="text-muted-foreground text-sm block mb-1">{year}</span>
+                <CategoryPieChart expenses={expenses} categories={categories} linkFilters={yearRange(year)} />
+                <FilterLink search={filtersToSearch(yearRange(year))}>
+                  <span className="font-medium block pt-1">{formatAmount(sum(expenses))}</span>
+                </FilterLink>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
 
@@ -164,20 +155,16 @@ export function OverviewPage() {
         </CardHeader>
         <CardContent className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div>
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground text-sm">{t('overview.common')}</span>
-              <span className="font-medium">{formatAmount(commonTotal)}</span>
-            </div>
+            <span className="text-muted-foreground text-sm block mb-1">{t('overview.common')}</span>
             <CategoryPieChart expenses={common} categories={categories} linkFilters={{}} />
+            <span className="font-medium block pt-1">{formatAmount(commonTotal)}</span>
           </div>
           <div>
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground text-sm">{t('overview.singleUser')}</span>
-              <span className="font-medium">{formatAmount(singleUserTotal)}</span>
-            </div>
+            <span className="text-muted-foreground text-sm block mb-1">{t('overview.singleUser')}</span>
             <CategoryPieChart expenses={singleUser} categories={categories} linkFilters={{}} />
+            <span className="font-medium block pt-1">{formatAmount(singleUserTotal)}</span>
             {singleUserTotal > 0 && (
-              <div className="flex flex-wrap gap-x-8 gap-y-2 pt-2">
+              <div className="flex flex-wrap gap-x-8 gap-y-2 pt-6">
                 {singleUserByParticipant
                   .filter(([, total]) => total > 0)
                   .map(([name, total]) => (
