@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { Link, Navigate, Route, Routes } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { AuthBar } from '@/auth/AuthBar'
-import { SubHeaderContext } from '@/components/subheader'
+import { AdminSlotContext, SubHeaderContext } from '@/components/subheader'
 import { useHideOnScroll } from '@/hooks/useHideOnScroll'
 import { cn } from '@/lib/utils'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -16,14 +16,16 @@ import { OverviewPage } from '@/pages/OverviewPage'
 
 /**
  * App shell: a sticky header (brand · language · sign-in) over the routed
- * page, plus a slot below the brand row that pages fill (via a portal) so
- * their toolbar — e.g. the home page's totals card and "add expense" button —
- * anchors together with the brand. Header and footer slide out of the way
- * while scrolling down, and return on scroll-up.
+ * page, plus two slots pages fill via a portal — one on the sign-in row for
+ * a write-gated admin button (e.g. "add expense", "new trip"), so it always
+ * sits next to the login control, and one below that for the rest of a
+ * page's toolbar (e.g. the home page's totals card). Header and footer slide
+ * out of the way while scrolling down, and return on scroll-up.
  */
 function Layout({ children }: { children: ReactNode }) {
   const { t } = useTranslation()
   const [slot, setSlot] = useState<HTMLDivElement | null>(null)
+  const [adminSlot, setAdminSlot] = useState<HTMLDivElement | null>(null)
   const hidden = useHideOnScroll()
 
   return (
@@ -74,17 +76,22 @@ function Layout({ children }: { children: ReactNode }) {
             </Tooltip>
           </div>
         </div>
-        {/* Always visible (not per-page portaled) so sign-in status shows on every page. */}
-        <div className="mx-auto flex w-full max-w-2xl justify-end px-4 pb-3">
+        {/* Always visible (not per-page portaled) so sign-in status shows on every page;
+            a page's write-gated admin button portals into the left side (see
+            useAdminSlotContainer) so it's always on the same line as sign-in. */}
+        <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-3 px-4 pb-3">
+          <div ref={setAdminSlot} className="flex items-center gap-2" />
           <AuthBar />
         </div>
-        {/* Pages portal their sticky toolbar here (see useSubHeaderContainer). */}
+        {/* Pages portal the rest of their sticky toolbar here (see useSubHeaderContainer). */}
         <div ref={setSlot} />
       </header>
 
-      <SubHeaderContext value={slot}>
-        <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6">{children}</main>
-      </SubHeaderContext>
+      <AdminSlotContext value={adminSlot}>
+        <SubHeaderContext value={slot}>
+          <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6">{children}</main>
+        </SubHeaderContext>
+      </AdminSlotContext>
 
       <footer
         className={cn(

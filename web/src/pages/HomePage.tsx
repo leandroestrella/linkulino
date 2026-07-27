@@ -21,31 +21,35 @@ export function HomePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      {trips.map((trip) => {
-        const active = tripStatus(trip) === 'active'
-        return (
-          <Link key={trip.id} to={`/trips/${trip.id}`}>
-            <Card
-              className={
-                active
-                  ? 'border-primary/40 bg-primary/5 hover:bg-primary/10 transition-colors'
-                  : 'bg-accent hover:bg-accent/70 transition-colors'
-              }
-            >
-              <CardContent className="flex items-center gap-3 py-3">
-                <span className="text-2xl">{trip.emoji}</span>
-                <div>
-                  <p className="font-medium">{active ? t('trips.currentTrip') : t('trips.upcomingTrip')}</p>
-                  <p className="text-muted-foreground text-sm">
-                    {trip.name}
-                    {!active && ` · ${trip.startDate} → ${trip.endDate}`}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        )
-      })}
+      {trips.length > 0 && (
+        <div className="flex flex-col gap-2">
+          {trips.map((trip) => {
+            const active = tripStatus(trip) === 'active'
+            return (
+              <Link key={trip.id} to={`/trips/${trip.id}`}>
+                <Card
+                  className={
+                    active
+                      ? 'border-primary/40 bg-primary/5 hover:bg-primary/10 transition-colors'
+                      : 'bg-accent hover:bg-accent/70 transition-colors'
+                  }
+                >
+                  <CardContent className="flex items-center gap-3 py-3">
+                    <span className="text-2xl">{trip.emoji}</span>
+                    <div>
+                      <p className="font-medium">{active ? t('trips.currentTrip') : t('trips.upcomingTrip')}</p>
+                      <p className="text-muted-foreground text-sm">
+                        {trip.name}
+                        {!active && ` · ${trip.startDate} → ${trip.endDate}`}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            )
+          })}
+        </div>
+      )}
       <ExpenseDashboard title={t('home.thisMonth')} addHref="/add" editBase="/expense" monthFilter showFilters />
     </div>
   )

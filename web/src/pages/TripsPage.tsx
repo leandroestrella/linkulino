@@ -7,7 +7,7 @@ import type { Expense } from '@/api/types'
 import { tripStatus, type Trip, type TripStatus } from '@/api/types'
 import { useAuth } from '@/auth/AuthProvider'
 import { LoadingDots } from '@/components/LoadingDots'
-import { useSubHeaderContainer } from '@/components/subheader'
+import { useAdminSlotContainer, useSubHeaderContainer } from '@/components/subheader'
 import { VacationsOverallCard } from '@/components/VacationsOverallCard'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -24,6 +24,7 @@ export function TripsPage() {
   const { configured, status, authorized } = useAuth()
   const canWrite = !configured || (status === 'signed-in' && authorized)
   const subHeader = useSubHeaderContainer()
+  const adminSlot = useAdminSlotContainer()
 
   const [trips, setTrips] = useState<Trip[]>([])
   const [vacations, setVacations] = useState<Expense[]>([])
@@ -74,6 +75,15 @@ export function TripsPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      {adminSlot &&
+        canWrite &&
+        createPortal(
+          <Button size="sm" onClick={() => setShowForm((s) => !s)}>
+            {t('trips.new')}
+          </Button>,
+          adminSlot,
+        )}
+
       {subHeader &&
         !loading &&
         createPortal(
@@ -83,14 +93,7 @@ export function TripsPage() {
           subHeader,
         )}
 
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">{t('trips.title')}</h2>
-        {canWrite && (
-          <Button size="sm" onClick={() => setShowForm((s) => !s)}>
-            {t('trips.new')}
-          </Button>
-        )}
-      </div>
+      <h2 className="text-xl font-semibold">{t('trips.title')}</h2>
 
       {showForm && (
         <Card>

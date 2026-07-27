@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ExpenseFilters } from '@/components/ExpenseFilters'
 import { LoadingDots } from '@/components/LoadingDots'
 import { findParticipant, PersonName } from '@/components/PersonName'
-import { useSubHeaderContainer } from '@/components/subheader'
+import { useAdminSlotContainer, useSubHeaderContainer } from '@/components/subheader'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { EMPTY_FILTERS, filterExpenses, filtersFromSearchParams, filtersToSearch } from '@/lib/filters'
 import { formatAmount } from '@/lib/format'
@@ -68,6 +68,7 @@ export function ExpenseDashboard({
   const { t } = useTranslation()
   const { configured, status, authorized } = useAuth()
   const subHeader = useSubHeaderContainer()
+  const adminSlot = useAdminSlotContainer()
   const [searchParams, setSearchParams] = useSearchParams()
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [participants, setParticipants] = useState<Participant[]>([])
@@ -101,17 +102,19 @@ export function ExpenseDashboard({
 
   return (
     <div className="flex flex-col gap-6">
+      {adminSlot &&
+        canWrite &&
+        createPortal(
+          <Button asChild size="sm">
+            <Link to={addHref}>{t('home.addExpense')}</Link>
+          </Button>,
+          adminSlot,
+        )}
+
       {subHeader &&
         createPortal(
           <div className="mx-auto w-full max-w-2xl px-4 pb-3">
             <div className="flex flex-col gap-3">
-              {canWrite && (
-                <div className="flex items-center justify-between">
-                  <Button asChild size="sm">
-                    <Link to={addHref}>{t('home.addExpense')}</Link>
-                  </Button>
-                </div>
-              )}
               <Card>
                 <CardHeader>
                   <CardTitle>{title}</CardTitle>
