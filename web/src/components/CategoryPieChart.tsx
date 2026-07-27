@@ -53,7 +53,7 @@ function toSlices(expenses: Expense[], categories: Category[]): Slice[] {
   }))
   if (rest.length > 0) {
     const restTotal = rest.reduce((sum, [, value]) => sum + value, 0)
-    slices.push({ name: 'Other', icon: '➕', value: restTotal, fraction: restTotal / total })
+    slices.push({ name: 'other', icon: '➕', value: restTotal, fraction: restTotal / total })
   }
   return slices.map((slice, i) => ({ ...slice, color: PALETTE[i % PALETTE.length] }))
 }
@@ -103,10 +103,10 @@ export function CategoryPieChart({
   })
 
   const goToCategory = (name: string) => {
-    if (!linkFilters || name === 'Other') return
+    if (!linkFilters || name === 'other') return
     navigate(`/${filtersToSearch({ ...linkFilters, category: name })}`)
   }
-  const clickable = (name: string) => !!linkFilters && name !== 'Other'
+  const clickable = (name: string) => !!linkFilters && name !== 'other'
 
   return (
     <div className="flex flex-wrap items-center gap-4 pt-1">
@@ -126,7 +126,7 @@ export function CategoryPieChart({
                 onMouseLeave={() => setHovered(null)}
               />
             </TooltipTrigger>
-            <TooltipContent>
+            <TooltipContent className="lowercase">
               {arc.icon} {arc.name} · {formatAmount(arc.value)}
             </TooltipContent>
           </Tooltip>
@@ -146,9 +146,9 @@ export function CategoryPieChart({
               <TooltipTrigger asChild>
                 <span>{arc.icon}</span>
               </TooltipTrigger>
-              <TooltipContent>{arc.name}</TooltipContent>
+              <TooltipContent className="lowercase">{arc.name}</TooltipContent>
             </Tooltip>
-            <span className="text-muted-foreground">{arc.name}</span>
+            <span className="text-muted-foreground lowercase">{arc.name}</span>
             <span className="font-medium">{formatAmount(arc.value)}</span>
           </div>
         ))}

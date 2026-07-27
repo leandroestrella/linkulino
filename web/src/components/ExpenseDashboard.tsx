@@ -168,13 +168,14 @@ export function ExpenseDashboard({
                 <TooltipTrigger asChild>
                   <span className="text-2xl">{categoryIcon(expense.category)}</span>
                 </TooltipTrigger>
-                <TooltipContent>{expense.category}</TooltipContent>
+                <TooltipContent className="lowercase">{expense.category}</TooltipContent>
               </Tooltip>
               <div className="flex min-w-0 flex-1 items-center justify-between gap-4">
                 <div className="min-w-0">
                   <p className="flex items-center gap-1.5 font-medium">
                     <span className="min-w-0 truncate">
-                      {expense.description} · <span className="text-muted-foreground font-normal">{expense.category}</span>
+                      {expense.description} ·{' '}
+                      <span className="text-muted-foreground lowercase font-normal">{expense.category}</span>
                     </span>
                     {expense.recurring && (
                       <RepeatIcon

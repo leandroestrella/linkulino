@@ -95,13 +95,13 @@ export function ExpenseFilters({
           value={filters.category || ALL}
           onValueChange={(v) => onChange({ ...filters, category: v === ALL ? '' : v })}
         >
-          <SelectTrigger size="sm" className="w-full sm:w-auto sm:max-w-24 sm:shrink-0 sm:px-1.5 sm:text-xs">
+          <SelectTrigger size="sm" className="w-full sm:w-auto sm:max-w-24 sm:shrink-0 sm:px-1.5 sm:text-xs lowercase">
             <SelectValue placeholder={t('filters.category')} className="truncate" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL}>{t('filters.category')}</SelectItem>
             {categories.map((c) => (
-              <SelectItem key={c.name} value={c.name}>
+              <SelectItem key={c.name} value={c.name} className="lowercase">
                 {c.icon} {c.name}
               </SelectItem>
             ))}

@@ -169,12 +169,12 @@ export function ExpenseFormPage({ mode }: { mode: 'add' | 'edit' }) {
                 )}
               </div>
               <Select key={categories.length} value={category} onValueChange={setCategory}>
-                <SelectTrigger>
+                <SelectTrigger className="lowercase">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((c) => (
-                    <SelectItem key={c.name} value={c.name}>
+                    <SelectItem key={c.name} value={c.name} className="lowercase">
                       {c.icon} {c.name}
                     </SelectItem>
                   ))}

@@ -73,6 +73,31 @@ function FilterLink({
   )
 }
 
+/** One month/year's pie chart + total — shared by the mobile-grouped and desktop-paired layouts. */
+function TimeBucketEntry({
+  bucket,
+  categories,
+  range,
+  totalClassName,
+}: {
+  bucket: [string, Expense[]]
+  categories: Category[]
+  range: { from: string; to: string }
+  /** Extra classes on the total's wrapper — desktop uses mt-auto to align across a stretched grid row. */
+  totalClassName?: string
+}) {
+  const [key, expenses] = bucket
+  return (
+    <div className="flex flex-col">
+      <span className="text-muted-foreground text-sm mb-1 block">{key}</span>
+      <CategoryPieChart expenses={expenses} categories={categories} linkFilters={range} />
+      <FilterLink search={filtersToSearch(range)} className={totalClassName}>
+        <span className="font-medium block pt-1">{formatAmount(sum(expenses))}</span>
+      </FilterLink>
+    </div>
+  )
+}
+
 export function OverviewPage() {
   const { t } = useTranslation()
   const [household, setHousehold] = useState<Expense[]>([])
@@ -120,7 +145,34 @@ export function OverviewPage() {
       <h2 className="text-xl font-semibold">{t('overview.title')}</h2>
 
       <Card>
-        <CardContent className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+        {/* Mobile: grouped sections (all months, then all years) — a row-major
+            layout (below) would interleave "by month"/"by year" titles and
+            entries on a single column, since there's no second column to pair
+            against. */}
+        <CardContent className="flex flex-col gap-6 sm:hidden">
+          <div className="flex flex-col gap-4">
+            <h3 className="text-muted-foreground text-xs font-medium">{t('overview.byMonth')}</h3>
+            {byMonth.length === 0 && <p className="text-muted-foreground text-sm">{t('overview.empty')}</p>}
+            {byMonth.map(([month, expenses]) => (
+              <TimeBucketEntry
+                key={month}
+                bucket={[month, expenses]}
+                categories={categories}
+                range={monthRange(month)}
+              />
+            ))}
+          </div>
+          <div className="flex flex-col gap-4">
+            <h3 className="text-muted-foreground text-xs font-medium">{t('overview.byYear')}</h3>
+            {byYear.length === 0 && <p className="text-muted-foreground text-sm">{t('overview.empty')}</p>}
+            {byYear.map(([year, expenses]) => (
+              <TimeBucketEntry key={year} bucket={[year, expenses]} categories={categories} range={yearRange(year)} />
+            ))}
+          </div>
+        </CardContent>
+
+        {/* sm+: row-paired grid so each month/year lines up with its counterpart. */}
+        <CardContent className="hidden sm:grid sm:grid-cols-2 sm:gap-x-6 sm:gap-y-4">
           <h3 className="text-muted-foreground text-xs font-medium">{t('overview.byMonth')}</h3>
           <h3 className="text-muted-foreground text-xs font-medium">{t('overview.byYear')}</h3>
           {Array.from({ length: Math.max(byMonth.length, byYear.length, 1) }).map((_, i) => {
@@ -132,21 +184,16 @@ export function OverviewPage() {
                   {i === 0 && byMonth.length === 0 && (
                     <p className="text-muted-foreground text-sm">{t('overview.empty')}</p>
                   )}
+                  {/* mt-auto pins the total to the bottom of the row's stretched
+                      height, so it lines up with its pair even when one chart's
+                      legend has more rows than the other. */}
                   {month && (
-                    <>
-                      <span className="text-muted-foreground text-sm mb-1 block">{month[0]}</span>
-                      <CategoryPieChart
-                        expenses={month[1]}
-                        categories={categories}
-                        linkFilters={monthRange(month[0])}
-                      />
-                      {/* mt-auto pins the total to the bottom of the row's stretched
-                          height, so it lines up with its pair even when one chart's
-                          legend has more rows than the other. */}
-                      <FilterLink search={filtersToSearch(monthRange(month[0]))} className="mt-auto">
-                        <span className="font-medium block pt-1">{formatAmount(sum(month[1]))}</span>
-                      </FilterLink>
-                    </>
+                    <TimeBucketEntry
+                      bucket={month}
+                      categories={categories}
+                      range={monthRange(month[0])}
+                      totalClassName="mt-auto"
+                    />
                   )}
                 </div>
                 <div className="flex flex-col">
@@ -154,13 +201,12 @@ export function OverviewPage() {
                     <p className="text-muted-foreground text-sm">{t('overview.empty')}</p>
                   )}
                   {year && (
-                    <>
-                      <span className="text-muted-foreground text-sm mb-1 block">{year[0]}</span>
-                      <CategoryPieChart expenses={year[1]} categories={categories} linkFilters={yearRange(year[0])} />
-                      <FilterLink search={filtersToSearch(yearRange(year[0]))} className="mt-auto">
-                        <span className="font-medium block pt-1">{formatAmount(sum(year[1]))}</span>
-                      </FilterLink>
-                    </>
+                    <TimeBucketEntry
+                      bucket={year}
+                      categories={categories}
+                      range={yearRange(year[0])}
+                      totalClassName="mt-auto"
+                    />
                   )}
                 </div>
               </Fragment>
