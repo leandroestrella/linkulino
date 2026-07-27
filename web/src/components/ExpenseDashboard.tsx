@@ -6,7 +6,6 @@ import { RepeatIcon, PencilIcon } from 'lucide-react'
 import { getCategories, getExpenses, getParticipants } from '@/api/client'
 import type { Category, Expense, Participant } from '@/api/types'
 import { useAuth } from '@/auth/AuthProvider'
-import { AuthBar } from '@/auth/AuthBar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ExpenseFilters } from '@/components/ExpenseFilters'
@@ -106,6 +105,13 @@ export function ExpenseDashboard({
         createPortal(
           <div className="mx-auto w-full max-w-2xl px-4 pb-3">
             <div className="flex flex-col gap-3">
+              {canWrite && (
+                <div className="flex items-center justify-between">
+                  <Button asChild size="sm">
+                    <Link to={addHref}>{t('home.addExpense')}</Link>
+                  </Button>
+                </div>
+              )}
               <Card>
                 <CardHeader>
                   <CardTitle>{title}</CardTitle>
@@ -130,16 +136,6 @@ export function ExpenseDashboard({
                   </div>
                 </CardContent>
               </Card>
-              <div className="flex items-center justify-between">
-                {canWrite ? (
-                  <Button asChild size="sm">
-                    <Link to={addHref}>{t('home.addExpense')}</Link>
-                  </Button>
-                ) : (
-                  <span />
-                )}
-                <AuthBar />
-              </div>
               {showFilters && (
                 <ExpenseFilters
                   categories={categories}

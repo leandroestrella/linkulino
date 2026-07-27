@@ -1,0 +1,32 @@
+import { useTranslation } from 'react-i18next'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import type { VacationsSummary } from '@/lib/vacations'
+import { formatAmount } from '@/lib/format'
+
+/** Total/per-vacation/per-day spend across every trip — shared by the Overview and Trips pages. */
+export function VacationsOverallCard({ summary }: { summary: VacationsSummary }) {
+  const { t } = useTranslation()
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t('overview.vacationsOverall')}</CardTitle>
+      </CardHeader>
+      <CardContent className="flex items-center justify-between">
+        <div>
+          <p className="text-muted-foreground text-sm">{t('home.total')}</p>
+          <p className="text-xl font-medium">{formatAmount(summary.total)}</p>
+        </div>
+        <div className="text-center">
+          <p className="text-muted-foreground text-sm">{t('overview.perVacation')}</p>
+          <p className="text-xl font-medium">
+            {summary.perVacation !== null ? formatAmount(summary.perVacation) : '—'}
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-muted-foreground text-sm">{t('overview.perDay')}</p>
+          <p className="text-xl font-medium">{summary.perDay !== null ? formatAmount(summary.perDay) : '—'}</p>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}

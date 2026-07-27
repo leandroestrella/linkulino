@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { Link, Navigate, Route, Routes } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { AuthBar } from '@/auth/AuthBar'
 import { SubHeaderContext } from '@/components/subheader'
 import { useHideOnScroll } from '@/hooks/useHideOnScroll'
 import { cn } from '@/lib/utils'
@@ -72,6 +73,10 @@ function Layout({ children }: { children: ReactNode }) {
               <TooltipContent>{t('nav.overview')}</TooltipContent>
             </Tooltip>
           </div>
+        </div>
+        {/* Always visible (not per-page portaled) so sign-in status shows on every page. */}
+        <div className="mx-auto flex w-full max-w-2xl justify-end px-4 pb-3">
+          <AuthBar />
         </div>
         {/* Pages portal their sticky toolbar here (see useSubHeaderContainer). */}
         <div ref={setSlot} />

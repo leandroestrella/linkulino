@@ -6,9 +6,11 @@ import type { Category, Expense, Participant, Trip } from '@/api/types'
 import { CategoryPieChart } from '@/components/CategoryPieChart'
 import { LoadingDots } from '@/components/LoadingDots'
 import { PersonName } from '@/components/PersonName'
+import { VacationsOverallCard } from '@/components/VacationsOverallCard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { filtersToSearch } from '@/lib/filters'
 import { formatAmount } from '@/lib/format'
+import { vacationsSummary } from '@/lib/vacations'
 
 /** Groups expenses by a key derived from each one (e.g. month, year), sorted by key descending. */
 function groupBy(expenses: Expense[], key: (e: Expense) => string): [string, Expense[]][] {
@@ -36,14 +38,6 @@ function totalsByParticipant(expenses: Expense[], participants: Participant[]): 
 /** An expense is "common" when more than one participant has a nonzero share, else "single-user". */
 function isCommon(expense: Expense): boolean {
   return Object.values(expense.splits).filter((pct) => pct > 0).length > 1
-}
-
-/** A trip's length in days (inclusive of both start and end date), or 0 if its dates are missing. */
-function tripDays(trip: Trip): number {
-  if (!trip.startDate || !trip.endDate) return 0
-  const start = new Date(trip.startDate).getTime()
-  const end = new Date(trip.endDate).getTime()
-  return Math.max(Math.round((end - start) / 86_400_000) + 1, 0)
 }
 
 function sum(expenses: Expense[]): number {
@@ -96,8 +90,7 @@ export function OverviewPage() {
 
   const byMonth = groupBy(household, (e) => e.date.slice(0, 7))
   const byYear = groupBy(household, (e) => e.date.slice(0, 4))
-  const vacationsTotal = sum(vacations)
-  const totalDays = trips.reduce((total, trip) => total + tripDays(trip), 0)
+  const vacationsStats = vacationsSummary(trips, vacations)
   const byUser = totalsByParticipant(household, participants)
   const common = household.filter(isCommon)
   const singleUser = household.filter((e) => !isCommon(e))
@@ -198,27 +191,7 @@ export function OverviewPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('overview.vacationsOverall')}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex items-center justify-between">
-          <div>
-            <p className="text-muted-foreground text-sm">{t('home.total')}</p>
-            <p className="text-xl font-medium">{formatAmount(vacationsTotal)}</p>
-          </div>
-          <div className="text-center">
-            <p className="text-muted-foreground text-sm">{t('overview.perVacation')}</p>
-            <p className="text-xl font-medium">
-              {trips.length > 0 ? formatAmount(vacationsTotal / trips.length) : '—'}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-muted-foreground text-sm">{t('overview.perDay')}</p>
-            <p className="text-xl font-medium">{totalDays > 0 ? formatAmount(vacationsTotal / totalDays) : '—'}</p>
-          </div>
-        </CardContent>
-      </Card>
+      <VacationsOverallCard summary={vacationsStats} />
     </div>
   )
 }

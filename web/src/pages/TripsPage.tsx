@@ -1,14 +1,19 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { createTrip, getTrips } from '@/api/client'
+import { createTrip, getExpenses, getTrips } from '@/api/client'
+import type { Expense } from '@/api/types'
 import { tripStatus, type Trip, type TripStatus } from '@/api/types'
 import { useAuth } from '@/auth/AuthProvider'
 import { LoadingDots } from '@/components/LoadingDots'
+import { useSubHeaderContainer } from '@/components/subheader'
+import { VacationsOverallCard } from '@/components/VacationsOverallCard'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { vacationsSummary } from '@/lib/vacations'
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10)
@@ -18,8 +23,10 @@ export function TripsPage() {
   const { t } = useTranslation()
   const { configured, status, authorized } = useAuth()
   const canWrite = !configured || (status === 'signed-in' && authorized)
+  const subHeader = useSubHeaderContainer()
 
   const [trips, setTrips] = useState<Trip[]>([])
+  const [vacations, setVacations] = useState<Expense[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [name, setName] = useState('')
@@ -31,7 +38,10 @@ export function TripsPage() {
 
   async function load() {
     setLoading(true)
-    setTrips(await getTrips())
+    const tripList = await getTrips()
+    const perTrip = await Promise.all(tripList.map((trip) => getExpenses(trip.id)))
+    setTrips(tripList)
+    setVacations(perTrip.flat())
     setLoading(false)
   }
 
@@ -64,6 +74,15 @@ export function TripsPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      {subHeader &&
+        !loading &&
+        createPortal(
+          <div className="mx-auto w-full max-w-2xl px-4 pb-3">
+            <VacationsOverallCard summary={vacationsSummary(trips, vacations)} />
+          </div>,
+          subHeader,
+        )}
+
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">{t('trips.title')}</h2>
         {canWrite && (
