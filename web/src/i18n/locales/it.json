@@ -80,5 +80,13 @@
     "common": "comuni (divise)",
     "singleUser": "individuali (100%)",
     "empty": "nessuna spesa ancora."
+  },
+  "filters": {
+    "category": "categoria",
+    "payer": "pagato da",
+    "from": "dal",
+    "to": "al",
+    "all": "tutti",
+    "clear": "cancella"
   }
 }

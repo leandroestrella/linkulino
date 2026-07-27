@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { getCategories, getExpenses, getParticipants, getTrips } from '@/api/client'
 import type { Category, Expense, Participant, Trip } from '@/api/types'
@@ -6,6 +7,7 @@ import { CategoryPieChart } from '@/components/CategoryPieChart'
 import { LoadingDots } from '@/components/LoadingDots'
 import { PersonName } from '@/components/PersonName'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { filtersToSearch } from '@/lib/filters'
 import { formatAmount } from '@/lib/format'
 
 /** Groups expenses by a key derived from each one (e.g. month, year), sorted by key descending. */
@@ -46,6 +48,27 @@ function tripDays(trip: Trip): number {
 
 function sum(expenses: Expense[]): number {
   return expenses.reduce((total, e) => total + e.amount, 0)
+}
+
+/** `from`/`to` ISO bounds covering an entire `YYYY-MM` month. */
+function monthRange(month: string): { from: string; to: string } {
+  const [year, monthNum] = month.split('-').map(Number)
+  const lastDay = new Date(year, monthNum, 0).getDate()
+  return { from: `${month}-01`, to: `${month}-${String(lastDay).padStart(2, '0')}` }
+}
+
+/** `from`/`to` ISO bounds covering an entire `YYYY` year. */
+function yearRange(year: string): { from: string; to: string } {
+  return { from: `${year}-01-01`, to: `${year}-12-31` }
+}
+
+/** A value that links back to the (filtered) home dashboard — the click target for month/year/user totals. */
+function FilterLink({ search, children }: { search: string; children: React.ReactNode }) {
+  return (
+    <Link to={`/${search}`} className="rounded-sm transition-opacity hover:opacity-60">
+      {children}
+    </Link>
+  )
 }
 
 export function OverviewPage() {
@@ -103,10 +126,12 @@ export function OverviewPage() {
           {byMonth.length === 0 && <p className="text-muted-foreground text-sm">{t('overview.empty')}</p>}
           {byMonth.map(([month, expenses]) => (
             <div key={month}>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground text-sm">{month}</span>
-                <span className="font-medium">{formatAmount(sum(expenses))}</span>
-              </div>
+              <FilterLink search={filtersToSearch(monthRange(month))}>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground text-sm">{month}</span>
+                  <span className="font-medium">{formatAmount(sum(expenses))}</span>
+                </div>
+              </FilterLink>
               <CategoryPieChart expenses={expenses} categories={categories} />
             </div>
           ))}
@@ -121,10 +146,12 @@ export function OverviewPage() {
           {byYear.length === 0 && <p className="text-muted-foreground text-sm">{t('overview.empty')}</p>}
           {byYear.map(([year, expenses]) => (
             <div key={year}>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground text-sm">{year}</span>
-                <span className="font-medium">{formatAmount(sum(expenses))}</span>
-              </div>
+              <FilterLink search={filtersToSearch(yearRange(year))}>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground text-sm">{year}</span>
+                  <span className="font-medium">{formatAmount(sum(expenses))}</span>
+                </div>
+              </FilterLink>
               <CategoryPieChart expenses={expenses} categories={categories} />
             </div>
           ))}
@@ -161,12 +188,14 @@ export function OverviewPage() {
           {byUser.map(([name, total], i) => {
             const person = participants.find((p) => p.name === name) ?? { name, icon: '' }
             return (
-              <div key={name} className={i === byUser.length - 1 ? 'text-right' : undefined}>
-                <p className="text-muted-foreground text-sm">
-                  <PersonName person={person} />
-                </p>
-                <p className="text-xl font-medium">{formatAmount(total)}</p>
-              </div>
+              <FilterLink key={name} search={filtersToSearch({ payer: name })}>
+                <div className={i === byUser.length - 1 ? 'text-right' : undefined}>
+                  <p className="text-muted-foreground text-sm">
+                    <PersonName person={person} />
+                  </p>
+                  <p className="text-xl font-medium">{formatAmount(total)}</p>
+                </div>
+              </FilterLink>
             )
           })}
         </CardContent>

@@ -100,10 +100,40 @@ test('cellToBool accepts a real boolean or a TRUE/FALSE string', () => {
   assert.equal(sheet.cellToBool(''), false)
 })
 
+// Matches the real household tab's actual layout: Ricorrente inserted BEFORE
+// the quotas (not appended at the end) — the exact case that broke fixed
+// column positions and motivated resolveExpenseColumns.
 function householdFixture() {
   const participants = { a: { name: 'Alex', icon: '🧮' }, b: { name: 'Sam', icon: '🎯' } }
   const values = [
     ['casa', 'casa nostra', '', '', ''],
+    ['Totale speso', '€ 20.08'],
+    ['Saldo attuale', 'Sam deve a Alex: € 10.04'],
+    [
+      'Data',
+      'Descrizione',
+      'Categoria',
+      'Pagato da',
+      'Importo (€)',
+      'Ricorrente',
+      'Quota % Alex',
+      'Quota % Sam',
+      'Quota Alex (€)',
+      'Quota Sam (€)',
+      'Saldo',
+    ],
+    ['03/07/2026', 'groceries', 'Spesa', 'Alex', 20.08, 'TRUE', 50, 50, 10.04, 10.04, -10.04],
+    ['', '', '', '', '', '', 50, 50, '', '', ''],
+    ['', '', '', '', '', '', 50, 50, '', '', ''],
+  ]
+  return { participants, values }
+}
+
+// Matches a trip tab: no Ricorrente column at all.
+function tripFixture() {
+  const participants = { a: { name: 'Alex', icon: '🧮' }, b: { name: 'Sam', icon: '🎯' } }
+  const values = [
+    ['viaggio', 'lisbon', '10/08/2026', '🐚', '15/08/2026'],
     ['Totale speso', '€ 20.08'],
     ['Saldo attuale', 'Sam deve a Alex: € 10.04'],
     [
@@ -117,11 +147,9 @@ function householdFixture() {
       'Quota Alex (€)',
       'Quota Sam (€)',
       'Saldo',
-      'Ricorrente',
     ],
-    ['03/07/2026', 'groceries', 'Spesa', 'Alex', 20.08, 50, 50, 10.04, 10.04, -10.04, 'TRUE'],
-    ['', '', '', '', '', 50, 50, '', '', '', ''],
-    ['', '', '', '', '', 50, 50, '', '', '', ''],
+    ['10/08/2026', 'hotel', 'Alloggio', 'Alex', 20.08, 50, 50, 10.04, 10.04, -10.04],
+    ['', '', '', '', '', 50, 50, '', '', ''],
   ]
   return { participants, values }
 }
@@ -132,7 +160,17 @@ test('findHeaderRowIndex locates the "Data" row', () => {
   assert.equal(sheet.findHeaderRowIndex([['no header here']]), -1)
 })
 
-test('parseExpenses maps filled rows and skips blank slots', () => {
+test('resolveExpenseColumns finds Ricorrente before the quotas (household layout)', () => {
+  const { values } = householdFixture()
+  assert.deepEqual(sheet.resolveExpenseColumns(values[3]), { splitA: 6, splitB: 7, recurring: 5 })
+})
+
+test('resolveExpenseColumns finds no Ricorrente column on a trip tab', () => {
+  const { values } = tripFixture()
+  assert.deepEqual(sheet.resolveExpenseColumns(values[3]), { splitA: 5, splitB: 6, recurring: -1 })
+})
+
+test('parseExpenses maps filled rows and skips blank slots (household layout)', () => {
   const { values, participants } = householdFixture()
   const expenses = sheet.parseExpenses(values, participants)
   assert.equal(expenses.length, 1)
@@ -148,6 +186,22 @@ test('parseExpenses maps filled rows and skips blank slots', () => {
   })
 })
 
+test('parseExpenses maps a trip tab with no Ricorrente column', () => {
+  const { values, participants } = tripFixture()
+  const expenses = sheet.parseExpenses(values, participants)
+  assert.equal(expenses.length, 1)
+  assert.deepEqual(expenses[0], {
+    id: '5',
+    date: '2026-08-10',
+    description: 'hotel',
+    category: 'Alloggio',
+    payer: 'Alex',
+    amount: 20.08,
+    splits: { Alex: 50, Sam: 50 },
+    recurring: false,
+  })
+})
+
 test('findBlankSlotRow finds the first fully-empty row after the header', () => {
   const { values } = householdFixture()
   assert.equal(sheet.findBlankSlotRow(values), 6)
@@ -157,19 +211,23 @@ test('findBlankSlotRow returns -1 when no tab is present', () => {
   assert.equal(sheet.findBlankSlotRow([['no header here']]), -1)
 })
 
-test('buildExpenseRowValues formats the date and maps splits by participant name', () => {
-  const row = sheet.buildExpenseRowValues(
-    {
-      date: '2026-07-03',
-      description: 'groceries',
-      category: 'Spesa',
-      payer: 'Alex',
-      amount: 20.08,
-      splits: { Alex: 30, Sam: 70 },
-    },
+test('buildExpenseRowValues formats the date (A-E only, no splits)', () => {
+  const row = sheet.buildExpenseRowValues({
+    date: '2026-07-03',
+    description: 'groceries',
+    category: 'Spesa',
+    payer: 'Alex',
+    amount: 20.08,
+  })
+  assert.deepEqual(row, ['03/07/2026', 'groceries', 'Spesa', 'Alex', 20.08])
+})
+
+test('buildSplitValues maps splits by participant name', () => {
+  const row = sheet.buildSplitValues(
+    { splits: { Alex: 30, Sam: 70 } },
     { a: { name: 'Alex' }, b: { name: 'Sam' } },
   )
-  assert.deepEqual(row, ['03/07/2026', 'groceries', 'Spesa', 'Alex', 20.08, 30, 70])
+  assert.deepEqual(row, [30, 70])
 })
 
 test('expensesToRecreateThisMonth recreates a recurring expense not yet logged this month', () => {

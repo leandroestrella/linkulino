@@ -88,9 +88,7 @@ Below the row-1 type marker:
 | 4 | column headers (see below) |
 | 5+ | one row per expense |
 
-Column headers (fixed positions — the backend reads by column index, not by
-header text, since the quota columns embed each participant's name and so
-differ per instance):
+**Columns A–E are fixed positions** (the backend reads them by index):
 
 | col | header | contents |
 | --- | --- | --- |
@@ -99,22 +97,32 @@ differ per instance):
 | C | Categoria (Category) | free text, offered as a dropdown (data validation) but editable — no fixed enum |
 | D | Pagato da (Paid by) | one of the two participant names |
 | E | Importo € (Amount) | the expense total |
-| F | Quota % \<Participant A\> | this expense's split %, defaults to 50 |
-| G | Quota % \<Participant B\> | defaults to 50 |
-| H | Quota \<Participant A\> (€) | **formula**, `= E * F / 100` |
-| I | Quota \<Participant B\> (€) | **formula**, `= E * G / 100` |
-| J | Saldo (Balance) | **formula** — positive means Participant A is owed |
-| K | Ricorrente (Recurring) | **household tab only** — `TRUE`/`FALSE`, flags an expense (e.g. rent, internet) that repeats every month. Added by the app, not part of the original template; the backend never writes column K on a trip tab, since recurring doesn't apply there |
 
-A tab is pre-filled with ~60 blank rows (F/G already defaulted to 50/50) so
-the H/I/J formulas are already in place below every future entry. **Adding an
-expense means filling in A–G (plus K on the household tab) on the first
-fully-blank row (by A–E), not appending a new row** — appending past the
-pre-filled range would leave a row with no formulas. If a tab ever runs out of
-blank rows, extend the formulas down manually before adding more.
+**Everything after E is resolved by HEADER TEXT, not position** — the two
+`Quota %` columns and the optional `Ricorrente` column can be in any order
+after E, and the backend finds them by reading row 4's text (see
+`resolveExpenseColumns` in `apps-script/sheet.js`). This matters in practice:
+the household tab has `Ricorrente` inserted *before* the quotas, while trip
+tabs have no `Ricorrente` column at all — both layouts work correctly because
+neither is assumed:
 
-The last row (`TOTALE`) sums columns E, H, I, J and is also a formula — leave
-it alone.
+| header (matched case-insensitively) | contents |
+| --- | --- |
+| starts with "Ricorrente" | **household tab only** — `TRUE`/`FALSE`, flags an expense (e.g. rent, internet) that repeats every month. Optional; simply omit the column on tabs where it doesn't apply |
+| starts with "Quota %" (1st occurrence) | Persona A's split %, defaults to 50 |
+| starts with "Quota %" (2nd occurrence) | Persona B's split %, defaults to 50 |
+| Quota € / Saldo columns | **formulas**, e.g. `= E * F / 100` — never written to, and don't need a specific header text since the backend never looks for them |
+
+A tab is pre-filled with ~60 blank rows (the quota columns already defaulted
+to 50/50) so the quota-€/Saldo formulas are already in place below every
+future entry. **Adding an expense means filling in A–E, the two Quota %
+cells, and Ricorrente (if present) on the first fully-blank row (blank by
+A–E), not appending a new row** — appending past the pre-filled range would
+leave a row with no formulas. If a tab ever runs out of blank rows, extend the
+formulas down manually before adding more.
+
+The last row (`TOTALE`) sums the amount/quota/saldo columns and is also a
+formula — leave it alone.
 
 ## trips
 

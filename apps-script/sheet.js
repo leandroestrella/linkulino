@@ -8,9 +8,12 @@
  *   - in Apps Script every declaration below becomes a global (no imports there);
  *   - in Node the guarded `module.exports` at the bottom exposes them to tests.
  *
- * See docs/sheet-setup.md for the schema this maps. CORE RULE: expense-tab
- * columns are resolved by FIXED POSITION, not header name — the quota/saldo
- * headers embed each participant's name, so they differ per instance.
+ * See docs/sheet-setup.md for the schema this maps. Data/Descrizione/Categoria/
+ * Pagato da/Importo are fixed at columns A–E on every expense tab. Everything
+ * after that — the two Quota % columns, and the optional Ricorrente column —
+ * is resolved by HEADER TEXT (see resolveExpenseColumns), not a fixed position,
+ * since different tabs may order/place them differently (e.g. Ricorrente
+ * inserted before the quotas on the household tab, but absent on trip tabs).
  */
 
 var USERS_TAB = 'Users'
@@ -33,19 +36,15 @@ var TAB_TYPE = {
   ignore: 'ignore',
 }
 
-/** Fixed 0-based column indexes within an expense tab (see docs/sheet-setup.md). */
+/** Fixed 0-based column indexes shared by every expense tab (see docs/sheet-setup.md). */
 var COL = {
   date: 0,
   description: 1,
   category: 2,
   payer: 3,
   amount: 4,
-  splitA: 5,
-  splitB: 6,
-  // 7 (quota A €), 8 (quota B €), 9 (saldo) are formulas — never written to.
-  // 10 (column K) is an additional "repeats every month" flag, added on top of
-  // the original template; see docs/sheet-setup.md. Household tab only.
-  recurring: 10,
+  // Quota %/€, Saldo and the optional Ricorrente column are NOT fixed — see
+  // resolveExpenseColumns. Quota €/Saldo are formulas and never written to.
 }
 
 /** Fixed 0-based column indexes within the Categorie tab. */
@@ -234,20 +233,46 @@ function findHeaderRowIndex(values) {
 }
 
 /**
+ * Locates the two Quota % columns (in order — first found is Persona A's) and
+ * the optional Ricorrente column, by header text, searching only past the
+ * fixed A–E columns. This is what lets the household tab have Ricorrente
+ * inserted BEFORE the quotas while trip tabs have no Ricorrente column at all
+ * — both layouts resolve correctly instead of assuming one fixed position.
+ * @param {Array<*>} headerRow the header row (see findHeaderRowIndex)
+ * @return {{splitA: number, splitB: number, recurring: number}} 0-based indexes, -1 if absent
+ */
+function resolveExpenseColumns(headerRow) {
+  var cols = { splitA: -1, splitB: -1, recurring: -1 }
+  var splitsSeen = 0
+  for (var i = COL.amount + 1; i < headerRow.length; i++) {
+    var label = cellToString(headerRow[i]).toLowerCase()
+    if (label.indexOf('ricorrente') === 0) {
+      cols.recurring = i
+    } else if (label.indexOf('quota %') === 0) {
+      if (splitsSeen === 0) cols.splitA = i
+      else if (splitsSeen === 1) cols.splitB = i
+      splitsSeen++
+    }
+  }
+  return cols
+}
+
+/**
  * Maps one data row to an Expense, or null if the row is a blank slot.
  * @param {Array<*>} row
  * @param {number} rowNumber 1-based sheet row number (becomes the expense id)
  * @param {{a: {name: string}|null, b: {name: string}|null}} participants
+ * @param {{splitA: number, splitB: number, recurring: number}} cols see resolveExpenseColumns
  * @return {Object|null}
  */
-function rowToExpense(row, rowNumber, participants) {
+function rowToExpense(row, rowNumber, participants, cols) {
   var date = cellToIsoDate(row[COL.date])
   var description = cellToString(row[COL.description])
   if (!date && !description) return null
 
   var splits = {}
-  if (participants.a) splits[participants.a.name] = cellToNumber(row[COL.splitA])
-  if (participants.b) splits[participants.b.name] = cellToNumber(row[COL.splitB])
+  if (participants.a && cols.splitA !== -1) splits[participants.a.name] = cellToNumber(row[cols.splitA])
+  if (participants.b && cols.splitB !== -1) splits[participants.b.name] = cellToNumber(row[cols.splitB])
 
   return {
     id: String(rowNumber),
@@ -257,7 +282,7 @@ function rowToExpense(row, rowNumber, participants) {
     payer: cellToString(row[COL.payer]),
     amount: cellToNumber(row[COL.amount]),
     splits: splits,
-    recurring: cellToBool(row[COL.recurring]),
+    recurring: cols.recurring !== -1 ? cellToBool(row[cols.recurring]) : false,
   }
 }
 
@@ -270,9 +295,10 @@ function rowToExpense(row, rowNumber, participants) {
 function parseExpenses(values, participants) {
   var headerRowIndex = findHeaderRowIndex(values)
   if (headerRowIndex === -1) return []
+  var cols = resolveExpenseColumns(values[headerRowIndex])
   var expenses = []
   for (var r = headerRowIndex + 1; r < values.length; r++) {
-    var expense = rowToExpense(values[r], r + 1, participants)
+    var expense = rowToExpense(values[r], r + 1, participants, cols)
     if (expense) expenses.push(expense)
   }
   return expenses
@@ -304,20 +330,28 @@ function findBlankSlotRow(values) {
 }
 
 /**
- * Builds the A–G row values to write for an expense: date, description,
- * category, payer, amount, and each participant's split % (by name lookup, so
- * the sheet's column order doesn't need to match `participants`' a/b order).
- * Columns H–J (quota €, saldo) are formulas and are never written; recurring
- * (column K) is written separately since it isn't contiguous with A–G.
- * @param {{date: string, description: string, category: string, payer: string, amount: number, splits: Object<string, number>}} expense
- * @param {{a: {name: string}|null, b: {name: string}|null}} participants
+ * Builds the fixed A–E row values to write for an expense: date, description,
+ * category, payer, amount. The Quota %/Ricorrente cells are written
+ * separately (see buildSplitValues) since their columns aren't fixed.
+ * @param {{date: string, description: string, category: string, payer: string, amount: number}} expense
  * @return {Array<*>}
  */
-function buildExpenseRowValues(expense, participants) {
+function buildExpenseRowValues(expense) {
+  return [isoToDmy(expense.date), expense.description, expense.category, expense.payer, expense.amount]
+}
+
+/**
+ * Builds the two Quota % values to write, by participant name lookup — so the
+ * sheet's column order doesn't need to match `participants`' a/b order.
+ * @param {{splits: Object<string, number>}} expense
+ * @param {{a: {name: string}|null, b: {name: string}|null}} participants
+ * @return {Array<*>} `[splitA, splitB]`
+ */
+function buildSplitValues(expense, participants) {
   var splits = expense.splits || {}
   var splitA = participants && participants.a ? cellToNumber(splits[participants.a.name]) : ''
   var splitB = participants && participants.b ? cellToNumber(splits[participants.b.name]) : ''
-  return [isoToDmy(expense.date), expense.description, expense.category, expense.payer, expense.amount, splitA, splitB]
+  return [splitA, splitB]
 }
 
 // ---------------------------------------------------------------------------
@@ -391,10 +425,12 @@ if (typeof module !== 'undefined' && module.exports) {
     parseCategories: parseCategories,
     buildCategoryRowValues: buildCategoryRowValues,
     findHeaderRowIndex: findHeaderRowIndex,
+    resolveExpenseColumns: resolveExpenseColumns,
     rowToExpense: rowToExpense,
     parseExpenses: parseExpenses,
     findBlankSlotRow: findBlankSlotRow,
     buildExpenseRowValues: buildExpenseRowValues,
+    buildSplitValues: buildSplitValues,
     expensesToRecreateThisMonth: expensesToRecreateThisMonth,
   }
 }

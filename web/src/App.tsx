@@ -1,7 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { Link, Navigate, Route, Routes } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { AuthBar } from '@/auth/AuthBar'
 import { SubHeaderContext } from '@/components/subheader'
 import { useHideOnScroll } from '@/hooks/useHideOnScroll'
 import { cn } from '@/lib/utils'
@@ -34,7 +33,7 @@ function Layout({ children }: { children: ReactNode }) {
           hidden && '-translate-y-full',
         )}
       >
-        <div className="mx-auto flex w-full max-w-2xl flex-col gap-1 px-4 py-3">
+        <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-3 px-4 py-3">
           <div className="flex min-w-0 items-center gap-3">
             {/* The avatar opens the About page (the rendered README); the wordmark
                 stays the link home, so a home affordance remains. */}
@@ -46,37 +45,32 @@ function Layout({ children }: { children: ReactNode }) {
               <p className="text-muted-foreground hidden truncate text-xs sm:block">{t('app.tagline')}</p>
             </Link>
           </div>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    to="/trips"
-                    aria-label={t('nav.trips')}
-                    className="hover:bg-accent rounded-md p-2 text-lg leading-none"
-                  >
-                    🧳
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent>{t('nav.trips')}</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    to="/overview"
-                    aria-label={t('nav.overview')}
-                    className="hover:bg-accent rounded-md p-2 text-lg leading-none"
-                  >
-                    📊
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent>{t('nav.overview')}</TooltipContent>
-              </Tooltip>
-            </div>
-            <div className="flex items-center gap-2">
-              <LanguageSwitcher />
-              <AuthBar />
-            </div>
+          <div className="flex items-center gap-1">
+            <LanguageSwitcher />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link
+                  to="/trips"
+                  aria-label={t('nav.trips')}
+                  className="hover:bg-accent rounded-md p-2 text-lg leading-none"
+                >
+                  🧳
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent>{t('nav.trips')}</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link
+                  to="/overview"
+                  aria-label={t('nav.overview')}
+                  className="hover:bg-accent rounded-md p-2 text-lg leading-none"
+                >
+                  📊
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent>{t('nav.overview')}</TooltipContent>
+            </Tooltip>
           </div>
         </div>
         {/* Pages portal their sticky toolbar here (see useSubHeaderContainer). */}

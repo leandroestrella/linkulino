@@ -80,5 +80,13 @@
     "common": "comunes (repartidos)",
     "singleUser": "individuales (100%)",
     "empty": "todavía no hay gastos."
+  },
+  "filters": {
+    "category": "categoría",
+    "payer": "pagado por",
+    "from": "desde",
+    "to": "hasta",
+    "all": "todos",
+    "clear": "borrar"
   }
 }

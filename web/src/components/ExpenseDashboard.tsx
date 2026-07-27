@@ -1,17 +1,20 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { RepeatIcon, PencilIcon } from 'lucide-react'
 import { getCategories, getExpenses, getParticipants } from '@/api/client'
 import type { Category, Expense, Participant } from '@/api/types'
 import { useAuth } from '@/auth/AuthProvider'
+import { AuthBar } from '@/auth/AuthBar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ExpenseFilters } from '@/components/ExpenseFilters'
 import { LoadingDots } from '@/components/LoadingDots'
-import { PersonName } from '@/components/PersonName'
+import { findParticipant, PersonName } from '@/components/PersonName'
 import { useSubHeaderContainer } from '@/components/subheader'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { EMPTY_FILTERS, filterExpenses, filtersFromSearchParams, filtersToSearch } from '@/lib/filters'
 import { formatAmount } from '@/lib/format'
 
 /** Each participant's balance: total paid minus their share of every expense. Positive = owed money. */
@@ -20,7 +23,10 @@ function balances(expenses: Expense[], participants: Participant[]): Record<stri
   for (const expense of expenses) {
     for (const [name, percent] of Object.entries(expense.splits)) {
       const owed = (expense.amount * percent) / 100
-      const paid = expense.payer === name ? expense.amount : 0
+      // Sheet free text may not match the Users tab's casing exactly (e.g. historical
+      // rows entered "Leandro" before the participant was named "leandro") — compare
+      // case-insensitively so those rows still count.
+      const paid = expense.payer.toLowerCase() === name.toLowerCase() ? expense.amount : 0
       result[name] = (result[name] ?? 0) + paid - owed
     }
   }
@@ -47,6 +53,7 @@ export function ExpenseDashboard({
   addHref,
   editBase,
   monthFilter = false,
+  showFilters = false,
 }: {
   /** Trip id, or undefined for the household budget. */
   sheetId?: string
@@ -54,12 +61,15 @@ export function ExpenseDashboard({
   addHref: string
   /** Base path for an expense's edit link; the expense id is appended. */
   editBase: string
-  /** When true, only shows expenses dated in the current calendar month (household budget only — a trip's own date range already scopes it). */
+  /** When true, only shows expenses dated in the current calendar month (household budget only — a trip's own date range already scopes it). Superseded by an explicit date-range filter. */
   monthFilter?: boolean
+  /** When true, shows the category/payer/date-range filter bar, synced to the URL. */
+  showFilters?: boolean
 }) {
   const { t } = useTranslation()
   const { configured, status, authorized } = useAuth()
   const subHeader = useSubHeaderContainer()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [participants, setParticipants] = useState<Participant[]>([])
   const [categories, setCategories] = useState<Category[]>([])
@@ -76,8 +86,11 @@ export function ExpenseDashboard({
   }, [sheetId])
 
   const canWrite = !configured || (status === 'signed-in' && authorized)
+  const filters = showFilters ? filtersFromSearchParams(searchParams) : EMPTY_FILTERS
   const thisMonth = new Date().toISOString().slice(0, 7)
-  const scoped = monthFilter ? expenses.filter((e) => e.date.slice(0, 7) === thisMonth) : expenses
+  const monthScoped =
+    monthFilter && !filters.from && !filters.to ? expenses.filter((e) => e.date.slice(0, 7) === thisMonth) : expenses
+  const scoped = filterExpenses(monthScoped, filters)
   const total = scoped.reduce((sum, e) => sum + e.amount, 0)
   const balance = singleBalance(scoped, participants)
   const sorted = [...scoped].sort((a, b) => b.date.localeCompare(a.date))
@@ -89,13 +102,6 @@ export function ExpenseDashboard({
         createPortal(
           <div className="mx-auto w-full max-w-2xl px-4 pb-3">
             <div className="flex flex-col gap-3">
-              {canWrite && (
-                <div className="flex justify-end">
-                  <Button asChild size="sm">
-                    <Link to={addHref}>{t('home.addExpense')}</Link>
-                  </Button>
-                </div>
-              )}
               <Card>
                 <CardHeader>
                   <CardTitle>{title}</CardTitle>
@@ -120,10 +126,29 @@ export function ExpenseDashboard({
                   </div>
                 </CardContent>
               </Card>
+              <div className="flex items-center justify-between">
+                {canWrite ? (
+                  <Button asChild size="sm">
+                    <Link to={addHref}>{t('home.addExpense')}</Link>
+                  </Button>
+                ) : (
+                  <span />
+                )}
+                <AuthBar />
+              </div>
             </div>
           </div>,
           subHeader,
         )}
+
+      {showFilters && (
+        <ExpenseFilters
+          categories={categories}
+          participants={participants}
+          filters={filters}
+          onChange={(next) => setSearchParams(new URLSearchParams(filtersToSearch(next)))}
+        />
+      )}
 
       <section className="flex flex-col gap-2">
         {loading && (
@@ -158,10 +183,7 @@ export function ExpenseDashboard({
                   <div className="text-right">
                     <p className="font-medium">{formatAmount(expense.amount)}</p>
                     <p className="text-muted-foreground text-sm">
-                      {t('home.paidByPrefix')}{' '}
-                      <PersonName
-                        person={participants.find((p) => p.name === expense.payer) ?? { name: expense.payer, icon: '' }}
-                      />
+                      {t('home.paidByPrefix')} <PersonName person={findParticipant(participants, expense.payer)} />
                     </p>
                   </div>
                   {canWrite && (

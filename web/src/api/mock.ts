@@ -84,7 +84,10 @@ export const MOCK_EXPENSES: Expense[] = [
     date: '2026-06-22',
     description: 'Weekly groceries',
     category: 'Groceries',
-    payer: 'Sam',
+    // Deliberately mismatched casing vs. the "Sam" participant name — sheet free
+    // text won't always match exactly (e.g. historical rows), and this exercises
+    // the case-insensitive payer matching in balances()/findParticipant().
+    payer: 'sam',
     amount: 76.3,
     splits: { Alex: 50, Sam: 50 },
     recurring: false,

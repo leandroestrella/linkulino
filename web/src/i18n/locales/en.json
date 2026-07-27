@@ -80,5 +80,13 @@
     "common": "common (split)",
     "singleUser": "single-user (100%)",
     "empty": "no expenses yet."
+  },
+  "filters": {
+    "category": "category",
+    "payer": "paid by",
+    "from": "from",
+    "to": "to",
+    "all": "all",
+    "clear": "clear"
   }
 }

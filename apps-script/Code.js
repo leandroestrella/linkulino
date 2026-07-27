@@ -100,6 +100,19 @@ function getExpenses_(sheetId) {
   return parseExpenses(tab.getDataRange().getValues(), participants)
 }
 
+/**
+ * Reads a tab's values and resolves its Quota %/Ricorrente columns (see
+ * resolveExpenseColumns) in one step.
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} tab
+ * @return {{values: Array<Array<*>>, headerRowIndex: number, cols: {splitA: number, splitB: number, recurring: number}}}
+ */
+function readExpenseTab_(tab) {
+  var values = tab.getDataRange().getValues()
+  var headerRowIndex = findHeaderRowIndex(values)
+  var cols = headerRowIndex === -1 ? { splitA: -1, splitB: -1, recurring: -1 } : resolveExpenseColumns(values[headerRowIndex])
+  return { values: values, headerRowIndex: headerRowIndex, cols: cols }
+}
+
 /** @return {Object[]} metadata for every trip tab (name, dates, emoji). */
 function getTrips_() {
   var sheets = getSpreadsheet_().getSheets()
@@ -123,10 +136,10 @@ function getTrips_() {
 /**
  * Writes a new expense into the first blank slot of the target tab (see
  * docs/sheet-setup.md — rows below the header are pre-filled with formulas,
- * so this fills A–G in place rather than appending a row). The recurring flag
- * (column K) only applies to the household budget — trips are time-boxed, so
- * "repeats every month" doesn't apply there, and column K is never touched on
- * a trip tab.
+ * so this fills A–E in place rather than appending a row). The recurring flag
+ * only applies to the household budget — trips are time-boxed, so "repeats
+ * every month" doesn't apply there, and the Ricorrente cell is never touched
+ * on a trip tab (nor written at all if the tab has no such column).
  * @param {{date: string, description: string, category: string, payer: string, amount: number, splits: Object, recurring: boolean}} input
  * @param {string=} sheetId a trip's tab name, or omitted for the household budget.
  * @return {Object} the created expense
@@ -136,17 +149,17 @@ function addExpense_(input, sheetId) {
   var tab = findExpenseTab_(sheetId)
   if (!tab) throw new Error('No matching expense tab found (see docs/sheet-setup.md)')
 
-  var values = tab.getDataRange().getValues()
-  var rowNumber = findBlankSlotRow(values)
+  var read = readExpenseTab_(tab)
+  var rowNumber = findBlankSlotRow(read.values)
   if (rowNumber === -1) {
     throw new Error('No blank row left on this tab — extend the Quota/Saldo formulas down first')
   }
 
   var participants = parseParticipants(readValues_(USERS_TAB))
-  writeExpenseRow_(tab, rowNumber, input, participants, !sheetId)
+  writeExpenseRow_(tab, rowNumber, input, participants, read.cols, !sheetId)
 
-  var updated = tab.getRange(rowNumber, 1, 1, COL.recurring + 1).getValues()[0]
-  return rowToExpense(updated, rowNumber, participants)
+  var updatedRow = tab.getRange(rowNumber, 1, 1, tab.getLastColumn()).getValues()[0]
+  return rowToExpense(updatedRow, rowNumber, participants, read.cols)
 }
 
 /**
@@ -166,27 +179,35 @@ function updateExpense_(id, input, sheetId) {
   if (!tab) throw new Error('No matching expense tab found (see docs/sheet-setup.md)')
   if (rowNumber > tab.getLastRow()) throw new Error('Expense not found: ' + id)
 
+  var read = readExpenseTab_(tab)
   var participants = parseParticipants(readValues_(USERS_TAB))
-  writeExpenseRow_(tab, rowNumber, input, participants, !sheetId)
+  writeExpenseRow_(tab, rowNumber, input, participants, read.cols, !sheetId)
 
-  var updated = tab.getRange(rowNumber, 1, 1, COL.recurring + 1).getValues()[0]
-  return rowToExpense(updated, rowNumber, participants)
+  var updatedRow = tab.getRange(rowNumber, 1, 1, tab.getLastColumn()).getValues()[0]
+  return rowToExpense(updatedRow, rowNumber, participants, read.cols)
 }
 
 /**
- * Writes an expense's A–G cells to a specific row, and its recurring flag
- * (column K) only when `includeRecurring` (household budget only — see callers).
+ * Writes an expense's A–E cells, its two Quota % cells (wherever
+ * resolveExpenseColumns found them), and its recurring flag (only when
+ * `includeRecurring` AND the tab has a Ricorrente column) to a specific row.
  * @param {GoogleAppsScript.Spreadsheet.Sheet} tab
  * @param {number} rowNumber 1-based
  * @param {Object} input
  * @param {{a: {name: string}|null, b: {name: string}|null}} participants
+ * @param {{splitA: number, splitB: number, recurring: number}} cols see resolveExpenseColumns
  * @param {boolean} includeRecurring
  */
-function writeExpenseRow_(tab, rowNumber, input, participants, includeRecurring) {
-  var rowValues = buildExpenseRowValues(input, participants)
-  tab.getRange(rowNumber, COL.date + 1, 1, rowValues.length).setValues([rowValues])
-  if (includeRecurring) {
-    tab.getRange(rowNumber, COL.recurring + 1).setValue(!!input.recurring)
+function writeExpenseRow_(tab, rowNumber, input, participants, cols, includeRecurring) {
+  var mainValues = buildExpenseRowValues(input)
+  tab.getRange(rowNumber, COL.date + 1, 1, mainValues.length).setValues([mainValues])
+
+  var splitValues = buildSplitValues(input, participants)
+  if (cols.splitA !== -1) tab.getRange(rowNumber, cols.splitA + 1).setValue(splitValues[0])
+  if (cols.splitB !== -1) tab.getRange(rowNumber, cols.splitB + 1).setValue(splitValues[1])
+
+  if (includeRecurring && cols.recurring !== -1) {
+    tab.getRange(rowNumber, cols.recurring + 1).setValue(!!input.recurring)
   }
 }
 
@@ -263,10 +284,10 @@ function runMonthlyRecurringExpenses() {
 
   var created = 0
   for (var i = 0; i < toCreate.length; i++) {
-    var values = household.getDataRange().getValues() // re-read: prior iterations filled a slot
-    var rowNumber = findBlankSlotRow(values)
+    var read = readExpenseTab_(household) // re-read: prior iterations filled a slot
+    var rowNumber = findBlankSlotRow(read.values)
     if (rowNumber === -1) break // out of pre-filled rows; stop rather than append past the formulas
-    writeExpenseRow_(household, rowNumber, toCreate[i], participants, true)
+    writeExpenseRow_(household, rowNumber, toCreate[i], participants, read.cols, true)
     created++
   }
   return 'Created ' + created + ' of ' + toCreate.length + ' recurring expense(s) for ' + today.slice(0, 7) + '.'
