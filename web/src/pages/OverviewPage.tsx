@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { getCategories, getExpenses, getParticipants, getTrips } from '@/api/client'
@@ -112,33 +112,49 @@ export function OverviewPage() {
       <h2 className="text-xl font-semibold">{t('overview.title')}</h2>
 
       <Card>
-        <CardContent className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-          <div className="flex flex-col gap-4">
-            <h3 className="text-muted-foreground text-xs font-medium uppercase">{t('overview.byMonth')}</h3>
-            {byMonth.length === 0 && <p className="text-muted-foreground text-sm">{t('overview.empty')}</p>}
-            {byMonth.map(([month, expenses]) => (
-              <div key={month}>
-                <span className="text-muted-foreground text-sm block mb-1">{month}</span>
-                <CategoryPieChart expenses={expenses} categories={categories} linkFilters={monthRange(month)} />
-                <FilterLink search={filtersToSearch(monthRange(month))}>
-                  <span className="font-medium block pt-1">{formatAmount(sum(expenses))}</span>
-                </FilterLink>
-              </div>
-            ))}
-          </div>
-          <div className="flex flex-col gap-4">
-            <h3 className="text-muted-foreground text-xs font-medium uppercase">{t('overview.byYear')}</h3>
-            {byYear.length === 0 && <p className="text-muted-foreground text-sm">{t('overview.empty')}</p>}
-            {byYear.map(([year, expenses]) => (
-              <div key={year}>
-                <span className="text-muted-foreground text-sm block mb-1">{year}</span>
-                <CategoryPieChart expenses={expenses} categories={categories} linkFilters={yearRange(year)} />
-                <FilterLink search={filtersToSearch(yearRange(year))}>
-                  <span className="font-medium block pt-1">{formatAmount(sum(expenses))}</span>
-                </FilterLink>
-              </div>
-            ))}
-          </div>
+        <CardContent className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+          <h3 className="text-muted-foreground text-xs font-medium uppercase">{t('overview.byMonth')}</h3>
+          <h3 className="text-muted-foreground text-xs font-medium uppercase">{t('overview.byYear')}</h3>
+          {Array.from({ length: Math.max(byMonth.length, byYear.length, 1) }).map((_, i) => {
+            const month = byMonth[i]
+            const year = byYear[i]
+            return (
+              <Fragment key={i}>
+                <div>
+                  {i === 0 && byMonth.length === 0 && (
+                    <p className="text-muted-foreground text-sm">{t('overview.empty')}</p>
+                  )}
+                  {month && (
+                    <>
+                      <span className="text-muted-foreground text-sm mb-1 block">{month[0]}</span>
+                      <CategoryPieChart
+                        expenses={month[1]}
+                        categories={categories}
+                        linkFilters={monthRange(month[0])}
+                      />
+                      <FilterLink search={filtersToSearch(monthRange(month[0]))}>
+                        <span className="font-medium block pt-1">{formatAmount(sum(month[1]))}</span>
+                      </FilterLink>
+                    </>
+                  )}
+                </div>
+                <div>
+                  {i === 0 && byYear.length === 0 && (
+                    <p className="text-muted-foreground text-sm">{t('overview.empty')}</p>
+                  )}
+                  {year && (
+                    <>
+                      <span className="text-muted-foreground text-sm mb-1 block">{year[0]}</span>
+                      <CategoryPieChart expenses={year[1]} categories={categories} linkFilters={yearRange(year[0])} />
+                      <FilterLink search={filtersToSearch(yearRange(year[0]))}>
+                        <span className="font-medium block pt-1">{formatAmount(sum(year[1]))}</span>
+                      </FilterLink>
+                    </>
+                  )}
+                </div>
+              </Fragment>
+            )
+          })}
         </CardContent>
       </Card>
 

@@ -173,7 +173,7 @@ export function ExpenseDashboard({
               <div className="flex flex-1 items-center justify-between gap-4">
                 <div>
                   <p className="flex items-center gap-1.5 font-medium">
-                    {expense.description} · {expense.category}
+                    {expense.description} · <span className="text-muted-foreground font-normal">{expense.category}</span>
                     {expense.recurring && (
                       <RepeatIcon className="text-muted-foreground size-3.5" aria-label={t('form.recurring')} />
                     )}
