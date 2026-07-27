@@ -12,6 +12,16 @@ test('classifyTab', () => {
   assert.equal(sheet.classifyTab('something else', ''), sheet.TAB_TYPE.ignore)
 })
 
+test('normalizeTabName treats en/em dashes as a plain hyphen', () => {
+  assert.equal(sheet.normalizeTabName('Viaggio - Modello'), 'Viaggio - Modello')
+  assert.equal(sheet.normalizeTabName('Viaggio – Modello'), 'Viaggio - Modello')
+  assert.equal(sheet.normalizeTabName('Viaggio — Modello'), 'Viaggio - Modello')
+})
+
+test('classifyTab ignores the template tab even with a typographic dash', () => {
+  assert.equal(sheet.classifyTab('Viaggio – Modello (copiare non modificare)', 'viaggio'), sheet.TAB_TYPE.ignore)
+})
+
 test('parseTabMeta reads the row-1 marker cells', () => {
   const meta = sheet.parseTabMeta(['viaggio', 'Lisbon', '24/08/2026', '🐚', '30/08/2026'])
   assert.deepEqual(meta, { name: 'Lisbon', startDate: '2026-08-24', emoji: '🐚', endDate: '2026-08-30' })
@@ -209,6 +219,17 @@ test('findBlankSlotRow finds the first fully-empty row after the header', () => 
 
 test('findBlankSlotRow returns -1 when no tab is present', () => {
   assert.equal(sheet.findBlankSlotRow([['no header here']]), -1)
+})
+
+test('findTotaleRow locates the closing TOTALE row', () => {
+  const { values } = householdFixture()
+  const withTotale = [...values, ['TOTALE', '', '', '', 20.08, '', '', '', 10.04, 10.04, -10.04]]
+  assert.equal(sheet.findTotaleRow(withTotale), withTotale.length)
+})
+
+test('findTotaleRow returns -1 when there is no TOTALE row', () => {
+  const { values } = householdFixture()
+  assert.equal(sheet.findTotaleRow(values), -1)
 })
 
 test('buildExpenseRowValues formats the date (A-E only, no splits)', () => {

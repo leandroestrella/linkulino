@@ -105,6 +105,17 @@ function isoToDmy(iso) {
 // ---------------------------------------------------------------------------
 
 /**
+ * Normalizes a tab name for robust comparison: trims and treats any dash-like
+ * character (hyphen, en dash, em dash) as equivalent, so a typographic dash
+ * typed into the sheet (vs. the plain hyphen in TEMPLATE_TAB) still matches.
+ * @param {string} name
+ * @return {string}
+ */
+function normalizeTabName(name) {
+  return cellToString(name).replace(/[‐-―]/g, '-')
+}
+
+/**
  * Classifies a tab from its name and its A1 cell value.
  * @param {string} name the tab's name
  * @param {*} a1 the raw value of cell A1
@@ -113,7 +124,7 @@ function isoToDmy(iso) {
 function classifyTab(name, a1) {
   if (name === USERS_TAB) return TAB_TYPE.ignore
   if (name === CATEGORIES_TAB) return TAB_TYPE.ignore
-  if (name === TEMPLATE_TAB) return TAB_TYPE.ignore
+  if (normalizeTabName(name) === normalizeTabName(TEMPLATE_TAB)) return TAB_TYPE.ignore
   if (name.toLowerCase().indexOf(AUX_TAB_PREFIX) === 0) return TAB_TYPE.ignore
   var marker = cellToString(a1).toLowerCase()
   if (marker === HOUSEHOLD_MARKER) return TAB_TYPE.household
@@ -330,6 +341,23 @@ function findBlankSlotRow(values) {
 }
 
 /**
+ * Finds the 1-based row number of the tab's closing "TOTALE" summary row,
+ * which marks the end of the pre-filled formula rows — this is where a fresh
+ * blank slot row is inserted when findBlankSlotRow runs out (see
+ * ensureBlankSlotRow_ in Code.js). Returns -1 if no such row is found.
+ * @param {Array<Array<*>>} values
+ * @return {number}
+ */
+function findTotaleRow(values) {
+  var headerRowIndex = findHeaderRowIndex(values)
+  if (headerRowIndex === -1) return -1
+  for (var r = headerRowIndex + 1; r < values.length; r++) {
+    if (cellToString(values[r][COL.date]).toUpperCase() === 'TOTALE') return r + 1
+  }
+  return -1
+}
+
+/**
  * Builds the fixed A–E row values to write for an expense: date, description,
  * category, payer, amount. The Quota %/Ricorrente cells are written
  * separately (see buildSplitValues) since their columns aren't fixed.
@@ -407,6 +435,7 @@ if (typeof module !== 'undefined' && module.exports) {
     USERS_TAB: USERS_TAB,
     CATEGORIES_TAB: CATEGORIES_TAB,
     TEMPLATE_TAB: TEMPLATE_TAB,
+    normalizeTabName: normalizeTabName,
     HOUSEHOLD_MARKER: HOUSEHOLD_MARKER,
     TRIP_MARKER: TRIP_MARKER,
     TAB_TYPE: TAB_TYPE,
@@ -429,6 +458,7 @@ if (typeof module !== 'undefined' && module.exports) {
     rowToExpense: rowToExpense,
     parseExpenses: parseExpenses,
     findBlankSlotRow: findBlankSlotRow,
+    findTotaleRow: findTotaleRow,
     buildExpenseRowValues: buildExpenseRowValues,
     buildSplitValues: buildSplitValues,
     expensesToRecreateThisMonth: expensesToRecreateThisMonth,

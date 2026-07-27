@@ -113,6 +113,40 @@ function readExpenseTab_(tab) {
   return { values: values, headerRowIndex: headerRowIndex, cols: cols }
 }
 
+/**
+ * Finds the next blank slot row to write an expense into, extending the
+ * pre-filled formula rows by one if every existing slot is already used (see
+ * findBlankSlotRow in sheet.js) — inserts a row just above the tab's TOTALE
+ * row, copies the formulas from the row above it (the Quota €/Saldo columns
+ * adjust their relative references automatically, same as a manual drag-fill),
+ * then clears the cells this app writes to (A–E, Quota %, Ricorrente) so the
+ * new row is a genuine blank slot.
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} tab
+ * @param {{values: Array<Array<*>>, cols: {splitA: number, splitB: number, recurring: number}}} read
+ * @return {number} 1-based row number
+ */
+function ensureBlankSlotRow_(tab, read) {
+  var rowNumber = findBlankSlotRow(read.values)
+  if (rowNumber !== -1) return rowNumber
+
+  var totaleRow = findTotaleRow(read.values)
+  if (totaleRow === -1) {
+    throw new Error('No blank row left on this tab, and no TOTALE row found to extend before — add a blank formula row manually.')
+  }
+
+  var sourceRow = totaleRow - 1
+  var lastCol = tab.getLastColumn()
+  tab.insertRowBefore(totaleRow)
+  tab.getRange(sourceRow, 1, 1, lastCol).copyTo(tab.getRange(totaleRow, 1, 1, lastCol))
+
+  tab.getRange(totaleRow, COL.date + 1, 1, COL.amount - COL.date + 1).clearContent()
+  if (read.cols.splitA !== -1) tab.getRange(totaleRow, read.cols.splitA + 1).clearContent()
+  if (read.cols.splitB !== -1) tab.getRange(totaleRow, read.cols.splitB + 1).clearContent()
+  if (read.cols.recurring !== -1) tab.getRange(totaleRow, read.cols.recurring + 1).clearContent()
+
+  return totaleRow
+}
+
 /** @return {Object[]} metadata for every trip tab (name, dates, emoji). */
 function getTrips_() {
   var sheets = getSpreadsheet_().getSheets()
@@ -150,10 +184,7 @@ function addExpense_(input, sheetId) {
   if (!tab) throw new Error('No matching expense tab found (see docs/sheet-setup.md)')
 
   var read = readExpenseTab_(tab)
-  var rowNumber = findBlankSlotRow(read.values)
-  if (rowNumber === -1) {
-    throw new Error('No blank row left on this tab — extend the Quota/Saldo formulas down first')
-  }
+  var rowNumber = ensureBlankSlotRow_(tab, read)
 
   var participants = parseParticipants(readValues_(USERS_TAB))
   writeExpenseRow_(tab, rowNumber, input, participants, read.cols, !sheetId)
@@ -212,6 +243,21 @@ function writeExpenseRow_(tab, rowNumber, input, participants, cols, includeRecu
 }
 
 /**
+ * Finds the trip template tab, tolerating a typographic-dash mismatch against
+ * TEMPLATE_TAB (see normalizeTabName in sheet.js) since sheet tab names are
+ * hand-typed and easy to get a hyphen vs. en/em dash wrong on.
+ * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} ss
+ * @return {GoogleAppsScript.Spreadsheet.Sheet|null}
+ */
+function findTemplateTab_(ss) {
+  var sheets = ss.getSheets()
+  for (var i = 0; i < sheets.length; i++) {
+    if (normalizeTabName(sheets[i].getName()) === normalizeTabName(TEMPLATE_TAB)) return sheets[i]
+  }
+  return null
+}
+
+/**
  * Duplicates the trip template tab, renames it `"{emoji} {name}"`, and sets
  * its row-1 metadata.
  * @param {{name: string, emoji: string, startDate: string, endDate: string}} input
@@ -221,7 +267,7 @@ function createTrip_(input) {
   if (!input || !cellToString(input.name)) throw new Error('Trip name is required')
 
   var ss = getSpreadsheet_()
-  var template = ss.getSheetByName(TEMPLATE_TAB)
+  var template = findTemplateTab_(ss)
   if (!template) throw new Error('Missing template tab: ' + TEMPLATE_TAB)
 
   var trip = {
@@ -285,8 +331,7 @@ function runMonthlyRecurringExpenses() {
   var created = 0
   for (var i = 0; i < toCreate.length; i++) {
     var read = readExpenseTab_(household) // re-read: prior iterations filled a slot
-    var rowNumber = findBlankSlotRow(read.values)
-    if (rowNumber === -1) break // out of pre-filled rows; stop rather than append past the formulas
+    var rowNumber = ensureBlankSlotRow_(household, read)
     writeExpenseRow_(household, rowNumber, toCreate[i], participants, read.cols, true)
     created++
   }

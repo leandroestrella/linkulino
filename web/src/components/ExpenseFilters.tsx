@@ -23,70 +23,57 @@ export function ExpenseFilters({
   const { t } = useTranslation()
 
   return (
-    <div className="flex flex-wrap items-end gap-2">
-      <div className="flex flex-col gap-1.5">
-        <label className="text-muted-foreground text-xs">{t('filters.category')}</label>
-        <Select
-          value={filters.category || ALL}
-          onValueChange={(v) => onChange({ ...filters, category: v === ALL ? '' : v })}
-        >
-          <SelectTrigger size="sm" className="w-36">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>{t('filters.all')}</SelectItem>
-            {categories.map((c) => (
-              <SelectItem key={c.name} value={c.name}>
-                {c.icon} {c.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+    <div className="flex flex-wrap items-center gap-2">
+      <Select
+        value={filters.category || ALL}
+        onValueChange={(v) => onChange({ ...filters, category: v === ALL ? '' : v })}
+      >
+        <SelectTrigger size="sm" className="w-full sm:w-auto">
+          <SelectValue placeholder={t('filters.category')} />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={ALL}>{t('filters.category')}</SelectItem>
+          {categories.map((c) => (
+            <SelectItem key={c.name} value={c.name}>
+              {c.icon} {c.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
-      <div className="flex flex-col gap-1.5">
-        <label className="text-muted-foreground text-xs">{t('filters.payer')}</label>
-        <Select
-          value={filters.payer || ALL}
-          onValueChange={(v) => onChange({ ...filters, payer: v === ALL ? '' : v })}
-        >
-          <SelectTrigger size="sm" className="w-32">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>{t('filters.all')}</SelectItem>
-            {participants.map((p) => (
-              <SelectItem key={p.name} value={p.name}>
-                {p.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <Select value={filters.payer || ALL} onValueChange={(v) => onChange({ ...filters, payer: v === ALL ? '' : v })}>
+        <SelectTrigger size="sm" className="w-full sm:w-auto">
+          <SelectValue placeholder={t('filters.payer')} />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={ALL}>{t('filters.payer')}</SelectItem>
+          {participants.map((p) => (
+            <SelectItem key={p.name} value={p.name}>
+              {p.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
-      <div className="flex flex-col gap-1.5">
-        <label className="text-muted-foreground text-xs">{t('filters.from')}</label>
-        <Input
-          type="date"
-          value={filters.from}
-          onChange={(e) => onChange({ ...filters, from: e.target.value })}
-          className="w-36"
-        />
-      </div>
+      <Input
+        type="date"
+        value={filters.from}
+        onChange={(e) => onChange({ ...filters, from: e.target.value })}
+        aria-label={t('filters.from')}
+        className="h-8 w-full sm:w-auto"
+      />
 
-      <div className="flex flex-col gap-1.5">
-        <label className="text-muted-foreground text-xs">{t('filters.to')}</label>
-        <Input
-          type="date"
-          value={filters.to}
-          onChange={(e) => onChange({ ...filters, to: e.target.value })}
-          className="w-36"
-        />
-      </div>
+      <Input
+        type="date"
+        value={filters.to}
+        onChange={(e) => onChange({ ...filters, to: e.target.value })}
+        aria-label={t('filters.to')}
+        className="h-8 w-full sm:w-auto"
+      />
 
       {hasActiveFilters(filters) && (
-        <Button variant="ghost" size="sm" onClick={() => onChange(EMPTY_FILTERS)}>
-          <XIcon className="size-4" />
+        <Button variant="ghost" size="sm" onClick={() => onChange(EMPTY_FILTERS)} className="gap-1">
+          <XIcon className="size-3.5" />
           {t('filters.clear')}
         </Button>
       )}

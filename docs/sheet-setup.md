@@ -118,11 +118,17 @@ to 50/50) so the quota-€/Saldo formulas are already in place below every
 future entry. **Adding an expense means filling in A–E, the two Quota %
 cells, and Ricorrente (if present) on the first fully-blank row (blank by
 A–E), not appending a new row** — appending past the pre-filled range would
-leave a row with no formulas. If a tab ever runs out of blank rows, extend the
-formulas down manually before adding more.
+leave a row with no formulas.
 
 The last row (`TOTALE`) sums the amount/quota/saldo columns and is also a
-formula — leave it alone.
+formula — leave it alone. **Never delete rows to "make room"** — deleting the
+row right above `TOTALE` (or any pre-filled row) breaks the Saldo column,
+since each row's running balance formula references the row above it; once
+that reference is gone, every row below recalculates against a hole. If a tab
+ever runs out of blank rows, the backend now extends it automatically: adding
+an expense with none left inserts a fresh row just above `TOTALE`, copies the
+formulas down from the row above (same as a manual drag-fill), and clears it
+to a blank slot — no manual sheet surgery needed.
 
 ## trips
 

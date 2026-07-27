@@ -136,19 +136,18 @@ export function ExpenseDashboard({
                 )}
                 <AuthBar />
               </div>
+              {showFilters && (
+                <ExpenseFilters
+                  categories={categories}
+                  participants={participants}
+                  filters={filters}
+                  onChange={(next) => setSearchParams(new URLSearchParams(filtersToSearch(next)))}
+                />
+              )}
             </div>
           </div>,
           subHeader,
         )}
-
-      {showFilters && (
-        <ExpenseFilters
-          categories={categories}
-          participants={participants}
-          filters={filters}
-          onChange={(next) => setSearchParams(new URLSearchParams(filtersToSearch(next)))}
-        />
-      )}
 
       <section className="flex flex-col gap-2">
         {loading && (

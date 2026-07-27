@@ -132,7 +132,7 @@ export function OverviewPage() {
                   <span className="font-medium">{formatAmount(sum(expenses))}</span>
                 </div>
               </FilterLink>
-              <CategoryPieChart expenses={expenses} categories={categories} />
+              <CategoryPieChart expenses={expenses} categories={categories} linkFilters={monthRange(month)} />
             </div>
           ))}
         </CardContent>
@@ -152,7 +152,7 @@ export function OverviewPage() {
                   <span className="font-medium">{formatAmount(sum(expenses))}</span>
                 </div>
               </FilterLink>
-              <CategoryPieChart expenses={expenses} categories={categories} />
+              <CategoryPieChart expenses={expenses} categories={categories} linkFilters={yearRange(year)} />
             </div>
           ))}
         </CardContent>
@@ -160,22 +160,34 @@ export function OverviewPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t('overview.vacationsOverall')}</CardTitle>
+          <CardTitle>{t('overview.commonVsSingle')}</CardTitle>
         </CardHeader>
-        <CardContent className="flex items-center justify-between">
+        <CardContent className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div>
-            <p className="text-muted-foreground text-sm">{t('home.total')}</p>
-            <p className="text-xl font-medium">{formatAmount(vacationsTotal)}</p>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground text-sm">{t('overview.common')}</span>
+              <span className="font-medium">{formatAmount(commonTotal)}</span>
+            </div>
+            <CategoryPieChart expenses={common} categories={categories} linkFilters={{}} />
           </div>
-          <div className="text-center">
-            <p className="text-muted-foreground text-sm">{t('overview.perVacation')}</p>
-            <p className="text-xl font-medium">
-              {trips.length > 0 ? formatAmount(vacationsTotal / trips.length) : '—'}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-muted-foreground text-sm">{t('overview.perDay')}</p>
-            <p className="text-xl font-medium">{totalDays > 0 ? formatAmount(vacationsTotal / totalDays) : '—'}</p>
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground text-sm">{t('overview.singleUser')}</span>
+              <span className="font-medium">{formatAmount(singleUserTotal)}</span>
+            </div>
+            <CategoryPieChart expenses={singleUser} categories={categories} linkFilters={{}} />
+            {singleUserTotal > 0 && (
+              <div className="flex flex-wrap gap-x-8 gap-y-2 pt-2">
+                {singleUserByParticipant
+                  .filter(([, total]) => total > 0)
+                  .map(([name, total]) => (
+                    <div key={name}>
+                      <p className="text-muted-foreground text-sm">{name}</p>
+                      <p className="font-medium">{formatAmount(total)}</p>
+                    </div>
+                  ))}
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -203,34 +215,22 @@ export function OverviewPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t('overview.commonVsSingle')}</CardTitle>
+          <CardTitle>{t('overview.vacationsOverall')}</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
+        <CardContent className="flex items-center justify-between">
           <div>
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground text-sm">{t('overview.common')}</span>
-              <span className="font-medium">{formatAmount(commonTotal)}</span>
-            </div>
-            <CategoryPieChart expenses={common} categories={categories} />
+            <p className="text-muted-foreground text-sm">{t('home.total')}</p>
+            <p className="text-xl font-medium">{formatAmount(vacationsTotal)}</p>
           </div>
-          <div>
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground text-sm">{t('overview.singleUser')}</span>
-              <span className="font-medium">{formatAmount(singleUserTotal)}</span>
-            </div>
-            <CategoryPieChart expenses={singleUser} categories={categories} />
-            {singleUserTotal > 0 && (
-              <div className="flex flex-wrap gap-x-8 gap-y-2 pt-2">
-                {singleUserByParticipant
-                  .filter(([, total]) => total > 0)
-                  .map(([name, total]) => (
-                    <div key={name}>
-                      <p className="text-muted-foreground text-sm">{name}</p>
-                      <p className="font-medium">{formatAmount(total)}</p>
-                    </div>
-                  ))}
-              </div>
-            )}
+          <div className="text-center">
+            <p className="text-muted-foreground text-sm">{t('overview.perVacation')}</p>
+            <p className="text-xl font-medium">
+              {trips.length > 0 ? formatAmount(vacationsTotal / trips.length) : '—'}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-muted-foreground text-sm">{t('overview.perDay')}</p>
+            <p className="text-xl font-medium">{totalDays > 0 ? formatAmount(vacationsTotal / totalDays) : '—'}</p>
           </div>
         </CardContent>
       </Card>

@@ -1,5 +1,7 @@
+import { useNavigate } from 'react-router-dom'
 import type { Category, Expense } from '@/api/types'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { type ExpenseFilterValues, filtersToSearch } from '@/lib/filters'
 import { formatAmount } from '@/lib/format'
 
 /**
@@ -68,8 +70,22 @@ function arcPath(cx: number, cy: number, r: number, startAngle: number, endAngle
   return `M ${cx} ${cy} L ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 0 ${end.x} ${end.y} Z`
 }
 
-/** A pie chart (with legend) of expense totals by category. Renders nothing when there's no data. */
-export function CategoryPieChart({ expenses, categories }: { expenses: Expense[]; categories: Category[] }) {
+/**
+ * A pie chart (with legend) of expense totals by category. Renders nothing
+ * when there's no data. When `linkFilters` is given, each slice (except the
+ * folded-together "Other") links back to the home dashboard filtered to that
+ * category, layered on top of `linkFilters` (e.g. a month's date range).
+ */
+export function CategoryPieChart({
+  expenses,
+  categories,
+  linkFilters,
+}: {
+  expenses: Expense[]
+  categories: Category[]
+  linkFilters?: Partial<ExpenseFilterValues>
+}) {
+  const navigate = useNavigate()
   const slices = toSlices(expenses, categories)
   if (slices.length === 0) return null
 
@@ -84,13 +100,26 @@ export function CategoryPieChart({ expenses, categories }: { expenses: Expense[]
     return { ...slice, d: arcPath(cx, cy, r, startAngle, endAngle) }
   })
 
+  const goToCategory = (name: string) => {
+    if (!linkFilters || name === 'Other') return
+    navigate(`/${filtersToSearch({ ...linkFilters, category: name })}`)
+  }
+  const clickable = (name: string) => !!linkFilters && name !== 'Other'
+
   return (
     <div className="flex flex-wrap items-center gap-4 pt-1">
       <svg viewBox="0 0 88 88" className="size-20 shrink-0" role="img" aria-label="expenses by category">
         {arcs.map((arc) => (
           <Tooltip key={arc.name}>
             <TooltipTrigger asChild>
-              <path d={arc.d} fill={arc.color} stroke="var(--card)" strokeWidth="1" />
+              <path
+                d={arc.d}
+                fill={arc.color}
+                stroke="var(--card)"
+                strokeWidth="1"
+                className={clickable(arc.name) ? 'cursor-pointer' : undefined}
+                onClick={() => goToCategory(arc.name)}
+              />
             </TooltipTrigger>
             <TooltipContent>
               {arc.icon} {arc.name} · {formatAmount(arc.value)}
@@ -100,7 +129,11 @@ export function CategoryPieChart({ expenses, categories }: { expenses: Expense[]
       </svg>
       <div className="flex flex-col gap-1">
         {arcs.map((arc) => (
-          <div key={arc.name} className="flex items-center gap-1.5 text-xs">
+          <div
+            key={arc.name}
+            className={`flex items-center gap-1.5 text-xs ${clickable(arc.name) ? 'cursor-pointer hover:opacity-60' : ''}`}
+            onClick={() => goToCategory(arc.name)}
+          >
             <span className="inline-block size-2.5 shrink-0" style={{ backgroundColor: arc.color }} aria-hidden />
             <Tooltip>
               <TooltipTrigger asChild>
