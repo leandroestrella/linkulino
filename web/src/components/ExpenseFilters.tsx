@@ -62,7 +62,7 @@ export function ExpenseFilters({
             onChange({ ...filters, from: range.from, to: range.to })
           }}
         >
-          <SelectTrigger size="sm" className="w-full sm:w-auto sm:shrink-0 sm:px-1.5 sm:text-xs">
+          <SelectTrigger size="sm" className="w-full sm:w-auto sm:shrink-0 sm:px-1.5 sm:text-sm">
             <SelectValue placeholder={t('filters.timeframe')} />
           </SelectTrigger>
           <SelectContent>
@@ -80,7 +80,7 @@ export function ExpenseFilters({
           value={filters.from}
           onChange={(e) => onChange({ ...filters, from: e.target.value })}
           aria-label={t('filters.from')}
-          className="h-8 w-full sm:h-7 sm:w-auto sm:shrink-0 sm:px-1.5 sm:text-xs"
+          className="h-8 w-full sm:h-7 sm:w-auto sm:shrink-0 sm:px-1 sm:text-sm"
         />
 
         <Input
@@ -88,14 +88,14 @@ export function ExpenseFilters({
           value={filters.to}
           onChange={(e) => onChange({ ...filters, to: e.target.value })}
           aria-label={t('filters.to')}
-          className="h-8 w-full sm:h-7 sm:w-auto sm:shrink-0 sm:px-1.5 sm:text-xs"
+          className="h-8 w-full sm:h-7 sm:w-auto sm:shrink-0 sm:px-1 sm:text-sm"
         />
 
         <Select
           value={filters.category || ALL}
           onValueChange={(v) => onChange({ ...filters, category: v === ALL ? '' : v })}
         >
-          <SelectTrigger size="sm" className="w-full sm:w-auto sm:max-w-24 sm:shrink-0 sm:px-1.5 sm:text-xs lowercase">
+          <SelectTrigger size="sm" className="w-full sm:w-auto sm:max-w-24 sm:shrink-0 sm:px-1.5 sm:text-sm lowercase">
             <SelectValue placeholder={t('filters.category')} className="truncate" />
           </SelectTrigger>
           <SelectContent>
@@ -113,7 +113,7 @@ export function ExpenseFilters({
             just a shrink-0 unit at the end. */}
         <div className="flex w-full shrink-0 items-center gap-2 sm:w-auto sm:gap-1">
           <Select value={filters.payer || ALL} onValueChange={(v) => onChange({ ...filters, payer: v === ALL ? '' : v })}>
-            <SelectTrigger size="sm" className="w-full sm:w-auto sm:max-w-24 sm:shrink-0 sm:px-1.5 sm:text-xs">
+            <SelectTrigger size="sm" className="w-full sm:w-auto sm:max-w-24 sm:shrink-0 sm:px-1.5 sm:text-sm">
               <SelectValue placeholder={t('filters.payer')} className="truncate" />
             </SelectTrigger>
             <SelectContent>
