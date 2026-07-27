@@ -26,7 +26,7 @@ const components: Components = {
   h2: ({ children }) => (
     <h2 className="mt-10 mb-3 border-b pb-1.5 text-xl font-semibold lowercase tracking-tight">{children}</h2>
   ),
-  h3: ({ children }) => <h3 className="mt-6 mb-2 text-lg font-semibold">{children}</h3>,
+  h3: ({ children }) => <h3 className="mt-6 mb-2 text-lg font-semibold lowercase">{children}</h3>,
   p: ({ children }) => <p className="my-4 leading-relaxed">{children}</p>,
   ul: ({ children }) => <ul className="my-4 list-disc space-y-1.5 pl-6">{children}</ul>,
   ol: ({ children }) => <ol className="my-4 list-decimal space-y-1.5 pl-6">{children}</ol>,

@@ -170,20 +170,25 @@ export function ExpenseDashboard({
                 </TooltipTrigger>
                 <TooltipContent>{expense.category}</TooltipContent>
               </Tooltip>
-              <div className="flex flex-1 items-center justify-between gap-4">
-                <div>
+              <div className="flex min-w-0 flex-1 items-center justify-between gap-4">
+                <div className="min-w-0">
                   <p className="flex items-center gap-1.5 font-medium">
-                    {expense.description} · <span className="text-muted-foreground font-normal">{expense.category}</span>
+                    <span className="min-w-0 truncate">
+                      {expense.description} · <span className="text-muted-foreground font-normal">{expense.category}</span>
+                    </span>
                     {expense.recurring && (
-                      <RepeatIcon className="text-muted-foreground size-3.5" aria-label={t('form.recurring')} />
+                      <RepeatIcon
+                        className="text-muted-foreground size-3.5 shrink-0"
+                        aria-label={t('form.recurring')}
+                      />
                     )}
                   </p>
-                  <p className="text-muted-foreground text-sm">{expense.date}</p>
+                  <p className="text-muted-foreground text-sm whitespace-nowrap">{expense.date}</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex shrink-0 items-center gap-2">
                   <div className="text-right">
-                    <p className="font-medium">{formatAmount(expense.amount)}</p>
-                    <p className="text-muted-foreground text-sm">
+                    <p className="font-medium whitespace-nowrap">{formatAmount(expense.amount)}</p>
+                    <p className="text-muted-foreground text-sm whitespace-nowrap">
                       {t('home.paidByPrefix')} <PersonName person={findParticipant(participants, expense.payer)} />
                     </p>
                   </div>

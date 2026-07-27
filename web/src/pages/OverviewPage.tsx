@@ -57,9 +57,17 @@ function yearRange(year: string): { from: string; to: string } {
 }
 
 /** A value that links back to the (filtered) home dashboard — the click target for month/year/user totals. */
-function FilterLink({ search, children }: { search: string; children: React.ReactNode }) {
+function FilterLink({
+  search,
+  className,
+  children,
+}: {
+  search: string
+  className?: string
+  children: React.ReactNode
+}) {
   return (
-    <Link to={`/${search}`} className="rounded-sm transition-opacity hover:opacity-60">
+    <Link to={`/${search}`} className={`rounded-sm transition-opacity hover:opacity-60 ${className ?? ''}`}>
       {children}
     </Link>
   )
@@ -113,14 +121,14 @@ export function OverviewPage() {
 
       <Card>
         <CardContent className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
-          <h3 className="text-muted-foreground text-xs font-medium uppercase">{t('overview.byMonth')}</h3>
-          <h3 className="text-muted-foreground text-xs font-medium uppercase">{t('overview.byYear')}</h3>
+          <h3 className="text-muted-foreground text-xs font-medium">{t('overview.byMonth')}</h3>
+          <h3 className="text-muted-foreground text-xs font-medium">{t('overview.byYear')}</h3>
           {Array.from({ length: Math.max(byMonth.length, byYear.length, 1) }).map((_, i) => {
             const month = byMonth[i]
             const year = byYear[i]
             return (
               <Fragment key={i}>
-                <div>
+                <div className="flex flex-col">
                   {i === 0 && byMonth.length === 0 && (
                     <p className="text-muted-foreground text-sm">{t('overview.empty')}</p>
                   )}
@@ -132,13 +140,16 @@ export function OverviewPage() {
                         categories={categories}
                         linkFilters={monthRange(month[0])}
                       />
-                      <FilterLink search={filtersToSearch(monthRange(month[0]))}>
+                      {/* mt-auto pins the total to the bottom of the row's stretched
+                          height, so it lines up with its pair even when one chart's
+                          legend has more rows than the other. */}
+                      <FilterLink search={filtersToSearch(monthRange(month[0]))} className="mt-auto">
                         <span className="font-medium block pt-1">{formatAmount(sum(month[1]))}</span>
                       </FilterLink>
                     </>
                   )}
                 </div>
-                <div>
+                <div className="flex flex-col">
                   {i === 0 && byYear.length === 0 && (
                     <p className="text-muted-foreground text-sm">{t('overview.empty')}</p>
                   )}
@@ -146,7 +157,7 @@ export function OverviewPage() {
                     <>
                       <span className="text-muted-foreground text-sm mb-1 block">{year[0]}</span>
                       <CategoryPieChart expenses={year[1]} categories={categories} linkFilters={yearRange(year[0])} />
-                      <FilterLink search={filtersToSearch(yearRange(year[0]))}>
+                      <FilterLink search={filtersToSearch(yearRange(year[0]))} className="mt-auto">
                         <span className="font-medium block pt-1">{formatAmount(sum(year[1]))}</span>
                       </FilterLink>
                     </>
