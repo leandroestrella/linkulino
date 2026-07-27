@@ -37,10 +37,14 @@ export function HomePage() {
                   <CardContent className="flex items-center gap-3 py-3">
                     <span className="text-2xl">{trip.emoji}</span>
                     <div>
-                      <p className="font-medium">{active ? t('trips.currentTrip') : t('trips.upcomingTrip')}</p>
+                      <p className="font-medium">
+                        {trip.name}{' '}
+                        <span className="text-muted-foreground font-normal">
+                          · {active ? t('trips.currentTrip') : t('trips.upcomingTrip')}
+                        </span>
+                      </p>
                       <p className="text-muted-foreground text-sm">
-                        {trip.name}
-                        {!active && ` · ${trip.startDate} → ${trip.endDate}`}
+                        {trip.startDate} → {trip.endDate}
                       </p>
                     </div>
                   </CardContent>
