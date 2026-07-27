@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getExpenses, getParticipants } from '@/api/client'
 import type { Expense, Participant } from '@/api/types'
+import { AuthBar } from '@/auth/AuthBar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatAmount } from '@/lib/format'
@@ -43,9 +44,12 @@ export function HomePage() {
           <h1 className="text-2xl font-semibold">linkulino</h1>
           <p className="text-muted-foreground">shared expenses, split fairly, kept in sync.</p>
         </div>
-        <Button asChild>
-          <Link to="/add">add expense</Link>
-        </Button>
+        <div className="flex items-center gap-3">
+          <AuthBar />
+          <Button asChild>
+            <Link to="/add">add expense</Link>
+          </Button>
+        </div>
       </header>
 
       <Card>

@@ -14,12 +14,14 @@
  * SPA POSTs with Content-Type text/plain and a JSON string body — hence the
  * manual JSON.parse of e.postData.contents below.
  *
- * There is no admin gate yet (Phase 2, to match Georgie's Google-sign-in
- * pattern) — every write currently succeeds. Don't share this deployment's URL
- * beyond the two of you until that lands.
+ * AUTH: reads are public; every write verifies the caller's Google ID token
+ * (via Google's tokeninfo endpoint) and checks the email against the
+ * participant allowlist in the `Users` tab before touching the sheet (see
+ * requireUser_). Auth decisions themselves are pure logic in auth.js.
  */
 
 var VERSION = '0.1.0'
+var USERS_SHEET = 'Users'
 
 function doGet(e) {
   try {
@@ -46,6 +48,11 @@ function doGet(e) {
 function doPost(e) {
   try {
     var body = JSON.parse((e && e.postData && e.postData.contents) || '{}')
+    // "me" reports the caller's authorization status without throwing — the
+    // SPA uses it right after sign-in to decide what to show.
+    if (body.action === 'me') return json(whoAmI_(body))
+
+    requireUser_(body) // throws unless the caller is an allowed participant
     switch (body.action) {
       case 'addExpense':
         return json({ ok: true, expense: addExpense_(body.expense) })
@@ -143,6 +150,98 @@ function addExpense_(input) {
   var participants = parseParticipants(readValues_(SETTINGS_TAB))
   var updated = household.getRange(rowNumber, 1, 1, 10).getValues()[0]
   return rowToExpense(updated, rowNumber, participants)
+}
+
+// ---------------------------------------------------------------------------
+// Auth
+// ---------------------------------------------------------------------------
+
+/**
+ * Reports the caller's identity + authorization status. Never throws —
+ * returns `authorized: false` (with a reason) for anonymous or non-allowlisted
+ * callers.
+ * @param {Object} body parsed POST body (expects `idToken`)
+ * @return {{ok: true, authorized: boolean, email: string, name: string, reason: string}}
+ */
+function whoAmI_(body) {
+  var r = authorize_(body)
+  return { ok: true, authorized: r.authorized, email: r.email, name: r.name, reason: r.reason }
+}
+
+/**
+ * Verifies the caller is an allowed participant, or throws.
+ * @param {Object} body parsed POST body (expects `idToken`)
+ * @return {{email: string, name: string}}
+ */
+function requireUser_(body) {
+  var r = authorize_(body)
+  if (!r.authorized) throw new Error('Not authorized: ' + r.reason)
+  return { email: r.email, name: r.name }
+}
+
+/**
+ * Runs the full authorization decision for a request: validate the ID token
+ * with Google, then apply audience + allowlist checks (pure logic in auth.js).
+ * @param {Object} body
+ * @return {{authorized: boolean, email: string, name: string, reason: string}}
+ */
+function authorize_(body) {
+  var token = body && body.idToken
+  if (!token) return { authorized: false, email: '', name: '', reason: 'sign-in required' }
+  var claims = verifyIdToken_(token)
+  return evaluateUser(claims, getClientId_(), getUsers_())
+}
+
+/**
+ * Validates a Google ID token via the public tokeninfo endpoint (checks the
+ * signature and expiry server-side) and returns its claims, or null if invalid.
+ * @param {string} idToken
+ * @return {Object|null}
+ */
+function verifyIdToken_(idToken) {
+  try {
+    var res = UrlFetchApp.fetch(
+      'https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(idToken),
+      { muteHttpExceptions: true },
+    )
+    if (res.getResponseCode() !== 200) return null
+    return JSON.parse(res.getContentText())
+  } catch (err) {
+    return null
+  }
+}
+
+/** @return {string} the OAuth client ID this backend accepts tokens for. */
+function getClientId_() {
+  return PropertiesService.getScriptProperties().getProperty('OAUTH_CLIENT_ID') || ''
+}
+
+/**
+ * Reads the participant allowlist from the `Users` tab (email→name). Returns
+ * an empty allowlist when the tab is absent, so writes simply fail closed.
+ * @return {Object<string, string>}
+ */
+function getUsers_() {
+  var sheet = getSpreadsheet_().getSheetByName(USERS_SHEET)
+  if (!sheet) return {}
+  return parseUsers(sheet.getDataRange().getValues())
+}
+
+/**
+ * One-time setup: creates the `Users` allowlist tab if missing and seeds it
+ * with the deploying account. Run once from the editor, then edit the tab to
+ * add/remove participants (Email, Name columns). Safe to re-run.
+ * @return {string} a human-readable status.
+ */
+function setupUsersTab() {
+  var ss = getSpreadsheet_()
+  var sheet = ss.getSheetByName(USERS_SHEET)
+  if (!sheet) {
+    sheet = ss.insertSheet(USERS_SHEET)
+    sheet.appendRow(['Email', 'Name'])
+    sheet.appendRow([Session.getEffectiveUser().getEmail(), ''])
+  }
+  return USERS_SHEET + ' tab ready with ' + Math.max(0, sheet.getLastRow() - 1) + ' user(s).'
 }
 
 // ---------------------------------------------------------------------------

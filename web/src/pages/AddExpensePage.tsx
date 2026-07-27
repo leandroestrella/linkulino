@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { addExpense, getCategories, getParticipants } from '@/api/client'
 import type { Participant } from '@/api/types'
+import { useAuth } from '@/auth/AuthProvider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -30,6 +31,7 @@ function evenSplit(participants: Participant[]): Record<string, number> {
 
 export function AddExpensePage() {
   const navigate = useNavigate()
+  const { configured, status, authorized } = useAuth()
   const [participants, setParticipants] = useState<Participant[]>([])
   const [categories, setCategories] = useState<string[]>([])
 
@@ -81,8 +83,16 @@ export function AddExpensePage() {
           <CardTitle>add expense</CardTitle>
         </CardHeader>
         <CardContent>
-          {!loaded && <p className="text-muted-foreground">loading…</p>}
-          {loaded && (
+          {configured && status !== 'signed-in' && (
+            <p className="text-muted-foreground">sign in from the home page to add an expense.</p>
+          )}
+          {configured && status === 'signed-in' && !authorized && (
+            <p className="text-destructive">your account isn't on the allowlist for this sheet.</p>
+          )}
+          {(!configured || (status === 'signed-in' && authorized)) && !loaded && (
+            <p className="text-muted-foreground">loading…</p>
+          )}
+          {(!configured || (status === 'signed-in' && authorized)) && loaded && (
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="date">date</Label>

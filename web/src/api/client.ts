@@ -17,6 +17,14 @@ type ApiEnvelope<T> = ({ ok: true } & T) | { ok: false; error: string }
 /** Raised when the backend returns `{ ok: false }` or the request fails. */
 export class ApiError extends Error {}
 
+/** Supplies the current signed-in ID token for writes; wired up by AuthProvider. */
+let getIdToken: () => string | null = () => null
+
+/** Registers the provider used to obtain the ID token for write calls. */
+export function setIdTokenProvider(provider: () => string | null): void {
+  getIdToken = provider
+}
+
 const mock = {
   expenses: clone(MOCK_EXPENSES),
   participants: clone(MOCK_PARTICIPANTS),
@@ -52,6 +60,24 @@ export async function getTrips(): Promise<Trip[]> {
   return data.trips
 }
 
+/** The caller's authorization status, resolved server-side from their ID token. */
+export interface Me {
+  authorized: boolean
+  email: string
+  name: string
+  reason: string
+}
+
+/**
+ * Asks the backend whether the current ID token belongs to an allowed
+ * participant. In mock mode (offline dev) there is no sign-in, so we grant
+ * authorization to keep the write UI reachable against the in-memory store.
+ */
+export async function fetchMe(): Promise<Me> {
+  if (!hasBackend) return { authorized: true, email: 'dev@local', name: 'dev', reason: 'mock mode' }
+  return post<Me>({ action: 'me' })
+}
+
 // ---------------------------------------------------------------------------
 // Writes
 // ---------------------------------------------------------------------------
@@ -83,13 +109,15 @@ async function get<T>(action: string): Promise<T> {
 }
 
 async function post<T>(body: Record<string, unknown>): Promise<T> {
+  const token = getIdToken()
+  const payload = token ? { ...body, idToken: token } : body
   let res: Response
   try {
     // text/plain avoids a CORS preflight, which Apps Script web apps can't answer.
     res = await fetch(config.apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify(body),
+      body: JSON.stringify(payload),
     })
   } catch (err) {
     throw new ApiError(`Network error contacting the backend: ${String(err)}`)
