@@ -44,13 +44,11 @@ docs/         maintainer guides (sheet setup, categories, translations)
 assets/       brand art
 ```
 
-*(these directories are added as the project takes shape — this initial commit only sets up the repo itself.)*
-
 ## run your own instance
 
 linkulino is a template for anyone who wants to track shared expenses with a partner, roommates, or a small group:
 
-1. copy the google sheet template — a settings tab for participant names, a tab for recurring/household expenses, and a trip template tab to duplicate per vacation (the exact column schema will be documented in `docs/sheet-setup.md`). keep it **private** (the app reads it through the backend, so it never needs to be link-shared)
+1. copy the google sheet template — a settings tab for participant names, a tab for recurring/household expenses, and a trip template tab to duplicate per vacation (the exact column schema is in [docs/sheet-setup.md](docs/sheet-setup.md)). keep it **private** (the app reads it through the backend, so it never needs to be link-shared)
 2. create a bound apps script on your sheet: `cd apps-script`, `npm install`, `npx clasp login`, then `clasp clone <scriptId>` (or create the project via the sheet's Extensions → Apps Script and `clasp push`). deploy it as a web app ("execute as: me", "who has access: anyone"). run any function once from the editor to grant the scopes (spreadsheet + external requests), clicking through the consent screen
 3. create a google oauth client id (web application) for the sign-in button; add your site's origin to its authorized javascript origins
 4. configure participants & the client id on the backend:
@@ -60,6 +58,10 @@ linkulino is a template for anyone who wants to track shared expenses with a par
 6. `npm install && npm run build` in `web/`, and host the `dist/` folder anywhere static files live (an `.htaccess` for spa routing + basic headers will be included for apache/cpanel)
 
 both config values are safe to publish (the oauth client id is public by design, and every write is gated server-side by google id-token verification against the `Users` allowlist) — nothing secret ever lands in the repo.
+
+## maintainer guides
+
+- [sheet setup](docs/sheet-setup.md) — the exact tab layout, column positions, and how the backend tells household/trip tabs apart
 
 ## development
 

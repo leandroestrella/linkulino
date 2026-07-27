@@ -1,0 +1,6 @@
+# Only push the Apps Script sources + manifest. Everything else stays local.
+**/**
+
+!appsscript.json
+!Code.js
+!sheet.js

@@ -1,0 +1,5 @@
+{
+  "scriptId": "<your Apps Script project id>",
+  "rootDir": ".",
+  "fileExtension": "gs"
+}
