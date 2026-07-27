@@ -8,7 +8,17 @@
 
 export interface Participant {
   name: string
+  icon: string
 }
+
+/** An expense category, with the emoji shown next to it. */
+export interface Category {
+  name: string
+  icon: string
+}
+
+/** Fields accepted when creating a category. */
+export type NewCategory = Category
 
 /** A single tracked expense — a household expense, or one logged against a trip. */
 export interface Expense {

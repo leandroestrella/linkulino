@@ -3,8 +3,8 @@ import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { RepeatIcon, PencilIcon } from 'lucide-react'
-import { getExpenses, getParticipants } from '@/api/client'
-import type { Expense, Participant } from '@/api/types'
+import { getCategories, getExpenses, getParticipants } from '@/api/client'
+import type { Category, Expense, Participant } from '@/api/types'
 import { useAuth } from '@/auth/AuthProvider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -25,12 +25,31 @@ function balances(expenses: Expense[], participants: Participant[]): Record<stri
   return result
 }
 
+/** Who owes whom, as a single amount — avoids showing the same number twice for two people. */
+function singleBalance(
+  expenses: Expense[],
+  participants: Participant[],
+): { debtor: Participant; creditor: Participant; amount: number } | null {
+  if (participants.length < 2) return null
+  const [a, b] = participants
+  const balanceA = balances(expenses, participants)[a.name] ?? 0
+  const amount = Math.round(Math.abs(balanceA) * 100) / 100
+  if (amount < 0.01) return null
+  return balanceA > 0 ? { debtor: b, creditor: a, amount } : { debtor: a, creditor: b, amount }
+}
+
+/** `name` with its icon to the right, or just `name` when there's no icon yet. */
+function withIcon(person: { name: string; icon: string }): string {
+  return person.icon ? `${person.name} ${person.icon}` : person.name
+}
+
 /** Totals card + expense list for either the household budget or a single trip. */
 export function ExpenseDashboard({
   sheetId,
   title,
   addHref,
   editBase,
+  monthFilter = false,
 }: {
   /** Trip id, or undefined for the household budget. */
   sheetId?: string
@@ -38,27 +57,34 @@ export function ExpenseDashboard({
   addHref: string
   /** Base path for an expense's edit link; the expense id is appended. */
   editBase: string
+  /** When true, only shows expenses dated in the current calendar month (household budget only — a trip's own date range already scopes it). */
+  monthFilter?: boolean
 }) {
   const { t } = useTranslation()
   const { configured, status, authorized } = useAuth()
   const subHeader = useSubHeaderContainer()
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [participants, setParticipants] = useState<Participant[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     setLoading(true)
-    void Promise.all([getExpenses(sheetId), getParticipants()]).then(([e, p]) => {
+    void Promise.all([getExpenses(sheetId), getParticipants(), getCategories()]).then(([e, p, c]) => {
       setExpenses(e)
       setParticipants(p)
+      setCategories(c)
       setLoading(false)
     })
   }, [sheetId])
 
   const canWrite = !configured || (status === 'signed-in' && authorized)
-  const total = expenses.reduce((sum, e) => sum + e.amount, 0)
-  const saldo = balances(expenses, participants)
-  const sorted = [...expenses].sort((a, b) => b.date.localeCompare(a.date))
+  const thisMonth = new Date().toISOString().slice(0, 7)
+  const scoped = monthFilter ? expenses.filter((e) => e.date.slice(0, 7) === thisMonth) : expenses
+  const total = scoped.reduce((sum, e) => sum + e.amount, 0)
+  const balance = singleBalance(scoped, participants)
+  const sorted = [...scoped].sort((a, b) => b.date.localeCompare(a.date))
+  const categoryIcon = (name: string) => categories.find((c) => c.name === name)?.icon ?? '💸'
 
   return (
     <div className="flex flex-col gap-6">
@@ -82,18 +108,17 @@ export function ExpenseDashboard({
                     <p className="text-muted-foreground text-sm">{t('home.total')}</p>
                     <p className="text-xl font-medium">{formatAmount(total)}</p>
                   </div>
-                  <div className="flex flex-wrap justify-end gap-x-6 gap-y-2 text-right">
-                    {Object.entries(saldo).map(([name, amount]) => (
-                      <div key={name}>
-                        <p className="text-muted-foreground text-sm">{name}</p>
-                        <p
-                          className={`text-xl font-medium ${amount < 0 ? 'text-destructive' : amount > 0 ? 'text-emerald-600 dark:text-emerald-400' : ''}`}
-                        >
-                          {amount >= 0 ? '+' : ''}
-                          {formatAmount(amount)}
+                  <div className="text-right">
+                    {balance ? (
+                      <>
+                        <p className="text-muted-foreground text-sm">
+                          {t('home.owes', { debtor: withIcon(balance.debtor), creditor: withIcon(balance.creditor) })}
                         </p>
-                      </div>
-                    ))}
+                        <p className="text-xl font-medium">{formatAmount(balance.amount)}</p>
+                      </>
+                    ) : (
+                      <p className="text-muted-foreground text-sm">{t('home.settledUp')}</p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -112,30 +137,39 @@ export function ExpenseDashboard({
         {!loading && sorted.length === 0 && <p className="text-muted-foreground">{t('home.empty')}</p>}
         {sorted.map((expense) => (
           <Card key={expense.id}>
-            <CardContent className="flex items-center justify-between py-3">
-              <div>
-                <p className="flex items-center gap-1.5 font-medium">
-                  {expense.description}
-                  {expense.recurring && (
-                    <RepeatIcon className="text-muted-foreground size-3.5" aria-label={t('form.recurring')} />
-                  )}
-                </p>
-                <p className="text-muted-foreground text-sm">
-                  {expense.date} · {expense.category}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="text-right">
-                  <p className="font-medium">{formatAmount(expense.amount)}</p>
-                  <p className="text-muted-foreground text-sm">{t('home.paidBy', { name: expense.payer })}</p>
+            <CardContent className="flex items-center gap-3 py-3">
+              <span className="text-2xl" aria-hidden>
+                {categoryIcon(expense.category)}
+              </span>
+              <div className="flex flex-1 items-center justify-between gap-4">
+                <div>
+                  <p className="flex items-center gap-1.5 font-medium">
+                    {expense.description}
+                    {expense.recurring && (
+                      <RepeatIcon className="text-muted-foreground size-3.5" aria-label={t('form.recurring')} />
+                    )}
+                  </p>
+                  <p className="text-muted-foreground text-sm">
+                    {expense.date} · {expense.category}
+                  </p>
                 </div>
-                {canWrite && (
-                  <Button asChild variant="ghost" size="icon" aria-label={t('form.editTitle')}>
-                    <Link to={`${editBase}/${expense.id}/edit`}>
-                      <PencilIcon className="size-4" />
-                    </Link>
-                  </Button>
-                )}
+                <div className="flex items-center gap-2">
+                  <div className="text-right">
+                    <p className="font-medium">{formatAmount(expense.amount)}</p>
+                    <p className="text-muted-foreground text-sm">
+                      {t('home.paidBy', {
+                        name: withIcon(participants.find((p) => p.name === expense.payer) ?? { name: expense.payer, icon: '' }),
+                      })}
+                    </p>
+                  </div>
+                  {canWrite && (
+                    <Button asChild variant="ghost" size="icon" aria-label={t('form.editTitle')}>
+                      <Link to={`${editBase}/${expense.id}/edit`}>
+                        <PencilIcon className="size-4" />
+                      </Link>
+                    </Button>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>

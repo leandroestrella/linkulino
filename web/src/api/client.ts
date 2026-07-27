@@ -11,7 +11,7 @@
  * as `sheetId` to address its expenses instead of the household ones.
  */
 import { config, hasBackend } from '@/config'
-import type { Expense, ExpenseInput, NewTrip, Participant, Trip } from './types'
+import type { Category, Expense, ExpenseInput, NewCategory, NewTrip, Participant, Trip } from './types'
 import {
   MOCK_CATEGORIES,
   MOCK_EXPENSES,
@@ -64,9 +64,9 @@ export async function getParticipants(): Promise<Participant[]> {
   return data.participants
 }
 
-export async function getCategories(): Promise<string[]> {
+export async function getCategories(): Promise<Category[]> {
   if (!hasBackend) return clone(mock.categories)
-  const data = await get<{ categories: string[] }>('categories')
+  const data = await get<{ categories: Category[] }>('categories')
   return data.categories
 }
 
@@ -122,6 +122,16 @@ export async function updateExpense(id: string, expense: ExpenseInput, sheetId?:
   }
   const data = await post<{ expense: Expense }>({ action: 'updateExpense', id, expense, sheet: sheetId })
   return data.expense
+}
+
+/** Creates a new expense category. */
+export async function addCategory(category: NewCategory): Promise<Category> {
+  if (!hasBackend) {
+    mock.categories = [...mock.categories, category]
+    return category
+  }
+  const data = await post<{ category: Category }>({ action: 'addCategory', category })
+  return data.category
 }
 
 /** Creates a new trip tab (duplicated from the template) and returns its metadata. */

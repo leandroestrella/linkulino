@@ -7,7 +7,8 @@
     "repo": "source on github",
     "portfolio": "leandro estrella — portfolio",
     "back": "back to home",
-    "trips": "vacations"
+    "trips": "vacations",
+    "overview": "overview"
   },
   "auth": {
     "signOut": "sign out",
@@ -21,7 +22,9 @@
     "addExpense": "add expense",
     "loading": "loading",
     "empty": "no expenses yet — add the first one.",
-    "paidBy": "paid by {{name}}"
+    "paidBy": "paid by {{name}}",
+    "owes": "{{debtor}} owes {{creditor}}",
+    "settledUp": "all settled up!"
   },
   "form": {
     "title": "add expense",
@@ -42,7 +45,10 @@
     "errorDescriptionRequired": "description is required.",
     "errorAmountInvalid": "enter a valid amount.",
     "errorSplitTotal": "splits must add up to 100%.",
-    "splitTotalWarning": "splits currently add up to {{total}}%."
+    "splitTotalWarning": "splits currently add up to {{total}}%.",
+    "newCategory": "add category",
+    "newCategoryPlaceholder": "new category name",
+    "newCategoryAdd": "add"
   },
   "trips": {
     "title": "vacations",
@@ -61,5 +67,16 @@
     "upcomingTrip": "upcoming trip",
     "errorNameRequired": "destination is required.",
     "errorDateRange": "end date must be on or after the start date."
+  },
+  "overview": {
+    "title": "overview",
+    "byMonth": "by month",
+    "byYear": "by year",
+    "vacationsOverall": "vacations overall",
+    "byUser": "by user",
+    "commonVsSingle": "common vs. single-user expenses",
+    "common": "common (split)",
+    "singleUser": "single-user (100%)",
+    "empty": "no expenses yet."
   }
 }

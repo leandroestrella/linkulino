@@ -1,8 +1,16 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { addExpense, getCategories, getExpenses, getParticipants, updateExpense } from '@/api/client'
-import type { Participant } from '@/api/types'
+import { PlusIcon } from 'lucide-react'
+import {
+  addCategory,
+  addExpense,
+  getCategories,
+  getExpenses,
+  getParticipants,
+  updateExpense,
+} from '@/api/client'
+import type { Category, Participant } from '@/api/types'
 import { useAuth } from '@/auth/AuthProvider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -38,7 +46,7 @@ export function ExpenseFormPage({ mode }: { mode: 'add' | 'edit' }) {
   const { id, tripId } = useParams<{ id?: string; tripId?: string }>()
 
   const [participants, setParticipants] = useState<Participant[]>([])
-  const [categories, setCategories] = useState<string[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
 
   const [date, setDate] = useState(today())
   const [description, setDescription] = useState('')
@@ -50,6 +58,10 @@ export function ExpenseFormPage({ mode }: { mode: 'add' | 'edit' }) {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [loaded, setLoaded] = useState(false)
+
+  const [addingCategory, setAddingCategory] = useState(false)
+  const [newCategoryName, setNewCategoryName] = useState('')
+  const [newCategoryIcon, setNewCategoryIcon] = useState('')
 
   useEffect(() => {
     void Promise.all([
@@ -71,7 +83,7 @@ export function ExpenseFormPage({ mode }: { mode: 'add' | 'edit' }) {
       } else {
         setSplits(evenSplit(p))
         setPayer(p[0]?.name ?? '')
-        setCategory(c[0] ?? '')
+        setCategory(c[0]?.name ?? '')
       }
       setLoaded(true)
     })
@@ -97,6 +109,16 @@ export function ExpenseFormPage({ mode }: { mode: 'add' | 'edit' }) {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  async function handleAddCategory() {
+    if (!newCategoryName.trim()) return
+    const created = await addCategory({ name: newCategoryName.trim(), icon: newCategoryIcon.trim() })
+    setCategories((c) => [...c, created])
+    setCategory(created.name)
+    setNewCategoryName('')
+    setNewCategoryIcon('')
+    setAddingCategory(false)
   }
 
   const ready = !configured || (status === 'signed-in' && authorized)
@@ -133,19 +155,53 @@ export function ExpenseFormPage({ mode }: { mode: 'add' | 'edit' }) {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label>{t('form.category')}</Label>
-              <Select value={category} onValueChange={setCategory}>
+              <div className="flex items-center justify-between">
+                <Label>{t('form.category')}</Label>
+                {authorized && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-6"
+                    aria-label={t('form.newCategory')}
+                    onClick={() => setAddingCategory((v) => !v)}
+                  >
+                    <PlusIcon className="size-4" />
+                  </Button>
+                )}
+              </div>
+              <Select key={categories.length} value={category} onValueChange={setCategory}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {c}
+                    <SelectItem key={c.name} value={c.name}>
+                      {c.icon} {c.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {addingCategory && (
+                <div className="bg-muted flex items-center gap-2 rounded-md p-2">
+                  <Input
+                    value={newCategoryIcon}
+                    onChange={(e) => setNewCategoryIcon(e.target.value)}
+                    placeholder="🏷️"
+                    className="w-14 text-center"
+                    maxLength={2}
+                  />
+                  <Input
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    placeholder={t('form.newCategoryPlaceholder')}
+                    className="flex-1"
+                  />
+                  <Button type="button" size="sm" onClick={() => void handleAddCategory()}>
+                    {t('form.newCategoryAdd')}
+                  </Button>
+                </div>
+              )}
             </div>
 
             <div className="flex flex-col gap-1.5">
@@ -157,7 +213,7 @@ export function ExpenseFormPage({ mode }: { mode: 'add' | 'edit' }) {
                 <SelectContent>
                   {participants.map((p) => (
                     <SelectItem key={p.name} value={p.name}>
-                      {p.name}
+                      {p.name} {p.icon}
                     </SelectItem>
                   ))}
                 </SelectContent>

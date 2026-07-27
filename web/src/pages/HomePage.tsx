@@ -25,7 +25,13 @@ export function HomePage() {
         const active = tripStatus(trip) === 'active'
         return (
           <Link key={trip.id} to={`/trips/${trip.id}`}>
-            <Card className={active ? 'border-primary/40 hover:bg-accent transition-colors' : 'hover:bg-accent transition-colors'}>
+            <Card
+              className={
+                active
+                  ? 'border-primary/40 bg-primary/5 hover:bg-primary/10 transition-colors'
+                  : 'bg-accent hover:bg-accent/70 transition-colors'
+              }
+            >
               <CardContent className="flex items-center gap-3 py-3">
                 <span className="text-2xl">{trip.emoji}</span>
                 <div>
@@ -40,7 +46,7 @@ export function HomePage() {
           </Link>
         )
       })}
-      <ExpenseDashboard title={t('home.thisMonth')} addHref="/add" editBase="/expense" />
+      <ExpenseDashboard title={t('home.thisMonth')} addHref="/add" editBase="/expense" monthFilter />
     </div>
   )
 }

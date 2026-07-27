@@ -1,16 +1,19 @@
 import { useState, type ReactNode } from 'react'
 import { Link, Navigate, Route, Routes } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { LuggageIcon, ChartColumnIcon } from 'lucide-react'
 import { AuthBar } from '@/auth/AuthBar'
 import { SubHeaderContext } from '@/components/subheader'
 import { useHideOnScroll } from '@/hooks/useHideOnScroll'
 import { cn } from '@/lib/utils'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { LanguageSwitcher } from '@/i18n/LanguageSwitcher'
 import { HomePage } from '@/pages/HomePage'
 import { ExpenseFormPage } from '@/pages/ExpenseFormPage'
 import { AboutPage } from '@/pages/AboutPage'
 import { TripsPage } from '@/pages/TripsPage'
 import { TripDetailPage } from '@/pages/TripDetailPage'
+import { OverviewPage } from '@/pages/OverviewPage'
 
 /**
  * App shell: a sticky header (brand · language · sign-in) over the routed
@@ -44,10 +47,23 @@ function Layout({ children }: { children: ReactNode }) {
               <p className="text-muted-foreground hidden text-xs sm:block">{t('app.tagline')}</p>
             </Link>
           </div>
-          <div className="flex items-center gap-2">
-            <Link to="/trips" className="text-sm font-medium hover:underline">
-              {t('nav.trips')}
-            </Link>
+          <div className="flex items-center gap-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link to="/trips" aria-label={t('nav.trips')} className="hover:bg-accent rounded-md p-2">
+                  <LuggageIcon className="size-5" />
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent>{t('nav.trips')}</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link to="/overview" aria-label={t('nav.overview')} className="hover:bg-accent rounded-md p-2">
+                  <ChartColumnIcon className="size-5" />
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent>{t('nav.overview')}</TooltipContent>
+            </Tooltip>
             <LanguageSwitcher />
             <AuthBar />
           </div>
@@ -101,19 +117,22 @@ function Layout({ children }: { children: ReactNode }) {
 
 function App() {
   return (
-    <Layout>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/add" element={<ExpenseFormPage mode="add" />} />
-        <Route path="/expense/:id/edit" element={<ExpenseFormPage mode="edit" />} />
-        <Route path="/trips" element={<TripsPage />} />
-        <Route path="/trips/:tripId" element={<TripDetailPage />} />
-        <Route path="/trips/:tripId/add" element={<ExpenseFormPage mode="add" />} />
-        <Route path="/trips/:tripId/expense/:id/edit" element={<ExpenseFormPage mode="edit" />} />
-        <Route path="/about" element={<AboutPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Layout>
+    <TooltipProvider>
+      <Layout>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/add" element={<ExpenseFormPage mode="add" />} />
+          <Route path="/expense/:id/edit" element={<ExpenseFormPage mode="edit" />} />
+          <Route path="/trips" element={<TripsPage />} />
+          <Route path="/trips/:tripId" element={<TripDetailPage />} />
+          <Route path="/trips/:tripId/add" element={<ExpenseFormPage mode="add" />} />
+          <Route path="/trips/:tripId/expense/:id/edit" element={<ExpenseFormPage mode="edit" />} />
+          <Route path="/overview" element={<OverviewPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Layout>
+    </TooltipProvider>
   )
 }
 

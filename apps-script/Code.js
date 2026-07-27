@@ -3,8 +3,8 @@
  *
  * The ONLY thing that touches the spreadsheet. Runs as the sheet owner and
  * exposes a small JSON API:
- *   - doGet  → reads   (?action=health, participants, expenses[&sheet=], trips, categories)
- *   - doPost → writes  (addExpense, updateExpense, createTrip)
+ *   - doGet  → reads   (?action=health, participants, categories, expenses[&sheet=], trips)
+ *   - doPost → writes  (addExpense, updateExpense, createTrip, addCategory)
  *
  * All pure logic (tab discovery, row↔object mapping, blank-slot finding) lives
  * in sheet.js and is unit-tested in Node. This file is just the glue: read
@@ -17,11 +17,12 @@
  * AUTH: reads are public; every write verifies the caller's Google ID token
  * (via Google's tokeninfo endpoint) and checks the email against the
  * participant allowlist in the `Users` tab before touching the sheet (see
- * requireUser_). Auth decisions themselves are pure logic in auth.js.
+ * requireUser_). Auth decisions themselves are pure logic in auth.js. The
+ * `Users` tab doubles as the participant roster: its first two named rows
+ * (Email, Name, Icon columns) are Persona A and B, in order.
  */
 
-var VERSION = '0.2.0'
-var USERS_SHEET = 'Users'
+var VERSION = '0.3.0'
 
 function doGet(e) {
   try {
@@ -60,6 +61,8 @@ function doPost(e) {
         return json({ ok: true, expense: updateExpense_(body.id, body.expense, body.sheet) })
       case 'createTrip':
         return json({ ok: true, trip: createTrip_(body.trip) })
+      case 'addCategory':
+        return json({ ok: true, category: addCategory_(body.category) })
       default:
         return json({ ok: false, error: 'unknown action: ' + body.action })
     }
@@ -72,34 +75,18 @@ function doPost(e) {
 // Reads
 // ---------------------------------------------------------------------------
 
-/** @return {{name: string}[]} the two participants, in Persona A/B order. */
+/** @return {{name: string, icon: string}[]} the two participants, in Persona A/B order. */
 function getParticipants_() {
-  var settings = readValues_(SETTINGS_TAB)
-  var names = parseParticipants(settings)
+  var people = parseParticipants(readValues_(USERS_TAB))
   var result = []
-  if (names.a) result.push({ name: names.a })
-  if (names.b) result.push({ name: names.b })
+  if (people.a) result.push(people.a)
+  if (people.b) result.push(people.b)
   return result
 }
 
-/**
- * Reads the category dropdown's data-validation list from the household tab's
- * Categoria column, so categories stay sheet-driven rather than hardcoded.
- * @return {string[]}
- */
+/** @return {{name: string, icon: string}[]} categories from the Categorie tab (empty if the tab doesn't exist yet). */
 function getCategories_() {
-  var household = findHouseholdTab_()
-  if (!household) return []
-  var values = household.getDataRange().getValues()
-  var headerRowIndex = findHeaderRowIndex(values)
-  if (headerRowIndex === -1) return []
-  var rule = household
-    .getRange(headerRowIndex + 2, COL.category + 1)
-    .getDataValidation()
-  if (!rule) return []
-  var criteria = rule.getCriteriaValues()
-  var list = criteria && criteria[0]
-  return Array.isArray(list) ? list.map(cellToString).filter(Boolean) : []
+  return parseCategories(readValuesOptional_(CATEGORIES_TAB))
 }
 
 /**
@@ -109,7 +96,7 @@ function getCategories_() {
 function getExpenses_(sheetId) {
   var tab = findExpenseTab_(sheetId)
   if (!tab) return []
-  var participants = parseParticipants(readValues_(SETTINGS_TAB))
+  var participants = parseParticipants(readValues_(USERS_TAB))
   return parseExpenses(tab.getDataRange().getValues(), participants)
 }
 
@@ -155,7 +142,7 @@ function addExpense_(input, sheetId) {
     throw new Error('No blank row left on this tab — extend the Quota/Saldo formulas down first')
   }
 
-  var participants = parseParticipants(readValues_(SETTINGS_TAB))
+  var participants = parseParticipants(readValues_(USERS_TAB))
   writeExpenseRow_(tab, rowNumber, input, participants, !sheetId)
 
   var updated = tab.getRange(rowNumber, 1, 1, COL.recurring + 1).getValues()[0]
@@ -179,7 +166,7 @@ function updateExpense_(id, input, sheetId) {
   if (!tab) throw new Error('No matching expense tab found (see docs/sheet-setup.md)')
   if (rowNumber > tab.getLastRow()) throw new Error('Expense not found: ' + id)
 
-  var participants = parseParticipants(readValues_(SETTINGS_TAB))
+  var participants = parseParticipants(readValues_(USERS_TAB))
   writeExpenseRow_(tab, rowNumber, input, participants, !sheetId)
 
   var updated = tab.getRange(rowNumber, 1, 1, COL.recurring + 1).getValues()[0]
@@ -192,7 +179,7 @@ function updateExpense_(id, input, sheetId) {
  * @param {GoogleAppsScript.Spreadsheet.Sheet} tab
  * @param {number} rowNumber 1-based
  * @param {Object} input
- * @param {{a: string, b: string}} participants
+ * @param {{a: {name: string}|null, b: {name: string}|null}} participants
  * @param {boolean} includeRecurring
  */
 function writeExpenseRow_(tab, rowNumber, input, participants, includeRecurring) {
@@ -236,6 +223,23 @@ function createTrip_(input) {
   return { id: tabName, name: trip.name, emoji: trip.emoji, startDate: trip.startDate, endDate: trip.endDate }
 }
 
+/**
+ * Appends a new category to the Categorie tab. Requires the tab to already
+ * exist (see docs/sheet-setup.md) — it's not auto-created, since its column
+ * order/header is meant to be set up once by hand.
+ * @param {{name: string, icon: string}} input
+ * @return {Object} the created category
+ */
+function addCategory_(input) {
+  if (!input || !cellToString(input.name)) throw new Error('Category name is required')
+  var tab = getSpreadsheet_().getSheetByName(CATEGORIES_TAB)
+  if (!tab) throw new Error('Missing sheet tab: ' + CATEGORIES_TAB)
+
+  var category = { name: cellToString(input.name), icon: cellToString(input.icon) }
+  tab.appendRow(buildCategoryRowValues(category))
+  return category
+}
+
 // ---------------------------------------------------------------------------
 // Recurring expenses
 // ---------------------------------------------------------------------------
@@ -252,7 +256,7 @@ function runMonthlyRecurringExpenses() {
   var household = findHouseholdTab_()
   if (!household) return 'No household tab found (see docs/sheet-setup.md).'
 
-  var participants = parseParticipants(readValues_(SETTINGS_TAB))
+  var participants = parseParticipants(readValues_(USERS_TAB))
   var today = todayIso_()
   var expenses = parseExpenses(household.getDataRange().getValues(), participants)
   var toCreate = expensesToRecreateThisMonth(expenses, today)
@@ -361,26 +365,27 @@ function getClientId_() {
  * @return {Object<string, string>}
  */
 function getUsers_() {
-  var sheet = getSpreadsheet_().getSheetByName(USERS_SHEET)
+  var sheet = getSpreadsheet_().getSheetByName(USERS_TAB)
   if (!sheet) return {}
   return parseUsers(sheet.getDataRange().getValues())
 }
 
 /**
- * One-time setup: creates the `Users` allowlist tab if missing and seeds it
- * with the deploying account. Run once from the editor, then edit the tab to
- * add/remove participants (Email, Name columns). Safe to re-run.
+ * One-time setup: creates the `Users` tab if missing and seeds it with the
+ * deploying account. Run once from the editor, then edit the tab to add/remove
+ * participants (Email, Name, Icon columns). The first two named rows become
+ * Persona A and B, in order — see docs/sheet-setup.md. Safe to re-run.
  * @return {string} a human-readable status.
  */
 function setupUsersTab() {
   var ss = getSpreadsheet_()
-  var sheet = ss.getSheetByName(USERS_SHEET)
+  var sheet = ss.getSheetByName(USERS_TAB)
   if (!sheet) {
-    sheet = ss.insertSheet(USERS_SHEET)
-    sheet.appendRow(['Email', 'Name'])
-    sheet.appendRow([Session.getEffectiveUser().getEmail(), ''])
+    sheet = ss.insertSheet(USERS_TAB)
+    sheet.appendRow(['Email', 'Name', 'Icon'])
+    sheet.appendRow([Session.getEffectiveUser().getEmail(), '', ''])
   }
-  return USERS_SHEET + ' tab ready with ' + Math.max(0, sheet.getLastRow() - 1) + ' user(s).'
+  return USERS_TAB + ' tab ready with ' + Math.max(0, sheet.getLastRow() - 1) + ' user(s).'
 }
 
 // ---------------------------------------------------------------------------
@@ -408,7 +413,7 @@ function findHouseholdTab_() {
  * Resolves the tab a set of expenses lives on: the household tab when
  * `sheetId` is omitted, otherwise the trip tab with that exact name — rejecting
  * anything that doesn't classify as household/trip, so callers can't address
- * `Impostazioni`, `Users`, or any other tab through this parameter.
+ * `Users`, `Categorie`, or any other tab through this parameter.
  * @param {string=} sheetId
  * @return {GoogleAppsScript.Spreadsheet.Sheet|null}
  */
@@ -427,6 +432,12 @@ function readValues_(name) {
   var tab = getSpreadsheet_().getSheetByName(name)
   if (!tab) throw new Error('Missing sheet tab: ' + name)
   return tab.getDataRange().getValues()
+}
+
+/** Like readValues_, but returns an empty range instead of throwing when the tab doesn't exist yet. */
+function readValuesOptional_(name) {
+  var tab = getSpreadsheet_().getSheetByName(name)
+  return tab ? tab.getDataRange().getValues() : []
 }
 
 /** @param {*} payload @return {GoogleAppsScript.Content.TextOutput} */

@@ -3,7 +3,8 @@ const assert = require('node:assert/strict')
 const sheet = require('./sheet.js')
 
 test('classifyTab', () => {
-  assert.equal(sheet.classifyTab('Impostazioni', ''), sheet.TAB_TYPE.settings)
+  assert.equal(sheet.classifyTab('Users', ''), sheet.TAB_TYPE.ignore)
+  assert.equal(sheet.classifyTab('Categorie', ''), sheet.TAB_TYPE.ignore)
   assert.equal(sheet.classifyTab('Viaggio - Modello', 'viaggio'), sheet.TAB_TYPE.ignore)
   assert.equal(sheet.classifyTab('wise raw copenhagen', ''), sheet.TAB_TYPE.ignore)
   assert.equal(sheet.classifyTab('casa nostra', 'casa'), sheet.TAB_TYPE.household)
@@ -30,18 +31,51 @@ test('buildTripRow1Values builds the row-1 metadata for a new trip tab', () => {
   assert.deepEqual(row1, ['viaggio', 'lisbon', '24/08/2026', '🐚', '30/08/2026'])
 })
 
-test('parseParticipants finds names by label, ignoring row position', () => {
+test('parseParticipants reads the first two named rows, in order, with their icon', () => {
   const values = [
-    ['[merged] Impostazioni condivise'],
-    ['Nome Persona A', 'Alex'],
-    ['Nome Persona B', 'Sam'],
-    ['a trailing note row'],
+    ['Email', 'Name', 'Icon'],
+    ['alex@example.com', 'Alex', '🧮'],
+    ['sam@example.com', 'Sam', '🎯'],
   ]
-  assert.deepEqual(sheet.parseParticipants(values), { a: 'Alex', b: 'Sam' })
+  assert.deepEqual(sheet.parseParticipants(values), {
+    a: { name: 'Alex', icon: '🧮' },
+    b: { name: 'Sam', icon: '🎯' },
+  })
 })
 
-test('parseParticipants tolerates a missing tab shape', () => {
-  assert.deepEqual(sheet.parseParticipants([]), { a: '', b: '' })
+test('parseParticipants skips rows with no name and ignores column order', () => {
+  const values = [
+    ['Icon', 'Email', 'Name'],
+    ['🧮', 'alex@example.com', 'Alex'],
+    ['', 'nobody@example.com', ''],
+    ['🎯', 'sam@example.com', 'Sam'],
+  ]
+  assert.deepEqual(sheet.parseParticipants(values), {
+    a: { name: 'Alex', icon: '🧮' },
+    b: { name: 'Sam', icon: '🎯' },
+  })
+})
+
+test('parseParticipants tolerates a missing or headerless tab', () => {
+  assert.deepEqual(sheet.parseParticipants([]), { a: null, b: null })
+  assert.deepEqual(sheet.parseParticipants([['no name column here']]), { a: null, b: null })
+})
+
+test('parseCategories reads name/icon pairs, skipping the header and blank rows', () => {
+  const values = [
+    ['Categoria', 'Emoji'],
+    ['Groceries', '🛒'],
+    ['', ''],
+    ['Rent', '🏠'],
+  ]
+  assert.deepEqual(sheet.parseCategories(values), [
+    { name: 'Groceries', icon: '🛒' },
+    { name: 'Rent', icon: '🏠' },
+  ])
+})
+
+test('buildCategoryRowValues builds the row to append', () => {
+  assert.deepEqual(sheet.buildCategoryRowValues({ name: 'Groceries', icon: '🛒' }), ['Groceries', '🛒'])
 })
 
 test('cellToIsoDate handles Date objects and DD/MM/YYYY strings', () => {
@@ -67,7 +101,7 @@ test('cellToBool accepts a real boolean or a TRUE/FALSE string', () => {
 })
 
 function householdFixture() {
-  const participants = { a: 'Alex', b: 'Sam' }
+  const participants = { a: { name: 'Alex', icon: '🧮' }, b: { name: 'Sam', icon: '🎯' } }
   const values = [
     ['casa', 'casa nostra', '', '', ''],
     ['Totale speso', '€ 20.08'],
@@ -133,7 +167,7 @@ test('buildExpenseRowValues formats the date and maps splits by participant name
       amount: 20.08,
       splits: { Alex: 30, Sam: 70 },
     },
-    { a: 'Alex', b: 'Sam' },
+    { a: { name: 'Alex' }, b: { name: 'Sam' } },
   )
   assert.deepEqual(row, ['03/07/2026', 'groceries', 'Spesa', 'Alex', 20.08, 30, 70])
 })

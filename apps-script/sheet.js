@@ -13,7 +13,8 @@
  * headers embed each participant's name, so they differ per instance.
  */
 
-var SETTINGS_TAB = 'Impostazioni'
+var USERS_TAB = 'Users'
+var CATEGORIES_TAB = 'Categorie'
 var TEMPLATE_TAB = 'Viaggio - Modello'
 var AUX_TAB_PREFIX = 'wise raw'
 
@@ -26,7 +27,6 @@ var TRIP_MARKER = 'viaggio'
 var TAB_TYPE = {
   household: 'household',
   trip: 'trip',
-  settings: 'settings',
   ignore: 'ignore',
 }
 
@@ -41,8 +41,14 @@ var COL = {
   splitB: 6,
   // 7 (quota A €), 8 (quota B €), 9 (saldo) are formulas — never written to.
   // 10 (column K) is an additional "repeats every month" flag, added on top of
-  // the original template; see docs/sheet-setup.md.
+  // the original template; see docs/sheet-setup.md. Household tab only.
   recurring: 10,
+}
+
+/** Fixed 0-based column indexes within the Categorie tab. */
+var CATEGORY_COL = {
+  name: 0,
+  icon: 1,
 }
 
 // ---------------------------------------------------------------------------
@@ -103,7 +109,8 @@ function isoToDmy(iso) {
  * @return {string} one of TAB_TYPE
  */
 function classifyTab(name, a1) {
-  if (name === SETTINGS_TAB) return TAB_TYPE.settings
+  if (name === USERS_TAB) return TAB_TYPE.ignore
+  if (name === CATEGORIES_TAB) return TAB_TYPE.ignore
   if (name === TEMPLATE_TAB) return TAB_TYPE.ignore
   if (name.toLowerCase().indexOf(AUX_TAB_PREFIX) === 0) return TAB_TYPE.ignore
   var marker = cellToString(a1).toLowerCase()
@@ -146,24 +153,63 @@ function buildTripRow1Values(trip) {
 }
 
 // ---------------------------------------------------------------------------
-// Settings (participant names)
+// Participants (Users tab)
 // ---------------------------------------------------------------------------
 
 /**
- * Finds the two participant names from the Impostazioni tab, searching by
- * label (column A) rather than a fixed cell so notes can surround them.
- * @param {Array<Array<*>>} values
- * @return {{a: string, b: string}}
+ * Finds the two participants from the Users tab (columns resolved by header
+ * name: Email, Name, Icon — Email is only used for the write allowlist, see
+ * auth.js). The first two rows with a name become Persona A and B, in order —
+ * that order is what the household/trip tabs' Quota % columns follow.
+ * @param {Array<Array<*>>} values full Users sheet values incl. header row
+ * @return {{a: {name: string, icon: string}|null, b: {name: string, icon: string}|null}}
  */
 function parseParticipants(values) {
-  var a = ''
-  var b = ''
-  for (var r = 0; r < values.length; r++) {
-    var label = cellToString(values[r][0])
-    if (label === 'Nome Persona A') a = cellToString(values[r][1])
-    if (label === 'Nome Persona B') b = cellToString(values[r][1])
+  if (!values || values.length < 2) return { a: null, b: null }
+  var header = values[0]
+  var iName = -1
+  var iIcon = -1
+  for (var i = 0; i < header.length; i++) {
+    var label = cellToString(header[i]).toLowerCase()
+    if (label === 'name') iName = i
+    else if (label === 'icon') iIcon = i
   }
-  return { a: a, b: b }
+  if (iName === -1) return { a: null, b: null }
+
+  var people = []
+  for (var r = 1; r < values.length; r++) {
+    var name = cellToString(values[r][iName])
+    if (!name) continue
+    people.push({ name: name, icon: iIcon === -1 ? '' : cellToString(values[r][iIcon]) })
+  }
+  return { a: people[0] || null, b: people[1] || null }
+}
+
+// ---------------------------------------------------------------------------
+// Categories (Categorie tab)
+// ---------------------------------------------------------------------------
+
+/**
+ * Parses the Categorie tab (fixed columns: A name, B icon).
+ * @param {Array<Array<*>>} values
+ * @return {Array<{name: string, icon: string}>}
+ */
+function parseCategories(values) {
+  var categories = []
+  for (var r = 1; r < values.length; r++) {
+    var name = cellToString(values[r][CATEGORY_COL.name])
+    if (!name) continue
+    categories.push({ name: name, icon: cellToString(values[r][CATEGORY_COL.icon]) })
+  }
+  return categories
+}
+
+/**
+ * @param {{name: string, icon: string}} category
+ * @return {Array<*>} the row to append to the Categorie tab
+ */
+function buildCategoryRowValues(category) {
+  return [cellToString(category.name), cellToString(category.icon)]
 }
 
 // ---------------------------------------------------------------------------
@@ -188,7 +234,7 @@ function findHeaderRowIndex(values) {
  * Maps one data row to an Expense, or null if the row is a blank slot.
  * @param {Array<*>} row
  * @param {number} rowNumber 1-based sheet row number (becomes the expense id)
- * @param {{a: string, b: string}} participants
+ * @param {{a: {name: string}|null, b: {name: string}|null}} participants
  * @return {Object|null}
  */
 function rowToExpense(row, rowNumber, participants) {
@@ -197,8 +243,8 @@ function rowToExpense(row, rowNumber, participants) {
   if (!date && !description) return null
 
   var splits = {}
-  if (participants.a) splits[participants.a] = cellToNumber(row[COL.splitA])
-  if (participants.b) splits[participants.b] = cellToNumber(row[COL.splitB])
+  if (participants.a) splits[participants.a.name] = cellToNumber(row[COL.splitA])
+  if (participants.b) splits[participants.b.name] = cellToNumber(row[COL.splitB])
 
   return {
     id: String(rowNumber),
@@ -215,7 +261,7 @@ function rowToExpense(row, rowNumber, participants) {
 /**
  * Maps an expense tab's full values into Expense objects.
  * @param {Array<Array<*>>} values
- * @param {{a: string, b: string}} participants
+ * @param {{a: {name: string}|null, b: {name: string}|null}} participants
  * @return {Array<Object>}
  */
 function parseExpenses(values, participants) {
@@ -261,13 +307,13 @@ function findBlankSlotRow(values) {
  * Columns H–J (quota €, saldo) are formulas and are never written; recurring
  * (column K) is written separately since it isn't contiguous with A–G.
  * @param {{date: string, description: string, category: string, payer: string, amount: number, splits: Object<string, number>}} expense
- * @param {{a: string, b: string}} participants
+ * @param {{a: {name: string}|null, b: {name: string}|null}} participants
  * @return {Array<*>}
  */
 function buildExpenseRowValues(expense, participants) {
   var splits = expense.splits || {}
-  var splitA = participants && participants.a ? cellToNumber(splits[participants.a]) : ''
-  var splitB = participants && participants.b ? cellToNumber(splits[participants.b]) : ''
+  var splitA = participants && participants.a ? cellToNumber(splits[participants.a.name]) : ''
+  var splitB = participants && participants.b ? cellToNumber(splits[participants.b.name]) : ''
   return [isoToDmy(expense.date), expense.description, expense.category, expense.payer, expense.amount, splitA, splitB]
 }
 
@@ -321,12 +367,14 @@ function expensesToRecreateThisMonth(expenses, todayIso) {
 // Node-only export (skipped in Apps Script, where `module` is undefined).
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
-    SETTINGS_TAB: SETTINGS_TAB,
+    USERS_TAB: USERS_TAB,
+    CATEGORIES_TAB: CATEGORIES_TAB,
     TEMPLATE_TAB: TEMPLATE_TAB,
     HOUSEHOLD_MARKER: HOUSEHOLD_MARKER,
     TRIP_MARKER: TRIP_MARKER,
     TAB_TYPE: TAB_TYPE,
     COL: COL,
+    CATEGORY_COL: CATEGORY_COL,
     cellToString: cellToString,
     cellToNumber: cellToNumber,
     cellToBool: cellToBool,
@@ -337,6 +385,8 @@ if (typeof module !== 'undefined' && module.exports) {
     tripTabName: tripTabName,
     buildTripRow1Values: buildTripRow1Values,
     parseParticipants: parseParticipants,
+    parseCategories: parseCategories,
+    buildCategoryRowValues: buildCategoryRowValues,
     findHeaderRowIndex: findHeaderRowIndex,
     rowToExpense: rowToExpense,
     parseExpenses: parseExpenses,

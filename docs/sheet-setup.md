@@ -9,7 +9,8 @@ up your own instance.
 
 | tab | purpose |
 | --- | --- |
-| `Impostazioni` (Settings) | the two participants' names, used everywhere else |
+| `Users` | the write allowlist **and** the participant roster — see below |
+| `Categorie` | expense categories and their emoji — see below |
 | one **household** tab (e.g. `casa`) | recurring shared-living expenses (rent, bills, groceries…) |
 | `Viaggio - Modello` (Trip - Template) | an empty template — never edited directly |
 | one **trip** tab per vacation | duplicated from the template, one per trip |
@@ -43,17 +44,38 @@ Row 1 of an expense tab looks like:
 (start/end date and emoji are only meaningful for trips; the household tab's
 B–E cells are informational only.)
 
-## Impostazioni (Settings)
+## Users
 
-Two label/value rows, searched by label (not fixed cell coordinates, so you
-can add notes above/below without breaking anything):
+One row per participant, columns resolved by header name (so their order
+doesn't matter):
 
-| A | B |
+| Email | Name | Icon |
+| --- | --- | --- |
+| alex@example.com | Alex | 🧮 |
+| sam@example.com | Sam | 🎯 |
+
+This tab does double duty:
+- **write allowlist** — only these emails can add/edit expenses or create trips (see `auth.js`)
+- **participant roster** — the **first two rows with a name** become Persona A and B, in that order. That order is what the household/trip tabs' Quota % columns follow (Quota % \<Persona A\>, Quota % \<Persona B\>), so don't reorder these rows once you have expense data — the columns won't relabel themselves.
+
+Icon is any emoji, shown next to the participant's name throughout the app.
+
+## Categorie
+
+One row per expense category:
+
+| Categoria | Emoji |
 | --- | --- |
-| `Nome Persona A` | *Participant A's name* |
-| `Nome Persona B` | *Participant B's name* |
+| Groceries | 🛒 |
+| Rent | 🏠 |
 
-Both names propagate everywhere else (column headers, dashboard labels).
+Fixed column positions (A = name, B = emoji) — no header-name resolution here,
+unlike Users. This is the source of truth for the category picker in the app;
+authorized users can also add a category from within the app (which appends a
+row here). It does **not** drive the household/trip tabs' own Categoria
+column dropdown (that's a separate data-validation list on each tab) — the
+two are independent, so add a category in both places if you want it
+available both in the app and as a native Sheets dropdown option.
 
 ## expense tab layout
 
@@ -119,6 +141,20 @@ from the Apps Script editor (Run menu). It installs a time-based trigger that
 fires on the 1st of each month (~6am, in the script's timezone). Re-running it
 is safe — it replaces any existing trigger for the same function rather than
 stacking duplicates.
+
+## months and years
+
+There's no per-month tab rotation — the household tab is one continuous
+ledger, forever. The home page's "this month" view is just the household
+expenses whose Data falls in the current calendar month, filtered client-side
+(see `monthFilter` in `ExpenseDashboard.tsx`); the Overview page (`/overview`
+in the SPA) aggregates across every month and year already in the tab.
+
+To test the month rollover (or backfill history) there's nothing special to
+set up: use the app's own "add expense" form and pick a date in a past month
+— the date picker has no restriction to today. It'll show up in the Overview
+page's by-month/by-year breakdowns immediately, and drop out of "this month"
+once its date isn't in the current calendar month.
 
 ## why this shape
 

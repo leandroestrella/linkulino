@@ -7,7 +7,8 @@
     "repo": "codice sorgente su github",
     "portfolio": "leandro estrella — portfolio",
     "back": "torna alla home",
-    "trips": "viaggi"
+    "trips": "viaggi",
+    "overview": "riepilogo"
   },
   "auth": {
     "signOut": "esci",
@@ -21,7 +22,9 @@
     "addExpense": "aggiungi spesa",
     "loading": "caricamento",
     "empty": "nessuna spesa ancora — aggiungi la prima.",
-    "paidBy": "pagato da {{name}}"
+    "paidBy": "pagato da {{name}}",
+    "owes": "{{debtor}} deve a {{creditor}}",
+    "settledUp": "tutto in pari!"
   },
   "form": {
     "title": "aggiungi spesa",
@@ -42,7 +45,10 @@
     "errorDescriptionRequired": "la descrizione è obbligatoria.",
     "errorAmountInvalid": "inserisci un importo valido.",
     "errorSplitTotal": "le quote devono sommare a 100%.",
-    "splitTotalWarning": "le quote attualmente sommano a {{total}}%."
+    "splitTotalWarning": "le quote attualmente sommano a {{total}}%.",
+    "newCategory": "aggiungi categoria",
+    "newCategoryPlaceholder": "nome nuova categoria",
+    "newCategoryAdd": "aggiungi"
   },
   "trips": {
     "title": "viaggi",
@@ -61,5 +67,16 @@
     "upcomingTrip": "prossimo viaggio",
     "errorNameRequired": "la destinazione è obbligatoria.",
     "errorDateRange": "la data di fine deve essere uguale o successiva alla data di inizio."
+  },
+  "overview": {
+    "title": "riepilogo",
+    "byMonth": "per mese",
+    "byYear": "per anno",
+    "vacationsOverall": "viaggi complessivi",
+    "byUser": "per persona",
+    "commonVsSingle": "spese comuni vs. individuali",
+    "common": "comuni (divise)",
+    "singleUser": "individuali (100%)",
+    "empty": "nessuna spesa ancora."
   }
 }
