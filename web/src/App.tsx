@@ -1,12 +1,14 @@
-import { Button } from '@/components/ui/button'
+import { Navigate, Route, Routes } from 'react-router-dom'
+import { HomePage } from '@/pages/HomePage'
+import { AddExpensePage } from '@/pages/AddExpensePage'
 
 function App() {
   return (
-    <main className="flex min-h-svh flex-col items-center justify-center gap-4">
-      <h1 className="text-2xl font-semibold">linkulino</h1>
-      <p className="text-muted-foreground">shared expenses, split fairly, kept in sync.</p>
-      <Button>get started</Button>
-    </main>
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/add" element={<AddExpensePage />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   )
 }
 
