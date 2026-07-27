@@ -13,11 +13,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { todayIso } from '@/lib/date'
 import { vacationsSummary } from '@/lib/vacations'
-
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10)
-}
 
 export function TripsPage() {
   const { t } = useTranslation()

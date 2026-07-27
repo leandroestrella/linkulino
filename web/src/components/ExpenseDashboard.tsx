@@ -13,6 +13,7 @@ import { LoadingDots } from '@/components/LoadingDots'
 import { findParticipant, PersonName } from '@/components/PersonName'
 import { useAdminSlotContainer, useSubHeaderContainer } from '@/components/subheader'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { todayIso } from '@/lib/date'
 import { EMPTY_FILTERS, filterExpenses, filtersFromSearchParams, filtersToSearch } from '@/lib/filters'
 import { formatAmount } from '@/lib/format'
 
@@ -87,7 +88,7 @@ export function ExpenseDashboard({
 
   const canWrite = !configured || (status === 'signed-in' && authorized)
   const filters = showFilters ? filtersFromSearchParams(searchParams) : EMPTY_FILTERS
-  const thisMonth = new Date().toISOString().slice(0, 7)
+  const thisMonth = todayIso().slice(0, 7)
   const monthScoped =
     monthFilter && !filters.from && !filters.to ? expenses.filter((e) => e.date.slice(0, 7) === thisMonth) : expenses
   const scoped = filterExpenses(monthScoped, filters)

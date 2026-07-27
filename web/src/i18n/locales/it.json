@@ -87,6 +87,16 @@
     "from": "dal",
     "to": "al",
     "all": "tutti",
-    "clear": "cancella"
+    "clear": "cancella",
+    "timeframe": "periodo",
+    "thisMonth": "questo mese",
+    "lastMonth": "mese scorso",
+    "last7Days": "ultimi 7 giorni",
+    "last30Days": "ultimi 30 giorni",
+    "last90Days": "ultimi 90 giorni",
+    "last3Months": "ultimi 3 mesi",
+    "last6Months": "ultimi 6 mesi",
+    "thisYear": "quest'anno",
+    "lastYear": "anno scorso"
   }
 }

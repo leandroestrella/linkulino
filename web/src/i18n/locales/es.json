@@ -87,6 +87,16 @@
     "from": "desde",
     "to": "hasta",
     "all": "todos",
-    "clear": "borrar"
+    "clear": "borrar",
+    "timeframe": "periodo",
+    "thisMonth": "este mes",
+    "lastMonth": "mes pasado",
+    "last7Days": "últimos 7 días",
+    "last30Days": "últimos 30 días",
+    "last90Days": "últimos 90 días",
+    "last3Months": "últimos 3 meses",
+    "last6Months": "últimos 6 meses",
+    "thisYear": "este año",
+    "lastYear": "año pasado"
   }
 }

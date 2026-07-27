@@ -2,7 +2,14 @@ import { useTranslation } from 'react-i18next'
 import { XIcon } from 'lucide-react'
 import type { Category, Participant } from '@/api/types'
 import { PersonIcon } from '@/components/PersonName'
-import { EMPTY_FILTERS, hasActiveFilters, type ExpenseFilterValues } from '@/lib/filters'
+import {
+  EMPTY_FILTERS,
+  hasActiveFilters,
+  matchingTimeframeKey,
+  TIMEFRAME_KEYS,
+  timeframeRange,
+  type ExpenseFilterValues,
+} from '@/lib/filters'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -22,9 +29,31 @@ export function ExpenseFilters({
   onChange: (filters: ExpenseFilterValues) => void
 }) {
   const { t } = useTranslation()
+  const timeframeKey = matchingTimeframeKey(filters)
 
   return (
     <div className="flex flex-wrap items-center gap-2">
+      <Select
+        value={timeframeKey ?? ALL}
+        onValueChange={(v) => {
+          if (v === ALL) return onChange({ ...filters, from: '', to: '' })
+          const range = timeframeRange(v as (typeof TIMEFRAME_KEYS)[number])
+          onChange({ ...filters, from: range.from, to: range.to })
+        }}
+      >
+        <SelectTrigger size="sm" className="w-full sm:w-auto">
+          <SelectValue placeholder={t('filters.timeframe')} />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={ALL}>{t('filters.timeframe')}</SelectItem>
+          {TIMEFRAME_KEYS.map((key) => (
+            <SelectItem key={key} value={key}>
+              {t(`filters.${key}`)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
       <Select
         value={filters.category || ALL}
         onValueChange={(v) => onChange({ ...filters, category: v === ALL ? '' : v })}

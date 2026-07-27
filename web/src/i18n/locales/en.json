@@ -87,6 +87,16 @@
     "from": "from",
     "to": "to",
     "all": "all",
-    "clear": "clear"
+    "clear": "clear",
+    "timeframe": "timeframe",
+    "thisMonth": "this month",
+    "lastMonth": "last month",
+    "last7Days": "last 7 days",
+    "last30Days": "last 30 days",
+    "last90Days": "last 90 days",
+    "last3Months": "last 3 months",
+    "last6Months": "last 6 months",
+    "thisYear": "this year",
+    "lastYear": "last year"
   }
 }

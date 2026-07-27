@@ -25,10 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-
-function today(): string {
-  return new Date().toISOString().slice(0, 10)
-}
+import { todayIso as today } from '@/lib/date'
 
 /** Splits 100% evenly across participants, rounding the remainder onto the first one. */
 function evenSplit(participants: Participant[]): Record<string, number> {

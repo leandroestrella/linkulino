@@ -5,6 +5,7 @@
  * across participants (percentage per participant, e.g. 50/50). The backend
  * computes each participant's quota and running balance from these.
  */
+import { todayIso } from '@/lib/date'
 
 export interface Participant {
   name: string
@@ -57,7 +58,7 @@ export type NewTrip = Omit<Trip, 'id'>
 export type TripStatus = 'active' | 'upcoming' | 'past'
 
 /** A trip's status today, by comparing its date range to the given date (defaults to now). */
-export function tripStatus(trip: Trip, today: string = new Date().toISOString().slice(0, 10)): TripStatus {
+export function tripStatus(trip: Trip, today: string = todayIso()): TripStatus {
   if (trip.startDate && today < trip.startDate) return 'upcoming'
   if (trip.endDate && today > trip.endDate) return 'past'
   return 'active'
