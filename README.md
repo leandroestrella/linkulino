@@ -1,3 +1,5 @@
+<img src="assets/linkulino.png" alt="linkulino mascot" width=15%>
+
 # linkulino
 
 a smart, friendly web app for households and small groups to manage shared expenses together — tracking budgets, splitting bills, and keeping everyone in sync.

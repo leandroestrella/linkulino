@@ -2,6 +2,12 @@
   "app": {
     "tagline": "shared expenses, split fairly, kept in sync."
   },
+  "nav": {
+    "about": "about linkulino",
+    "repo": "source on github",
+    "portfolio": "leandro estrella — portfolio",
+    "back": "back to home"
+  },
   "auth": {
     "signOut": "sign out",
     "authorized": "authorized",

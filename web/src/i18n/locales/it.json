@@ -2,6 +2,12 @@
   "app": {
     "tagline": "spese condivise, divise in modo equo, sempre in sincro."
   },
+  "nav": {
+    "about": "informazioni su linkulino",
+    "repo": "codice sorgente su github",
+    "portfolio": "leandro estrella — portfolio",
+    "back": "torna alla home"
+  },
   "auth": {
     "signOut": "esci",
     "authorized": "autorizzato",

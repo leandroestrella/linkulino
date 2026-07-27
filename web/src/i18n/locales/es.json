@@ -2,6 +2,12 @@
   "app": {
     "tagline": "gastos compartidos, repartidos de forma justa, siempre sincronizados."
   },
+  "nav": {
+    "about": "acerca de linkulino",
+    "repo": "código fuente en github",
+    "portfolio": "leandro estrella — portfolio",
+    "back": "volver al inicio"
+  },
   "auth": {
     "signOut": "cerrar sesión",
     "authorized": "autorizado",

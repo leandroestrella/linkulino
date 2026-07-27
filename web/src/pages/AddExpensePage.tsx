@@ -79,7 +79,7 @@ export function AddExpensePage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-lg px-4 py-8">
+    <div className="mx-auto w-full max-w-lg">
       <Card>
         <CardHeader>
           <CardTitle>{t('form.title')}</CardTitle>
@@ -190,6 +190,6 @@ export function AddExpensePage() {
           )}
         </CardContent>
       </Card>
-    </main>
+    </div>
   )
 }

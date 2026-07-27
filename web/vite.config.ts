@@ -11,4 +11,11 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server: {
+    fs: {
+      // The About page imports the repo-root README.md (?raw), which lives one
+      // level above web/, so the dev server must be allowed to read it.
+      allow: [path.resolve(__dirname, '..')],
+    },
+  },
 })
