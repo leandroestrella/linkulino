@@ -43,9 +43,14 @@ export function HomePage() {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-8">
       <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">linkulino</h1>
-          <p className="text-muted-foreground">{t('app.tagline')}</p>
+        <div className="flex items-center gap-3">
+          <a href="https://github.com/leandroestrella/linkulino" target="_blank" rel="noreferrer">
+            <img src="/linkulino.png" alt="" className="w-12 sm:w-14" />
+          </a>
+          <div>
+            <h1 className="text-2xl font-semibold">linkulino</h1>
+            <p className="text-muted-foreground">{t('app.tagline')}</p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <LanguageSwitcher />
