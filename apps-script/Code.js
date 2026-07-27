@@ -136,8 +136,10 @@ function getTrips_() {
 /**
  * Writes a new expense into the first blank slot of the target tab (see
  * docs/sheet-setup.md — rows below the header are pre-filled with formulas,
- * so this fills A–G in place rather than appending a row) and sets its
- * recurring flag (column K).
+ * so this fills A–G in place rather than appending a row). The recurring flag
+ * (column K) only applies to the household budget — trips are time-boxed, so
+ * "repeats every month" doesn't apply there, and column K is never touched on
+ * a trip tab.
  * @param {{date: string, description: string, category: string, payer: string, amount: number, splits: Object, recurring: boolean}} input
  * @param {string=} sheetId a trip's tab name, or omitted for the household budget.
  * @return {Object} the created expense
@@ -154,7 +156,7 @@ function addExpense_(input, sheetId) {
   }
 
   var participants = parseParticipants(readValues_(SETTINGS_TAB))
-  writeExpenseRow_(tab, rowNumber, input, participants)
+  writeExpenseRow_(tab, rowNumber, input, participants, !sheetId)
 
   var updated = tab.getRange(rowNumber, 1, 1, COL.recurring + 1).getValues()[0]
   return rowToExpense(updated, rowNumber, participants)
@@ -178,23 +180,27 @@ function updateExpense_(id, input, sheetId) {
   if (rowNumber > tab.getLastRow()) throw new Error('Expense not found: ' + id)
 
   var participants = parseParticipants(readValues_(SETTINGS_TAB))
-  writeExpenseRow_(tab, rowNumber, input, participants)
+  writeExpenseRow_(tab, rowNumber, input, participants, !sheetId)
 
   var updated = tab.getRange(rowNumber, 1, 1, COL.recurring + 1).getValues()[0]
   return rowToExpense(updated, rowNumber, participants)
 }
 
 /**
- * Writes an expense's A–G cells and recurring flag (column K) to a specific row.
+ * Writes an expense's A–G cells to a specific row, and its recurring flag
+ * (column K) only when `includeRecurring` (household budget only — see callers).
  * @param {GoogleAppsScript.Spreadsheet.Sheet} tab
  * @param {number} rowNumber 1-based
  * @param {Object} input
  * @param {{a: string, b: string}} participants
+ * @param {boolean} includeRecurring
  */
-function writeExpenseRow_(tab, rowNumber, input, participants) {
+function writeExpenseRow_(tab, rowNumber, input, participants, includeRecurring) {
   var rowValues = buildExpenseRowValues(input, participants)
   tab.getRange(rowNumber, COL.date + 1, 1, rowValues.length).setValues([rowValues])
-  tab.getRange(rowNumber, COL.recurring + 1).setValue(!!input.recurring)
+  if (includeRecurring) {
+    tab.getRange(rowNumber, COL.recurring + 1).setValue(!!input.recurring)
+  }
 }
 
 /**
@@ -256,7 +262,7 @@ function runMonthlyRecurringExpenses() {
     var values = household.getDataRange().getValues() // re-read: prior iterations filled a slot
     var rowNumber = findBlankSlotRow(values)
     if (rowNumber === -1) break // out of pre-filled rows; stop rather than append past the formulas
-    writeExpenseRow_(household, rowNumber, toCreate[i], participants)
+    writeExpenseRow_(household, rowNumber, toCreate[i], participants, true)
     created++
   }
   return 'Created ' + created + ' of ' + toCreate.length + ' recurring expense(s) for ' + today.slice(0, 7) + '.'

@@ -202,16 +202,19 @@ export function ExpenseFormPage({ mode }: { mode: 'add' | 'edit' }) {
               )}
             </div>
 
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="recurring"
-                checked={recurring}
-                onCheckedChange={(checked) => setRecurring(checked === true)}
-              />
-              <Label htmlFor="recurring" className="font-normal">
-                {t('form.recurring')}
-              </Label>
-            </div>
+            {/* Recurring only applies to the household budget — trips are time-boxed. */}
+            {!tripId && (
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="recurring"
+                  checked={recurring}
+                  onCheckedChange={(checked) => setRecurring(checked === true)}
+                />
+                <Label htmlFor="recurring" className="font-normal">
+                  {t('form.recurring')}
+                </Label>
+              </div>
+            )}
 
             {error && <p className="text-destructive text-sm">{error}</p>}
 

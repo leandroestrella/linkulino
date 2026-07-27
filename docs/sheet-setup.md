@@ -82,14 +82,14 @@ differ per instance):
 | H | Quota \<Participant A\> (€) | **formula**, `= E * F / 100` |
 | I | Quota \<Participant B\> (€) | **formula**, `= E * G / 100` |
 | J | Saldo (Balance) | **formula** — positive means Participant A is owed |
-| K | Ricorrente (Recurring) | `TRUE`/`FALSE` — flags an expense (e.g. rent, internet) that repeats every month. Added by the app, not part of the original template — add a `Ricorrente` header to column K on each existing tab if you want it labeled; the backend writes/reads column K regardless |
+| K | Ricorrente (Recurring) | **household tab only** — `TRUE`/`FALSE`, flags an expense (e.g. rent, internet) that repeats every month. Added by the app, not part of the original template; the backend never writes column K on a trip tab, since recurring doesn't apply there |
 
 A tab is pre-filled with ~60 blank rows (F/G already defaulted to 50/50) so
 the H/I/J formulas are already in place below every future entry. **Adding an
-expense means filling in A–G and K on the first fully-blank row (by A–E),
-not appending a new row** — appending past the pre-filled range would leave a
-row with no formulas. If a tab ever runs out of blank rows, extend the
-formulas down manually before adding more.
+expense means filling in A–G (plus K on the household tab) on the first
+fully-blank row (by A–E), not appending a new row** — appending past the
+pre-filled range would leave a row with no formulas. If a tab ever runs out of
+blank rows, extend the formulas down manually before adding more.
 
 The last row (`TOTALE`) sums columns E, H, I, J and is also a formula — leave
 it alone.
@@ -105,11 +105,12 @@ today — nothing to configure.
 
 ## recurring expenses
 
-Household expenses flagged recurring (column K) are recreated automatically
-once a month: `runMonthlyRecurringExpenses` (in `apps-script/Code.js`) finds,
-per description, the most recent recurring occurrence and — unless that
-description already has an entry dated this month — writes a fresh copy dated
-today. It's idempotent, so running it twice in the same month is harmless.
+Household expenses flagged recurring (column K, household tab only — not
+trips) are recreated automatically once a month: `runMonthlyRecurringExpenses`
+(in `apps-script/Code.js`) finds, per description, the most recent recurring
+occurrence and — unless that description already has an entry dated this
+month — writes a fresh copy dated today. It's idempotent, so running it twice
+in the same month is harmless.
 Recurring only applies to the household tab; trips are time-boxed, so it
 doesn't make sense there.
 
