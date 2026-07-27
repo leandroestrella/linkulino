@@ -18,7 +18,11 @@ export const MOCK_CATEGORIES: string[] = [
   'Other',
 ]
 
-export const MOCK_TRIPS: Trip[] = [{ id: 'trip-cala-gonone', name: 'Cala Gonone' }]
+export const MOCK_TRIPS: Trip[] = [
+  { id: '🏖️ seaside', name: 'seaside', emoji: '🏖️', startDate: '2026-05-10', endDate: '2026-05-17' },
+  { id: '🏔️ mountains', name: 'mountains', emoji: '🏔️', startDate: '2026-07-20', endDate: '2026-08-03' },
+  { id: '🎡 city break', name: 'city break', emoji: '🎡', startDate: '2026-11-05', endDate: '2026-11-09' },
+]
 
 export const MOCK_EXPENSES: Expense[] = [
   {
@@ -29,6 +33,7 @@ export const MOCK_EXPENSES: Expense[] = [
     payer: 'Alex',
     amount: 1200,
     splits: { Alex: 50, Sam: 50 },
+    recurring: true,
   },
   {
     id: 'exp-2',
@@ -38,6 +43,7 @@ export const MOCK_EXPENSES: Expense[] = [
     payer: 'Sam',
     amount: 84.5,
     splits: { Alex: 50, Sam: 50 },
+    recurring: false,
   },
   {
     id: 'exp-3',
@@ -47,5 +53,21 @@ export const MOCK_EXPENSES: Expense[] = [
     payer: 'Alex',
     amount: 63.2,
     splits: { Alex: 50, Sam: 50 },
+    recurring: false,
   },
 ]
+
+export const MOCK_TRIP_EXPENSES: Record<string, Expense[]> = {
+  '🏔️ mountains': [
+    {
+      id: 'trip-exp-1',
+      date: '2026-07-20',
+      description: 'Cabin rental',
+      category: 'Lodging',
+      payer: 'Alex',
+      amount: 640,
+      splits: { Alex: 50, Sam: 50 },
+      recurring: false,
+    },
+  ],
+}

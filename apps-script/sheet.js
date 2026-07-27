@@ -40,6 +40,9 @@ var COL = {
   splitA: 5,
   splitB: 6,
   // 7 (quota A €), 8 (quota B €), 9 (saldo) are formulas — never written to.
+  // 10 (column K) is an additional "repeats every month" flag, added on top of
+  // the original template; see docs/sheet-setup.md.
+  recurring: 10,
 }
 
 // ---------------------------------------------------------------------------
@@ -59,6 +62,12 @@ function cellToNumber(v) {
   return Number.isFinite(n) ? n : 0
 }
 
+/** Normalizes a sheet cell (checkbox boolean or "TRUE"/"FALSE" text) to a boolean. */
+function cellToBool(v) {
+  if (typeof v === 'boolean') return v
+  return cellToString(v).toUpperCase() === 'TRUE'
+}
+
 /**
  * Formats a date cell as ISO `YYYY-MM-DD`. Sheet cells with a Date type arrive
  * as JS Date objects; a plain `DD/MM/YYYY` string (e.g. pasted data) is parsed
@@ -75,6 +84,12 @@ function cellToIsoDate(v) {
   var match = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(s)
   if (match) return match[3] + '-' + match[2].padStart(2, '0') + '-' + match[1].padStart(2, '0')
   return ''
+}
+
+/** Formats an ISO `YYYY-MM-DD` string as `DD/MM/YYYY`, or returns it unchanged if it doesn't match. */
+function isoToDmy(iso) {
+  var parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(cellToString(iso))
+  return parts ? parts[3] + '/' + parts[2] + '/' + parts[1] : cellToString(iso)
 }
 
 // ---------------------------------------------------------------------------
@@ -109,6 +124,25 @@ function parseTabMeta(row1) {
     emoji: cellToString(row1[3]),
     endDate: cellToIsoDate(row1[4]),
   }
+}
+
+/**
+ * The tab name a trip is stored under: `"{emoji} {name}"`, matching the
+ * existing convention (e.g. `🐚 cala gonone`).
+ * @param {{name: string, emoji: string}} trip
+ * @return {string}
+ */
+function tripTabName(trip) {
+  return cellToString(trip.emoji) + ' ' + cellToString(trip.name)
+}
+
+/**
+ * Builds a new trip tab's row-1 metadata cells.
+ * @param {{name: string, emoji: string, startDate: string, endDate: string}} trip
+ * @return {Array<*>}
+ */
+function buildTripRow1Values(trip) {
+  return [TRIP_MARKER, cellToString(trip.name), isoToDmy(trip.startDate), cellToString(trip.emoji), isoToDmy(trip.endDate)]
 }
 
 // ---------------------------------------------------------------------------
@@ -174,6 +208,7 @@ function rowToExpense(row, rowNumber, participants) {
     payer: cellToString(row[COL.payer]),
     amount: cellToNumber(row[COL.amount]),
     splits: splits,
+    recurring: cellToBool(row[COL.recurring]),
   }
 }
 
@@ -220,16 +255,67 @@ function findBlankSlotRow(values) {
 }
 
 /**
- * Builds the A–E row values to write for a new expense (F/G default to the
- * existing split already in the slot unless overridden). Columns H–J (quota
- * €, saldo) are formulas and are never written.
- * @param {{date: string, description: string, category: string, payer: string, amount: number}} expense
+ * Builds the A–G row values to write for an expense: date, description,
+ * category, payer, amount, and each participant's split % (by name lookup, so
+ * the sheet's column order doesn't need to match `participants`' a/b order).
+ * Columns H–J (quota €, saldo) are formulas and are never written; recurring
+ * (column K) is written separately since it isn't contiguous with A–G.
+ * @param {{date: string, description: string, category: string, payer: string, amount: number, splits: Object<string, number>}} expense
+ * @param {{a: string, b: string}} participants
  * @return {Array<*>}
  */
-function buildExpenseRowValues(expense) {
-  var parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(expense.date)
-  var date = parts ? parts[3] + '/' + parts[2] + '/' + parts[1] : expense.date
-  return [date, expense.description, expense.category, expense.payer, expense.amount]
+function buildExpenseRowValues(expense, participants) {
+  var splits = expense.splits || {}
+  var splitA = participants && participants.a ? cellToNumber(splits[participants.a]) : ''
+  var splitB = participants && participants.b ? cellToNumber(splits[participants.b]) : ''
+  return [isoToDmy(expense.date), expense.description, expense.category, expense.payer, expense.amount, splitA, splitB]
+}
+
+// ---------------------------------------------------------------------------
+// Recurring expenses
+// ---------------------------------------------------------------------------
+
+/**
+ * Decides which recurring expenses (e.g. rent, internet) need a fresh copy for
+ * the current month: for each description marked `recurring` anywhere in the
+ * tab, its most recent occurrence becomes the template — unless that
+ * description already has an entry dated this month, in which case it's
+ * skipped (idempotent: safe to run more than once in the same month).
+ * @param {Array<Object>} expenses already-parsed expenses (see parseExpenses)
+ * @param {string} todayIso `YYYY-MM-DD`
+ * @return {Array<Object>} new expenses (no `id`) to write, dated `todayIso`
+ */
+function expensesToRecreateThisMonth(expenses, todayIso) {
+  var monthPrefix = cellToString(todayIso).slice(0, 7)
+
+  var alreadyThisMonth = {}
+  for (var i = 0; i < expenses.length; i++) {
+    if (expenses[i].date.slice(0, 7) === monthPrefix) alreadyThisMonth[expenses[i].description] = true
+  }
+
+  var latestByDescription = {}
+  for (var j = 0; j < expenses.length; j++) {
+    var expense = expenses[j]
+    if (!expense.recurring) continue
+    var current = latestByDescription[expense.description]
+    if (!current || expense.date > current.date) latestByDescription[expense.description] = expense
+  }
+
+  var toCreate = []
+  for (var description in latestByDescription) {
+    if (alreadyThisMonth[description]) continue
+    var template = latestByDescription[description]
+    toCreate.push({
+      date: todayIso,
+      description: template.description,
+      category: template.category,
+      payer: template.payer,
+      amount: template.amount,
+      splits: template.splits,
+      recurring: true,
+    })
+  }
+  return toCreate
 }
 
 // Node-only export (skipped in Apps Script, where `module` is undefined).
@@ -243,14 +329,19 @@ if (typeof module !== 'undefined' && module.exports) {
     COL: COL,
     cellToString: cellToString,
     cellToNumber: cellToNumber,
+    cellToBool: cellToBool,
     cellToIsoDate: cellToIsoDate,
+    isoToDmy: isoToDmy,
     classifyTab: classifyTab,
     parseTabMeta: parseTabMeta,
+    tripTabName: tripTabName,
+    buildTripRow1Values: buildTripRow1Values,
     parseParticipants: parseParticipants,
     findHeaderRowIndex: findHeaderRowIndex,
     rowToExpense: rowToExpense,
     parseExpenses: parseExpenses,
     findBlankSlotRow: findBlankSlotRow,
     buildExpenseRowValues: buildExpenseRowValues,
+    expensesToRecreateThisMonth: expensesToRecreateThisMonth,
   }
 }

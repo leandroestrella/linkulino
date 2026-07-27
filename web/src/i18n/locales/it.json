@@ -6,7 +6,8 @@
     "about": "informazioni su linkulino",
     "repo": "codice sorgente su github",
     "portfolio": "leandro estrella — portfolio",
-    "back": "torna alla home"
+    "back": "torna alla home",
+    "trips": "viaggi"
   },
   "auth": {
     "signOut": "esci",
@@ -18,12 +19,13 @@
     "thisMonth": "questo mese",
     "total": "totale",
     "addExpense": "aggiungi spesa",
-    "loading": "caricamento…",
+    "loading": "caricamento",
     "empty": "nessuna spesa ancora — aggiungi la prima.",
     "paidBy": "pagato da {{name}}"
   },
   "form": {
     "title": "aggiungi spesa",
+    "editTitle": "modifica spesa",
     "date": "data",
     "description": "descrizione",
     "descriptionPlaceholder": "spesa settimanale",
@@ -31,14 +33,32 @@
     "paidBy": "pagato da",
     "amount": "importo",
     "splitPercent": "quota %",
+    "recurring": "si ripete ogni mese",
     "save": "salva spesa",
-    "saving": "salvataggio…",
-    "loading": "caricamento…",
+    "saving": "salvataggio",
+    "loading": "caricamento",
     "signInPrompt": "accedi dalla home per aggiungere una spesa.",
     "notAllowlisted": "il tuo account non è nella lista consentiti per questo foglio.",
     "errorDescriptionRequired": "la descrizione è obbligatoria.",
     "errorAmountInvalid": "inserisci un importo valido.",
     "errorSplitTotal": "le quote devono sommare a 100%.",
     "splitTotalWarning": "le quote attualmente sommano a {{total}}%."
+  },
+  "trips": {
+    "title": "viaggi",
+    "new": "nuovo viaggio",
+    "create": "crea viaggio",
+    "name": "destinazione",
+    "namePlaceholder": "lisbona",
+    "emoji": "icona",
+    "startDate": "data di inizio",
+    "endDate": "data di fine",
+    "active": "in corso",
+    "upcoming": "prossimi",
+    "past": "passati",
+    "empty": "nessun viaggio ancora.",
+    "currentTrip": "viaggio in corso",
+    "errorNameRequired": "la destinazione è obbligatoria.",
+    "errorDateRange": "la data di fine deve essere uguale o successiva alla data di inizio."
   }
 }

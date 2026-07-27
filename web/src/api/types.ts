@@ -22,13 +22,33 @@ export interface Expense {
   amount: number
   /** Participant name → share of the expense, in percent. Values sum to 100. */
   splits: Record<string, number>
+  /** True for expenses that repeat every month (e.g. rent, internet). */
+  recurring: boolean
 }
 
-/** Fields accepted when creating an expense. The backend assigns `id`. */
-export type NewExpense = Omit<Expense, 'id'>
+/** Fields accepted when creating or editing an expense. The backend assigns `id`. */
+export type ExpenseInput = Omit<Expense, 'id'>
 
 /** A trip (vacation) that side-tracks its own expenses, separate from the household budget. */
 export interface Trip {
+  /** The tab name — also used to address its expenses. */
   id: string
   name: string
+  emoji: string
+  /** ISO `YYYY-MM-DD`. */
+  startDate: string
+  /** ISO `YYYY-MM-DD`. */
+  endDate: string
+}
+
+/** Fields accepted when creating a trip. The backend derives the tab name from `name`. */
+export type NewTrip = Omit<Trip, 'id'>
+
+export type TripStatus = 'active' | 'upcoming' | 'past'
+
+/** A trip's status today, by comparing its date range to the given date (defaults to now). */
+export function tripStatus(trip: Trip, today: string = new Date().toISOString().slice(0, 10)): TripStatus {
+  if (trip.startDate && today < trip.startDate) return 'upcoming'
+  if (trip.endDate && today > trip.endDate) return 'past'
+  return 'active'
 }

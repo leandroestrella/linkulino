@@ -1,0 +1,156 @@
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { createTrip, getTrips } from '@/api/client'
+import { tripStatus, type Trip, type TripStatus } from '@/api/types'
+import { useAuth } from '@/auth/AuthProvider'
+import { LoadingDots } from '@/components/LoadingDots'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
+export function TripsPage() {
+  const { t } = useTranslation()
+  const { configured, status, authorized } = useAuth()
+  const canWrite = !configured || (status === 'signed-in' && authorized)
+
+  const [trips, setTrips] = useState<Trip[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [name, setName] = useState('')
+  const [emoji, setEmoji] = useState('🧳')
+  const [startDate, setStartDate] = useState(todayIso())
+  const [endDate, setEndDate] = useState(todayIso())
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+
+  async function load() {
+    setLoading(true)
+    setTrips(await getTrips())
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    void load()
+  }, [])
+
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault()
+    setError('')
+    if (!name.trim()) return setError(t('trips.errorNameRequired'))
+    if (endDate < startDate) return setError(t('trips.errorDateRange'))
+
+    setSubmitting(true)
+    try {
+      await createTrip({ name: name.trim(), emoji: emoji.trim() || '🧳', startDate, endDate })
+      setName('')
+      setShowForm(false)
+      await load()
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const groups: { key: TripStatus; label: string }[] = [
+    { key: 'active', label: t('trips.active') },
+    { key: 'upcoming', label: t('trips.upcoming') },
+    { key: 'past', label: t('trips.past') },
+  ]
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold">{t('trips.title')}</h2>
+        {canWrite && (
+          <Button size="sm" onClick={() => setShowForm((s) => !s)}>
+            {t('trips.new')}
+          </Button>
+        )}
+      </div>
+
+      {showForm && (
+        <Card>
+          <CardContent className="pt-6">
+            <form onSubmit={handleCreate} className="flex flex-col gap-4">
+              <div className="flex gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="emoji">{t('trips.emoji')}</Label>
+                  <Input
+                    id="emoji"
+                    value={emoji}
+                    onChange={(e) => setEmoji(e.target.value)}
+                    className="w-16 text-center"
+                    maxLength={2}
+                  />
+                </div>
+                <div className="flex flex-1 flex-col gap-1.5">
+                  <Label htmlFor="name">{t('trips.name')}</Label>
+                  <Input
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder={t('trips.namePlaceholder')}
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <div className="flex flex-1 flex-col gap-1.5">
+                  <Label htmlFor="start">{t('trips.startDate')}</Label>
+                  <Input id="start" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                </div>
+                <div className="flex flex-1 flex-col gap-1.5">
+                  <Label htmlFor="end">{t('trips.endDate')}</Label>
+                  <Input id="end" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                </div>
+              </div>
+              {error && <p className="text-destructive text-sm">{error}</p>}
+              <Button type="submit" disabled={submitting}>
+                {submitting ? t('form.saving') : t('trips.create')}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {loading && (
+        <p className="text-muted-foreground">
+          {t('home.loading')}
+          <LoadingDots />
+        </p>
+      )}
+
+      {!loading &&
+        groups.map(({ key, label }) => {
+          const inGroup = trips.filter((trip) => tripStatus(trip) === key)
+          if (inGroup.length === 0) return null
+          return (
+            <section key={key} className="flex flex-col gap-2">
+              <h3 className="text-muted-foreground text-sm font-medium">{label}</h3>
+              {inGroup.map((trip) => (
+                <Link key={trip.id} to={`/trips/${trip.id}`}>
+                  <Card className="hover:bg-accent transition-colors">
+                    <CardContent className="flex items-center gap-3 py-3">
+                      <span className="text-2xl">{trip.emoji}</span>
+                      <div>
+                        <p className="font-medium">{trip.name}</p>
+                        <p className="text-muted-foreground text-sm">
+                          {trip.startDate} → {trip.endDate}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </section>
+          )
+        })}
+
+      {!loading && trips.length === 0 && <p className="text-muted-foreground">{t('trips.empty')}</p>}
+    </div>
+  )
+}

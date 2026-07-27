@@ -6,7 +6,8 @@
     "about": "acerca de linkulino",
     "repo": "código fuente en github",
     "portfolio": "leandro estrella — portfolio",
-    "back": "volver al inicio"
+    "back": "volver al inicio",
+    "trips": "viajes"
   },
   "auth": {
     "signOut": "cerrar sesión",
@@ -18,12 +19,13 @@
     "thisMonth": "este mes",
     "total": "total",
     "addExpense": "añadir gasto",
-    "loading": "cargando…",
+    "loading": "cargando",
     "empty": "todavía no hay gastos — añade el primero.",
     "paidBy": "pagado por {{name}}"
   },
   "form": {
     "title": "añadir gasto",
+    "editTitle": "editar gasto",
     "date": "fecha",
     "description": "descripción",
     "descriptionPlaceholder": "compra semanal",
@@ -31,14 +33,32 @@
     "paidBy": "pagado por",
     "amount": "importe",
     "splitPercent": "reparto %",
+    "recurring": "se repite cada mes",
     "save": "guardar gasto",
-    "saving": "guardando…",
-    "loading": "cargando…",
+    "saving": "guardando",
+    "loading": "cargando",
     "signInPrompt": "inicia sesión desde el inicio para añadir un gasto.",
     "notAllowlisted": "tu cuenta no está en la lista de permitidos de esta hoja.",
     "errorDescriptionRequired": "la descripción es obligatoria.",
     "errorAmountInvalid": "introduce un importe válido.",
     "errorSplitTotal": "el reparto debe sumar 100%.",
     "splitTotalWarning": "el reparto actualmente suma {{total}}%."
+  },
+  "trips": {
+    "title": "viajes",
+    "new": "nuevo viaje",
+    "create": "crear viaje",
+    "name": "destino",
+    "namePlaceholder": "lisboa",
+    "emoji": "icono",
+    "startDate": "fecha de inicio",
+    "endDate": "fecha de fin",
+    "active": "en curso",
+    "upcoming": "próximos",
+    "past": "pasados",
+    "empty": "todavía no hay viajes.",
+    "currentTrip": "viaje en curso",
+    "errorNameRequired": "el destino es obligatorio.",
+    "errorDateRange": "la fecha de fin debe ser igual o posterior a la de inicio."
   }
 }

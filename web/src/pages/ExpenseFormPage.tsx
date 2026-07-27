@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { addExpense, getCategories, getParticipants } from '@/api/client'
+import { addExpense, getCategories, getExpenses, getParticipants, updateExpense } from '@/api/client'
 import type { Participant } from '@/api/types'
 import { useAuth } from '@/auth/AuthProvider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -30,10 +31,12 @@ function evenSplit(participants: Participant[]): Record<string, number> {
   )
 }
 
-export function AddExpensePage() {
+export function ExpenseFormPage({ mode }: { mode: 'add' | 'edit' }) {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const { configured, status, authorized } = useAuth()
+  const { id, tripId } = useParams<{ id?: string; tripId?: string }>()
+
   const [participants, setParticipants] = useState<Participant[]>([])
   const [categories, setCategories] = useState<string[]>([])
 
@@ -43,20 +46,36 @@ export function AddExpensePage() {
   const [payer, setPayer] = useState('')
   const [amount, setAmount] = useState('')
   const [splits, setSplits] = useState<Record<string, number>>({})
+  const [recurring, setRecurring] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
-    void Promise.all([getParticipants(), getCategories()]).then(([p, c]) => {
+    void Promise.all([
+      getParticipants(),
+      getCategories(),
+      mode === 'edit' && id ? getExpenses(tripId) : Promise.resolve(null),
+    ]).then(([p, c, expenses]) => {
       setParticipants(p)
       setCategories(c)
-      setSplits(evenSplit(p))
-      setPayer(p[0]?.name ?? '')
-      setCategory(c[0] ?? '')
+      const existing = expenses?.find((e) => e.id === id)
+      if (existing) {
+        setDate(existing.date)
+        setDescription(existing.description)
+        setCategory(existing.category)
+        setPayer(existing.payer)
+        setAmount(String(existing.amount))
+        setSplits(existing.splits)
+        setRecurring(existing.recurring)
+      } else {
+        setSplits(evenSplit(p))
+        setPayer(p[0]?.name ?? '')
+        setCategory(c[0] ?? '')
+      }
       setLoaded(true)
     })
-  }, [])
+  }, [mode, id, tripId])
 
   const splitTotal = Object.values(splits).reduce((sum, v) => sum + v, 0)
 
@@ -71,18 +90,22 @@ export function AddExpensePage() {
 
     setSubmitting(true)
     try {
-      await addExpense({ date, description, category, payer, amount: parsedAmount, splits })
-      navigate('/')
+      const payload = { date, description, category, payer, amount: parsedAmount, splits, recurring }
+      if (mode === 'edit' && id) await updateExpense(id, payload, tripId)
+      else await addExpense(payload, tripId)
+      navigate(tripId ? `/trips/${tripId}` : '/')
     } finally {
       setSubmitting(false)
     }
   }
 
+  const ready = !configured || (status === 'signed-in' && authorized)
+
   return (
     <div className="mx-auto w-full max-w-lg">
       <Card>
         <CardHeader>
-          <CardTitle>{t('form.title')}</CardTitle>
+          <CardTitle>{mode === 'edit' ? t('form.editTitle') : t('form.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           {configured && status !== 'signed-in' && (
@@ -91,10 +114,8 @@ export function AddExpensePage() {
           {configured && status === 'signed-in' && !authorized && (
             <p className="text-destructive">{t('form.notAllowlisted')}</p>
           )}
-          {(!configured || (status === 'signed-in' && authorized)) && !loaded && (
-            <p className="text-muted-foreground">{t('form.loading')}</p>
-          )}
-          {(!configured || (status === 'signed-in' && authorized)) && loaded && (
+          {ready && !loaded && <p className="text-muted-foreground">{t('form.loading')}</p>}
+          {ready && loaded && (
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="date">{t('form.date')}</Label>
@@ -179,6 +200,17 @@ export function AddExpensePage() {
                   {t('form.splitTotalWarning', { total: splitTotal })}
                 </p>
               )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="recurring"
+                checked={recurring}
+                onCheckedChange={(checked) => setRecurring(checked === true)}
+              />
+              <Label htmlFor="recurring" className="font-normal">
+                {t('form.recurring')}
+              </Label>
             </div>
 
             {error && <p className="text-destructive text-sm">{error}</p>}

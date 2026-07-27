@@ -3,8 +3,8 @@
  *
  * The ONLY thing that touches the spreadsheet. Runs as the sheet owner and
  * exposes a small JSON API:
- *   - doGet  → reads   (?action=health, participants, expenses, trips, categories)
- *   - doPost → writes  (addExpense)
+ *   - doGet  → reads   (?action=health, participants, expenses[&sheet=], trips, categories)
+ *   - doPost → writes  (addExpense, updateExpense, createTrip)
  *
  * All pure logic (tab discovery, row↔object mapping, blank-slot finding) lives
  * in sheet.js and is unit-tested in Node. This file is just the glue: read
@@ -20,7 +20,7 @@
  * requireUser_). Auth decisions themselves are pure logic in auth.js.
  */
 
-var VERSION = '0.1.0'
+var VERSION = '0.2.0'
 var USERS_SHEET = 'Users'
 
 function doGet(e) {
@@ -34,7 +34,7 @@ function doGet(e) {
       case 'categories':
         return json({ ok: true, categories: getCategories_() })
       case 'expenses':
-        return json({ ok: true, expenses: getHouseholdExpenses_() })
+        return json({ ok: true, expenses: getExpenses_(e.parameter.sheet) })
       case 'trips':
         return json({ ok: true, trips: getTrips_() })
       default:
@@ -55,7 +55,11 @@ function doPost(e) {
     requireUser_(body) // throws unless the caller is an allowed participant
     switch (body.action) {
       case 'addExpense':
-        return json({ ok: true, expense: addExpense_(body.expense) })
+        return json({ ok: true, expense: addExpense_(body.expense, body.sheet) })
+      case 'updateExpense':
+        return json({ ok: true, expense: updateExpense_(body.id, body.expense, body.sheet) })
+      case 'createTrip':
+        return json({ ok: true, trip: createTrip_(body.trip) })
       default:
         return json({ ok: false, error: 'unknown action: ' + body.action })
     }
@@ -98,12 +102,15 @@ function getCategories_() {
   return Array.isArray(list) ? list.map(cellToString).filter(Boolean) : []
 }
 
-/** @return {Object[]} this instance's household (recurring) expenses. */
-function getHouseholdExpenses_() {
-  var household = findHouseholdTab_()
-  if (!household) return []
+/**
+ * @param {string=} sheetId a trip's tab name, or omitted for the household budget.
+ * @return {Object[]} that tab's expenses.
+ */
+function getExpenses_(sheetId) {
+  var tab = findExpenseTab_(sheetId)
+  if (!tab) return []
   var participants = parseParticipants(readValues_(SETTINGS_TAB))
-  return parseExpenses(household.getDataRange().getValues(), participants)
+  return parseExpenses(tab.getDataRange().getValues(), participants)
 }
 
 /** @return {Object[]} metadata for every trip tab (name, dates, emoji). */
@@ -127,29 +134,155 @@ function getTrips_() {
 // ---------------------------------------------------------------------------
 
 /**
- * Writes a new expense into the first blank slot of the household tab (see
+ * Writes a new expense into the first blank slot of the target tab (see
  * docs/sheet-setup.md — rows below the header are pre-filled with formulas,
- * so this fills A–E in place rather than appending a row).
- * @param {{date: string, description: string, category: string, payer: string, amount: number}} input
+ * so this fills A–G in place rather than appending a row) and sets its
+ * recurring flag (column K).
+ * @param {{date: string, description: string, category: string, payer: string, amount: number, splits: Object, recurring: boolean}} input
+ * @param {string=} sheetId a trip's tab name, or omitted for the household budget.
  * @return {Object} the created expense
  */
-function addExpense_(input) {
+function addExpense_(input, sheetId) {
   if (!input) throw new Error('Missing expense')
-  var household = findHouseholdTab_()
-  if (!household) throw new Error('No household tab found (see docs/sheet-setup.md)')
+  var tab = findExpenseTab_(sheetId)
+  if (!tab) throw new Error('No matching expense tab found (see docs/sheet-setup.md)')
 
-  var values = household.getDataRange().getValues()
+  var values = tab.getDataRange().getValues()
   var rowNumber = findBlankSlotRow(values)
   if (rowNumber === -1) {
-    throw new Error('No blank row left on the household tab — extend the Quota/Saldo formulas down first')
+    throw new Error('No blank row left on this tab — extend the Quota/Saldo formulas down first')
   }
 
-  var rowValues = buildExpenseRowValues(input)
-  household.getRange(rowNumber, COL.date + 1, 1, rowValues.length).setValues([rowValues])
+  var participants = parseParticipants(readValues_(SETTINGS_TAB))
+  writeExpenseRow_(tab, rowNumber, input, participants)
+
+  var updated = tab.getRange(rowNumber, 1, 1, COL.recurring + 1).getValues()[0]
+  return rowToExpense(updated, rowNumber, participants)
+}
+
+/**
+ * Overwrites an existing expense's row in place. The expense id IS its 1-based
+ * row number (see rowToExpense), so no search is needed.
+ * @param {string} id
+ * @param {{date: string, description: string, category: string, payer: string, amount: number, splits: Object, recurring: boolean}} input
+ * @param {string=} sheetId a trip's tab name, or omitted for the household budget.
+ * @return {Object} the updated expense
+ */
+function updateExpense_(id, input, sheetId) {
+  if (!input) throw new Error('Missing expense')
+  var rowNumber = parseInt(id, 10)
+  if (!rowNumber || rowNumber < 1) throw new Error('Invalid expense id: ' + id)
+
+  var tab = findExpenseTab_(sheetId)
+  if (!tab) throw new Error('No matching expense tab found (see docs/sheet-setup.md)')
+  if (rowNumber > tab.getLastRow()) throw new Error('Expense not found: ' + id)
 
   var participants = parseParticipants(readValues_(SETTINGS_TAB))
-  var updated = household.getRange(rowNumber, 1, 1, 10).getValues()[0]
+  writeExpenseRow_(tab, rowNumber, input, participants)
+
+  var updated = tab.getRange(rowNumber, 1, 1, COL.recurring + 1).getValues()[0]
   return rowToExpense(updated, rowNumber, participants)
+}
+
+/**
+ * Writes an expense's A–G cells and recurring flag (column K) to a specific row.
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} tab
+ * @param {number} rowNumber 1-based
+ * @param {Object} input
+ * @param {{a: string, b: string}} participants
+ */
+function writeExpenseRow_(tab, rowNumber, input, participants) {
+  var rowValues = buildExpenseRowValues(input, participants)
+  tab.getRange(rowNumber, COL.date + 1, 1, rowValues.length).setValues([rowValues])
+  tab.getRange(rowNumber, COL.recurring + 1).setValue(!!input.recurring)
+}
+
+/**
+ * Duplicates the trip template tab, renames it `"{emoji} {name}"`, and sets
+ * its row-1 metadata.
+ * @param {{name: string, emoji: string, startDate: string, endDate: string}} input
+ * @return {Object} the created trip
+ */
+function createTrip_(input) {
+  if (!input || !cellToString(input.name)) throw new Error('Trip name is required')
+
+  var ss = getSpreadsheet_()
+  var template = ss.getSheetByName(TEMPLATE_TAB)
+  if (!template) throw new Error('Missing template tab: ' + TEMPLATE_TAB)
+
+  var trip = {
+    name: cellToString(input.name),
+    emoji: cellToString(input.emoji) || '🧳',
+    startDate: cellToString(input.startDate),
+    endDate: cellToString(input.endDate),
+  }
+  var tabName = tripTabName(trip)
+  if (ss.getSheetByName(tabName)) throw new Error('A trip tab named "' + tabName + '" already exists')
+
+  var copy = template.copyTo(ss)
+  copy.setName(tabName)
+  ss.setActiveSheet(copy)
+  ss.moveActiveSheet(ss.getNumSheets())
+
+  var row1 = buildTripRow1Values(trip)
+  copy.getRange(1, 1, 1, row1.length).setValues([row1])
+
+  return { id: tabName, name: trip.name, emoji: trip.emoji, startDate: trip.startDate, endDate: trip.endDate }
+}
+
+// ---------------------------------------------------------------------------
+// Recurring expenses
+// ---------------------------------------------------------------------------
+
+/**
+ * Monthly job: recreates every recurring household expense (e.g. rent,
+ * internet) that hasn't already been logged this month. Idempotent — safe to
+ * run more than once in the same month (see expensesToRecreateThisMonth).
+ * Runs on the household tab only; trips are time-boxed, so recurring doesn't
+ * apply there. Install the monthly trigger once via installMonthlyRecurringTrigger.
+ * @return {string} a human-readable status.
+ */
+function runMonthlyRecurringExpenses() {
+  var household = findHouseholdTab_()
+  if (!household) return 'No household tab found (see docs/sheet-setup.md).'
+
+  var participants = parseParticipants(readValues_(SETTINGS_TAB))
+  var today = todayIso_()
+  var expenses = parseExpenses(household.getDataRange().getValues(), participants)
+  var toCreate = expensesToRecreateThisMonth(expenses, today)
+
+  var created = 0
+  for (var i = 0; i < toCreate.length; i++) {
+    var values = household.getDataRange().getValues() // re-read: prior iterations filled a slot
+    var rowNumber = findBlankSlotRow(values)
+    if (rowNumber === -1) break // out of pre-filled rows; stop rather than append past the formulas
+    writeExpenseRow_(household, rowNumber, toCreate[i], participants)
+    created++
+  }
+  return 'Created ' + created + ' of ' + toCreate.length + ' recurring expense(s) for ' + today.slice(0, 7) + '.'
+}
+
+/**
+ * One-time setup: installs the monthly trigger for runMonthlyRecurringExpenses
+ * (day 1 of each month, ~6am in the script's timezone). Run once from the
+ * editor; safe to re-run (replaces any existing trigger for this function so
+ * re-running doesn't create duplicates).
+ * @return {string} a human-readable status.
+ */
+function installMonthlyRecurringTrigger() {
+  var triggers = ScriptApp.getProjectTriggers()
+  for (var i = 0; i < triggers.length; i++) {
+    if (triggers[i].getHandlerFunction() === 'runMonthlyRecurringExpenses') {
+      ScriptApp.deleteTrigger(triggers[i])
+    }
+  }
+  ScriptApp.newTrigger('runMonthlyRecurringExpenses').timeBased().onMonthDay(1).atHour(6).create()
+  return 'Monthly recurring-expense trigger installed (runs day 1 of each month, ~6am).'
+}
+
+/** @return {string} today as ISO YYYY-MM-DD in the script's timezone. */
+function todayIso_() {
+  return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd')
 }
 
 // ---------------------------------------------------------------------------
@@ -263,6 +396,24 @@ function findHouseholdTab_() {
     if (classifyTab(name, a1) === TAB_TYPE.household) return sheets[i]
   }
   return null
+}
+
+/**
+ * Resolves the tab a set of expenses lives on: the household tab when
+ * `sheetId` is omitted, otherwise the trip tab with that exact name — rejecting
+ * anything that doesn't classify as household/trip, so callers can't address
+ * `Impostazioni`, `Users`, or any other tab through this parameter.
+ * @param {string=} sheetId
+ * @return {GoogleAppsScript.Spreadsheet.Sheet|null}
+ */
+function findExpenseTab_(sheetId) {
+  if (!sheetId) return findHouseholdTab_()
+  var tab = getSpreadsheet_().getSheetByName(sheetId)
+  if (!tab) return null
+  var a1 = tab.getRange(1, 1).getValue()
+  var kind = classifyTab(sheetId, a1)
+  if (kind !== TAB_TYPE.household && kind !== TAB_TYPE.trip) return null
+  return tab
 }
 
 /** @param {string} name @return {Array<Array<*>>} */

@@ -6,10 +6,19 @@
  *    via POST to the Apps Script web app.
  *  - **mock mode** (no backend): serves and mutates an in-memory copy of the
  *    fixtures so the whole UI works offline. Mutations persist for the session.
+ *
+ * Expenses live on either the household tab or a trip tab; pass a trip's `id`
+ * as `sheetId` to address its expenses instead of the household ones.
  */
 import { config, hasBackend } from '@/config'
-import type { Expense, NewExpense, Participant, Trip } from './types'
-import { MOCK_CATEGORIES, MOCK_EXPENSES, MOCK_PARTICIPANTS, MOCK_TRIPS } from './mock'
+import type { Expense, ExpenseInput, NewTrip, Participant, Trip } from './types'
+import {
+  MOCK_CATEGORIES,
+  MOCK_EXPENSES,
+  MOCK_PARTICIPANTS,
+  MOCK_TRIPS,
+  MOCK_TRIP_EXPENSES,
+} from './mock'
 
 /** Shape of every backend JSON response. */
 type ApiEnvelope<T> = ({ ok: true } & T) | { ok: false; error: string }
@@ -27,18 +36,25 @@ export function setIdTokenProvider(provider: () => string | null): void {
 
 const mock = {
   expenses: clone(MOCK_EXPENSES),
+  tripExpenses: clone(MOCK_TRIP_EXPENSES),
   participants: clone(MOCK_PARTICIPANTS),
   categories: clone(MOCK_CATEGORIES),
   trips: clone(MOCK_TRIPS),
+}
+
+function mockExpensesFor(sheetId?: string): Expense[] {
+  if (!sheetId) return mock.expenses
+  return (mock.tripExpenses[sheetId] ??= [])
 }
 
 // ---------------------------------------------------------------------------
 // Reads
 // ---------------------------------------------------------------------------
 
-export async function getExpenses(): Promise<Expense[]> {
-  if (!hasBackend) return clone(mock.expenses)
-  const data = await get<{ expenses: Expense[] }>('expenses')
+export async function getExpenses(sheetId?: string): Promise<Expense[]> {
+  if (!hasBackend) return clone(mockExpensesFor(sheetId))
+  const action = sheetId ? `expenses&sheet=${encodeURIComponent(sheetId)}` : 'expenses'
+  const data = await get<{ expenses: Expense[] }>(action)
   return data.expenses
 }
 
@@ -83,14 +99,40 @@ export async function fetchMe(): Promise<Me> {
 // ---------------------------------------------------------------------------
 
 /** Creates an expense; the backend assigns its ID. */
-export async function addExpense(expense: NewExpense): Promise<Expense> {
+export async function addExpense(expense: ExpenseInput, sheetId?: string): Promise<Expense> {
   if (!hasBackend) {
     const created: Expense = { ...expense, id: crypto.randomUUID() }
-    mock.expenses = [...mock.expenses, created]
+    const list = mockExpensesFor(sheetId)
+    list.push(created)
     return created
   }
-  const data = await post<{ expense: Expense }>({ action: 'addExpense', expense })
+  const data = await post<{ expense: Expense }>({ action: 'addExpense', expense, sheet: sheetId })
   return data.expense
+}
+
+/** Updates an existing expense in place. */
+export async function updateExpense(id: string, expense: ExpenseInput, sheetId?: string): Promise<Expense> {
+  if (!hasBackend) {
+    const list = mockExpensesFor(sheetId)
+    const index = list.findIndex((e) => e.id === id)
+    const updated: Expense = { ...expense, id }
+    if (index === -1) list.push(updated)
+    else list[index] = updated
+    return updated
+  }
+  const data = await post<{ expense: Expense }>({ action: 'updateExpense', id, expense, sheet: sheetId })
+  return data.expense
+}
+
+/** Creates a new trip tab (duplicated from the template) and returns its metadata. */
+export async function createTrip(trip: NewTrip): Promise<Trip> {
+  if (!hasBackend) {
+    const created: Trip = { ...trip, id: `${trip.emoji} ${trip.name}` }
+    mock.trips = [...mock.trips, created]
+    return created
+  }
+  const data = await post<{ trip: Trip }>({ action: 'createTrip', trip })
+  return data.trip
 }
 
 // ---------------------------------------------------------------------------
@@ -98,7 +140,7 @@ export async function addExpense(expense: NewExpense): Promise<Expense> {
 // ---------------------------------------------------------------------------
 
 async function get<T>(action: string): Promise<T> {
-  const url = `${config.apiUrl}?action=${encodeURIComponent(action)}`
+  const url = `${config.apiUrl}?action=${action}`
   let res: Response
   try {
     res = await fetch(url, { method: 'GET' })

@@ -22,10 +22,11 @@ flowchart LR
 
 ## features
 
-- ➕ quick-add flow for new expenses — date, description, category, payer and total, split however you like (defaults to 50/50)
+- ➕ quick-add and edit for expenses — date, description, category, payer and total, split however you like (defaults to 50/50); only signed-in, allowlisted partners can write
 - 🧮 auto-computed share per person — quota %, quota in your currency, and a running balance (saldo) of who owes whom
-- 📊 clear monthly and yearly views — average spend, totals, and trends for the shared household budget
-- 🧳 "side-tracked" expenses for trips — each vacation gets its own tab, spun up from a reusable template, kept separate from the everyday household budget
+- 📊 clear monthly views — totals and per-partner balance for the shared household budget
+- 🔁 recurring expenses — flag a bill (rent, internet…) once and it's recreated automatically every month
+- 🧳 a vacations tab — spin up a new trip from a reusable template, see it grouped as current / upcoming / past, and the current trip surfaces right on the home page
 - ⚙️ settings-driven setup — partner names and preferences configured once, used everywhere
 - 🌍 interface in english, italiano and español
 
@@ -58,8 +59,9 @@ linkulino is a template for anyone who wants to track shared expenses with a par
 4. configure participants & the client id on the backend:
    - add a `Users` tab to the sheet and list each participant's email — this tab is the write allowlist
    - add a script property `OAUTH_CLIENT_ID` (Project Settings → Script Properties) with the client id from step 3, so the backend can verify sign-in tokens
-5. copy `web/.env.example` to `web/.env.local` and fill in `VITE_API_URL` (your `/exec` url) and `VITE_GOOGLE_CLIENT_ID` — both are public, so they can also live in github repo secrets for the deploy action
-6. `npm install && npm run build` in `web/`, and host the `dist/` folder anywhere static files live (an `.htaccess` for spa routing + basic headers will be included for apache/cpanel)
+5. add a `Ricorrente` column (K) to every expense tab (household, `Viaggio - Modello`, and any existing trips) if you want recurring expenses; then run `installMonthlyRecurringTrigger` once from the Apps Script editor (Run menu) to schedule the monthly auto-recreate job — see [docs/sheet-setup.md](docs/sheet-setup.md#recurring-expenses)
+6. copy `web/.env.example` to `web/.env.local` and fill in `VITE_API_URL` (your `/exec` url) and `VITE_GOOGLE_CLIENT_ID` — both are public, so they can also live in github repo secrets for the deploy action
+7. `npm install && npm run build` in `web/`, and host the `dist/` folder anywhere static files live (an `.htaccess` for spa routing + basic headers will be included for apache/cpanel)
 
 both config values are safe to publish (the oauth client id is public by design, and every write is gated server-side by google id-token verification against the `Users` allowlist) — nothing secret ever lands in the repo.
 

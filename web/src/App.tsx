@@ -1,18 +1,37 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Link, Navigate, Route, Routes } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { AuthBar } from '@/auth/AuthBar'
+import { SubHeaderContext } from '@/components/subheader'
+import { useHideOnScroll } from '@/hooks/useHideOnScroll'
+import { cn } from '@/lib/utils'
 import { LanguageSwitcher } from '@/i18n/LanguageSwitcher'
 import { HomePage } from '@/pages/HomePage'
-import { AddExpensePage } from '@/pages/AddExpensePage'
+import { ExpenseFormPage } from '@/pages/ExpenseFormPage'
 import { AboutPage } from '@/pages/AboutPage'
+import { TripsPage } from '@/pages/TripsPage'
+import { TripDetailPage } from '@/pages/TripDetailPage'
 
-/** App shell: a sticky header (brand · language · sign-in) and footer (portfolio · source), around the routed page. */
+/**
+ * App shell: a sticky header (brand · language · sign-in) over the routed
+ * page, plus a slot below the brand row that pages fill (via a portal) so
+ * their toolbar — e.g. the home page's totals card and "add expense" button —
+ * anchors together with the brand. Header and footer slide out of the way
+ * while scrolling down, and return on scroll-up.
+ */
 function Layout({ children }: { children: ReactNode }) {
   const { t } = useTranslation()
+  const [slot, setSlot] = useState<HTMLDivElement | null>(null)
+  const hidden = useHideOnScroll()
+
   return (
     <div className="flex min-h-svh flex-col">
-      <header className="bg-background/90 sticky top-0 z-30 border-b backdrop-blur">
+      <header
+        className={cn(
+          'bg-background/90 sticky top-0 z-30 border-b backdrop-blur transition-transform duration-200',
+          hidden && '-translate-y-full',
+        )}
+      >
         <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-3 px-4 py-3">
           <div className="flex min-w-0 items-center gap-3">
             {/* The avatar opens the About page (the rendered README); the wordmark
@@ -26,15 +45,27 @@ function Layout({ children }: { children: ReactNode }) {
             </Link>
           </div>
           <div className="flex items-center gap-2">
+            <Link to="/trips" className="text-sm font-medium hover:underline">
+              {t('nav.trips')}
+            </Link>
             <LanguageSwitcher />
             <AuthBar />
           </div>
         </div>
+        {/* Pages portal their sticky toolbar here (see useSubHeaderContainer). */}
+        <div ref={setSlot} />
       </header>
 
-      <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6">{children}</main>
+      <SubHeaderContext value={slot}>
+        <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6">{children}</main>
+      </SubHeaderContext>
 
-      <footer className="bg-background/90 sticky bottom-0 z-30 border-t backdrop-blur">
+      <footer
+        className={cn(
+          'bg-background/90 sticky bottom-0 z-30 border-t backdrop-blur transition-transform duration-200',
+          hidden && 'translate-y-full',
+        )}
+      >
         <div className="mx-auto flex w-full max-w-2xl items-center justify-between px-4 py-4">
           <a
             href="https://www.leandroestrella.com/"
@@ -73,7 +104,12 @@ function App() {
     <Layout>
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/add" element={<AddExpensePage />} />
+        <Route path="/add" element={<ExpenseFormPage mode="add" />} />
+        <Route path="/expense/:id/edit" element={<ExpenseFormPage mode="edit" />} />
+        <Route path="/trips" element={<TripsPage />} />
+        <Route path="/trips/:tripId" element={<TripDetailPage />} />
+        <Route path="/trips/:tripId/add" element={<ExpenseFormPage mode="add" />} />
+        <Route path="/trips/:tripId/expense/:id/edit" element={<ExpenseFormPage mode="edit" />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

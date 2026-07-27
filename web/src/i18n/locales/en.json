@@ -6,7 +6,8 @@
     "about": "about linkulino",
     "repo": "source on github",
     "portfolio": "leandro estrella — portfolio",
-    "back": "back to home"
+    "back": "back to home",
+    "trips": "vacations"
   },
   "auth": {
     "signOut": "sign out",
@@ -18,12 +19,13 @@
     "thisMonth": "this month",
     "total": "total",
     "addExpense": "add expense",
-    "loading": "loading…",
+    "loading": "loading",
     "empty": "no expenses yet — add the first one.",
     "paidBy": "paid by {{name}}"
   },
   "form": {
     "title": "add expense",
+    "editTitle": "edit expense",
     "date": "date",
     "description": "description",
     "descriptionPlaceholder": "weekly groceries",
@@ -31,14 +33,32 @@
     "paidBy": "paid by",
     "amount": "amount",
     "splitPercent": "split %",
+    "recurring": "repeats every month",
     "save": "save expense",
-    "saving": "saving…",
-    "loading": "loading…",
+    "saving": "saving",
+    "loading": "loading",
     "signInPrompt": "sign in from the home page to add an expense.",
     "notAllowlisted": "your account isn't on the allowlist for this sheet.",
     "errorDescriptionRequired": "description is required.",
     "errorAmountInvalid": "enter a valid amount.",
     "errorSplitTotal": "splits must add up to 100%.",
     "splitTotalWarning": "splits currently add up to {{total}}%."
+  },
+  "trips": {
+    "title": "vacations",
+    "new": "new trip",
+    "create": "create trip",
+    "name": "destination",
+    "namePlaceholder": "lisbon",
+    "emoji": "icon",
+    "startDate": "start date",
+    "endDate": "end date",
+    "active": "current",
+    "upcoming": "upcoming",
+    "past": "past",
+    "empty": "no trips yet.",
+    "currentTrip": "current trip",
+    "errorNameRequired": "destination is required.",
+    "errorDateRange": "end date must be on or after the start date."
   }
 }
