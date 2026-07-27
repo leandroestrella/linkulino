@@ -116,6 +116,14 @@ export function ExpenseDashboard({
         createPortal(
           <div className="mx-auto w-full max-w-2xl px-4 pb-3">
             <div className="flex flex-col gap-3">
+              {showFilters && (
+                <ExpenseFilters
+                  categories={categories}
+                  participants={participants}
+                  filters={filters}
+                  onChange={(next) => setSearchParams(new URLSearchParams(filtersToSearch(next)))}
+                />
+              )}
               <Card>
                 <CardHeader>
                   <CardTitle>{title}</CardTitle>
@@ -140,14 +148,6 @@ export function ExpenseDashboard({
                   </div>
                 </CardContent>
               </Card>
-              {showFilters && (
-                <ExpenseFilters
-                  categories={categories}
-                  participants={participants}
-                  filters={filters}
-                  onChange={(next) => setSearchParams(new URLSearchParams(filtersToSearch(next)))}
-                />
-              )}
             </div>
           </div>,
           subHeader,
