@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { config, hasBackend } from '@/config'
-import { fetchMe, setIdTokenProvider } from '@/api/client'
+import { clearReadCache, fetchMe, setIdTokenProvider } from '@/api/client'
 
 /** The signed-in person's public profile (decoded from the Google ID token). */
 export interface AuthUser {
@@ -143,6 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(() => {
     tokenRef.current = null
+    clearReadCache()
     window.google?.accounts.id.disableAutoSelect()
     setUser(null)
     setAuthorized(false)

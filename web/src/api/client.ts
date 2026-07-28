@@ -48,32 +48,77 @@ function mockExpensesFor(sheetId?: string): Expense[] {
 }
 
 // ---------------------------------------------------------------------------
+// Read cache (backend mode only)
+// ---------------------------------------------------------------------------
+
+/**
+ * Every read hits a real Apps Script web app, which has a fixed ~1s latency
+ * floor regardless of what it's reading (see docs/deployment.md) — so
+ * switching between pages that mostly want the same reference data
+ * (participants, categories, trips) paid that cost again on every
+ * navigation. Cached reads are re-fetched at most once per TTL window, and
+ * a write invalidates only the entries it can affect, so the UI never shows
+ * stale data after the user's own change.
+ */
+const CACHE_TTL_MS = 30_000
+const cache = new Map<string, { value: unknown; expires: number }>()
+
+/** Clears every cached read — called on sign-out so a later sign-in never sees a stale reply. */
+export function clearReadCache(): void {
+  cache.clear()
+}
+
+function invalidate(key: string): void {
+  cache.delete(key)
+}
+
+async function cached<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
+  const entry = cache.get(key)
+  if (entry && entry.expires > Date.now()) return clone(entry.value as T)
+  const value = await fetcher()
+  cache.set(key, { value, expires: Date.now() + CACHE_TTL_MS })
+  return clone(value)
+}
+
+function expensesCacheKey(sheetId?: string): string {
+  return `expenses:${sheetId ?? ''}`
+}
+
+// ---------------------------------------------------------------------------
 // Reads
 // ---------------------------------------------------------------------------
 
 export async function getExpenses(sheetId?: string): Promise<Expense[]> {
   if (!hasBackend) return clone(mockExpensesFor(sheetId))
   const action = sheetId ? `expenses&sheet=${encodeURIComponent(sheetId)}` : 'expenses'
-  const data = await get<{ expenses: Expense[] }>(action)
-  return data.expenses
+  return cached(expensesCacheKey(sheetId), async () => {
+    const data = await get<{ expenses: Expense[] }>(action)
+    return data.expenses
+  })
 }
 
 export async function getParticipants(): Promise<Participant[]> {
   if (!hasBackend) return clone(mock.participants)
-  const data = await get<{ participants: Participant[] }>('participants')
-  return data.participants
+  return cached('participants', async () => {
+    const data = await get<{ participants: Participant[] }>('participants')
+    return data.participants
+  })
 }
 
 export async function getCategories(): Promise<Category[]> {
   if (!hasBackend) return clone(mock.categories)
-  const data = await get<{ categories: Category[] }>('categories')
-  return data.categories
+  return cached('categories', async () => {
+    const data = await get<{ categories: Category[] }>('categories')
+    return data.categories
+  })
 }
 
 export async function getTrips(): Promise<Trip[]> {
   if (!hasBackend) return clone(mock.trips)
-  const data = await get<{ trips: Trip[] }>('trips')
-  return data.trips
+  return cached('trips', async () => {
+    const data = await get<{ trips: Trip[] }>('trips')
+    return data.trips
+  })
 }
 
 /** The caller's authorization status, resolved server-side from their ID token. */
@@ -107,6 +152,7 @@ export async function addExpense(expense: ExpenseInput, sheetId?: string): Promi
     return created
   }
   const data = await post<{ expense: Expense }>({ action: 'addExpense', expense, sheet: sheetId })
+  invalidate(expensesCacheKey(sheetId))
   return data.expense
 }
 
@@ -121,6 +167,7 @@ export async function updateExpense(id: string, expense: ExpenseInput, sheetId?:
     return updated
   }
   const data = await post<{ expense: Expense }>({ action: 'updateExpense', id, expense, sheet: sheetId })
+  invalidate(expensesCacheKey(sheetId))
   return data.expense
 }
 
@@ -133,6 +180,7 @@ export async function deleteExpense(id: string, sheetId?: string): Promise<void>
     return
   }
   await post({ action: 'deleteExpense', id, sheet: sheetId })
+  invalidate(expensesCacheKey(sheetId))
 }
 
 /** Creates a new expense category. */
@@ -142,6 +190,7 @@ export async function addCategory(category: NewCategory): Promise<Category> {
     return category
   }
   const data = await post<{ category: Category }>({ action: 'addCategory', category })
+  invalidate('categories')
   return data.category
 }
 
@@ -153,6 +202,7 @@ export async function createTrip(trip: NewTrip): Promise<Trip> {
     return created
   }
   const data = await post<{ trip: Trip }>({ action: 'createTrip', trip })
+  invalidate('trips')
   return data.trip
 }
 
@@ -168,6 +218,9 @@ export async function updateTrip(id: string, trip: NewTrip): Promise<Trip> {
     return updated
   }
   const data = await post<{ trip: Trip }>({ action: 'updateTrip', id, trip })
+  invalidate('trips')
+  invalidate(expensesCacheKey(id))
+  invalidate(expensesCacheKey(data.trip.id))
   return data.trip
 }
 
@@ -179,6 +232,8 @@ export async function deleteTrip(id: string): Promise<void> {
     return
   }
   await post({ action: 'deleteTrip', id })
+  invalidate('trips')
+  invalidate(expensesCacheKey(id))
 }
 
 // ---------------------------------------------------------------------------
