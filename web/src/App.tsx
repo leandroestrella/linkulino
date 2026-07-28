@@ -52,7 +52,15 @@ function ReadGate() {
     <div className="flex flex-col items-center gap-6 pt-8 text-center">
       <div className="relative inline-block rounded-2xl border-2 border-black bg-white px-4 py-2 text-sm font-bold text-black shadow-md">
         {t('auth.readGateMessage')}
-        <div className="absolute top-full left-1/2 -mt-3 size-4 -translate-x-1/2 -rotate-45 border-r-2 border-b-2 border-black bg-white" />
+        {/* A solid CSS triangle, not a rotated bordered square — that only
+            traces two edges and reads as a floating chevron rather than a
+            filled tail. Two triangles sharing the same top origin (bigger
+            black, smaller white) leave a black rim at the tip and sides,
+            consistent with the bubble's own 2px border. */}
+        <div className="absolute top-full left-1/2 -mt-px -translate-x-1/2">
+          <div className="h-0 w-0 border-x-[11px] border-t-[13px] border-x-transparent border-t-black" />
+          <div className="absolute top-0 left-1/2 h-0 w-0 -translate-x-1/2 border-x-[9px] border-t-[11px] border-x-transparent border-t-white" />
+        </div>
       </div>
       <img src="/linkulino.gif" alt="" className="w-64 max-w-[80vw] sm:w-80" />
     </div>
