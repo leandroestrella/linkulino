@@ -51,3 +51,8 @@ jobs:
           # already *is* the docroot. Point this at the subdomain folder instead
           # if you ever swap in an account scoped to the whole hosting space.
           server-dir: ./
+          # The action defaults to plain FTP (credentials + payload in the
+          # clear) with loose cert checking. cPanel's FTP server supports
+          # explicit FTPS, so require it and validate the certificate.
+          protocol: ftps
+          security: strict
