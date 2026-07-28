@@ -10,6 +10,10 @@
     "push": "clasp push -f",
     "deploy": "clasp deploy",
     "open": "clasp open",
+    "push:prod": "clasp -P .clasp.prod.json push -f",
+    "deploy:prod": "clasp -P .clasp.prod.json deploy",
+    "open:prod": "clasp -P .clasp.prod.json open",
+    "deployments:prod": "clasp -P .clasp.prod.json deployments",
     "test": "node --test"
   },
   "devDependencies": {

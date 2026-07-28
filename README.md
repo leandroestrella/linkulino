@@ -1,4 +1,4 @@
-<img src="assets/linkulino.gif" alt="linkulino mascot">
+<img src="assets/linkulino.gif" alt="linkulino animated avatar" width=25%>
 
 # linkulino
 
@@ -71,10 +71,11 @@ both config values are safe to publish (the oauth client id is public by design,
 
 - [sheet setup](docs/sheet-setup.md) — the exact tab layout, column positions, and how the backend tells household/trip tabs apart
 - [updating the mascot](docs/updating-the-mascot.md) — regenerating the favicon/avatar copy after changing the source image
+- [deployment](docs/deployment.md) — the dev/production split, repo secrets, and how to ship frontend and backend changes
 
 ## development
 
-work happens on the `develop` branch; merging to `master` triggers the build and ftp deploy to cpanel via github actions.
+work happens on the `develop` branch; merging to `master` triggers the build and ftp deploy to cpanel via github actions. development and production use separate spreadsheets — see [docs/deployment.md](docs/deployment.md).
 
 ## license
 

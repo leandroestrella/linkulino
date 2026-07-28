@@ -1,0 +1,47 @@
+name: Publish Website to CPanel
+on:
+  push:
+    branches:
+      - master
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      # Without VITE_API_URL the client falls back to mock mode (see
+      # web/src/api/client.ts) and would ship a fake-data app to production
+      # rather than failing — so check before spending a build on it.
+      - name: Check backend config is present
+        run: |
+          test -n "${{ secrets.VITE_API_URL }}" || { echo "::error::VITE_API_URL secret is empty — the build would ship in mock mode."; exit 1; }
+          test -n "${{ secrets.VITE_GOOGLE_CLIENT_ID }}" || { echo "::error::VITE_GOOGLE_CLIENT_ID secret is empty — sign-in would be disabled."; exit 1; }
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: web
+
+      - name: Build SPA
+        run: npm run build
+        working-directory: web
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+
+      - name: FTP Deploy
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./web/dist/
+          # The FTP account is scoped to the linkulino subdomain, so its root
+          # already *is* the docroot. Point this at the subdomain folder instead
+          # if you ever swap in an account scoped to the whole hosting space.
+          server-dir: ./
