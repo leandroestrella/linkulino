@@ -51,8 +51,18 @@ jobs:
           # already *is* the docroot. Point this at the subdomain folder instead
           # if you ever swap in an account scoped to the whole hosting space.
           server-dir: ./
-          # The action defaults to plain FTP (credentials + payload in the
-          # clear) with loose cert checking. cPanel's FTP server supports
-          # explicit FTPS, so require it and validate the certificate.
+          # The action defaults to plain FTP, which would put the credentials
+          # and the whole payload on the wire in the clear — so require FTPS.
+          #
+          # `security` stays loose (the action's own default) because
+          # FTP_SERVER is an IP and the shared-hosting certificate doesn't
+          # list it, so `strict` fails with ERR_TLS_CERT_ALTNAME_INVALID.
+          # The connection is still fully encrypted — a passive observer on
+          # the runner→cPanel path learns nothing — but the server's identity
+          # isn't verified, so an active MITM could impersonate it. To close
+          # that too, point FTP_SERVER at the hostname the certificate is
+          # actually issued for and flip this back to `strict`:
+          #   openssl s_client -connect <host>:21 -starttls ftp </dev/null \
+          #     | openssl x509 -noout -subject -ext subjectAltName
           protocol: ftps
-          security: strict
+          security: loose
