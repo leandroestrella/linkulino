@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { getTrips, updateTrip } from '@/api/client'
+import { deleteTrip, getTrips, updateTrip } from '@/api/client'
 import { useAuth } from '@/auth/AuthProvider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -19,6 +19,7 @@ export function TripEditPage() {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
   const [loaded, setLoaded] = useState(false)
 
@@ -53,6 +54,17 @@ export function TripEditPage() {
       navigate(`/trips/${updated.id}`)
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  async function handleDelete() {
+    if (!tripId || !window.confirm(t('trips.deleteConfirm'))) return
+    setDeleting(true)
+    try {
+      await deleteTrip(tripId)
+      navigate('/')
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -106,9 +118,19 @@ export function TripEditPage() {
                 </div>
               </div>
               {error && <p className="text-destructive text-sm">{error}</p>}
-              <Button type="submit" disabled={submitting}>
-                {submitting ? t('form.saving') : t('trips.save')}
-              </Button>
+              <div className="flex gap-2">
+                <Button type="submit" disabled={submitting} className="flex-1">
+                  {submitting ? t('form.saving') : t('trips.save')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={deleting}
+                  onClick={() => void handleDelete()}
+                >
+                  {deleting ? t('form.deleting') : t('trips.delete')}
+                </Button>
+              </div>
             </form>
           )}
         </CardContent>

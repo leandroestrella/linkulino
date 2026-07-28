@@ -5,6 +5,7 @@ import { PlusIcon } from 'lucide-react'
 import {
   addCategory,
   addExpense,
+  deleteExpense,
   getCategories,
   getExpenses,
   getParticipants,
@@ -54,6 +55,7 @@ export function ExpenseFormPage({ mode }: { mode: 'add' | 'edit' }) {
   const [splits, setSplits] = useState<Record<string, number>>({})
   const [recurring, setRecurring] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
   const [loaded, setLoaded] = useState(false)
 
@@ -106,6 +108,17 @@ export function ExpenseFormPage({ mode }: { mode: 'add' | 'edit' }) {
       navigate(tripId ? `/trips/${tripId}` : '/')
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  async function handleDelete() {
+    if (!id || !window.confirm(t('form.deleteConfirm'))) return
+    setDeleting(true)
+    try {
+      await deleteExpense(id, tripId)
+      navigate(tripId ? `/trips/${tripId}` : '/')
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -272,9 +285,21 @@ export function ExpenseFormPage({ mode }: { mode: 'add' | 'edit' }) {
 
             {error && <p className="text-destructive text-sm">{error}</p>}
 
-            <Button type="submit" disabled={submitting}>
-              {submitting ? t('form.saving') : t('form.save')}
-            </Button>
+            <div className="flex gap-2">
+              <Button type="submit" disabled={submitting} className="flex-1">
+                {submitting ? t('form.saving') : t('form.save')}
+              </Button>
+              {mode === 'edit' && id && (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={deleting}
+                  onClick={() => void handleDelete()}
+                >
+                  {deleting ? t('form.deleting') : t('form.delete')}
+                </Button>
+              )}
+            </div>
           </form>
           )}
         </CardContent>

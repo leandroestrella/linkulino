@@ -4,7 +4,8 @@
  * The ONLY thing that touches the spreadsheet. Runs as the sheet owner and
  * exposes a small JSON API:
  *   - doGet  → reads   (?action=health, participants, categories, expenses[&sheet=], trips)
- *   - doPost → writes  (addExpense, updateExpense, createTrip, updateTrip, addCategory)
+ *   - doPost → writes  (addExpense, updateExpense, deleteExpense, createTrip,
+ *              updateTrip, deleteTrip, addCategory)
  *
  * All pure logic (tab discovery, row↔object mapping, blank-slot finding) lives
  * in sheet.js and is unit-tested in Node. This file is just the glue: read
@@ -62,10 +63,14 @@ function doPost(e) {
         return json({ ok: true, expense: addExpense_(body.expense, body.sheet) })
       case 'updateExpense':
         return json({ ok: true, expense: updateExpense_(body.id, body.expense, body.sheet) })
+      case 'deleteExpense':
+        return json({ ok: true, deleted: deleteExpense_(body.id, body.sheet) })
       case 'createTrip':
         return json({ ok: true, trip: createTrip_(body.trip) })
       case 'updateTrip':
         return json({ ok: true, trip: updateTrip_(body.id, body.trip) })
+      case 'deleteTrip':
+        return json({ ok: true, deleted: deleteTrip_(body.id) })
       case 'addCategory':
         return json({ ok: true, category: addCategory_(body.category) })
       default:
@@ -224,6 +229,32 @@ function updateExpense_(id, input, sheetId) {
 }
 
 /**
+ * Clears an expense's row back to a blank slot, rather than deleting the
+ * sheet row outright — later expenses on this tab keep their id (their row
+ * number) stable, and the tab's Quota €/Saldo formulas, which reference rows
+ * by position, stay intact.
+ * @param {string} id
+ * @param {string=} sheetId a trip's tab name, or omitted for the household budget.
+ * @return {boolean} true
+ */
+function deleteExpense_(id, sheetId) {
+  var rowNumber = parseInt(id, 10)
+  if (!rowNumber || rowNumber < 1) throw new Error('Invalid expense id: ' + id)
+
+  var tab = findExpenseTab_(sheetId)
+  if (!tab) throw new Error('No matching expense tab found (see docs/sheet-setup.md)')
+  if (rowNumber > tab.getLastRow()) throw new Error('Expense not found: ' + id)
+
+  var read = readExpenseTab_(tab)
+  tab.getRange(rowNumber, COL.date + 1, 1, COL.amount - COL.date + 1).clearContent()
+  if (read.cols.splitA !== -1) tab.getRange(rowNumber, read.cols.splitA + 1).clearContent()
+  if (read.cols.splitB !== -1) tab.getRange(rowNumber, read.cols.splitB + 1).clearContent()
+  if (read.cols.recurring !== -1) tab.getRange(rowNumber, read.cols.recurring + 1).clearContent()
+
+  return true
+}
+
+/**
  * Writes an expense's A–E cells, its two Quota % cells (wherever
  * resolveExpenseColumns found them), and its recurring flag (only when
  * `includeRecurring` AND the tab has a Ricorrente column) to a specific row.
@@ -360,6 +391,27 @@ function updateTrip_(id, input) {
   tab.getRange(1, 1, 1, row1.length).setValues([row1])
 
   return { id: newTabName, name: trip.name, emoji: trip.emoji, startDate: trip.startDate, endDate: trip.endDate }
+}
+
+/**
+ * Permanently deletes a trip's tab, and every expense on it. Unlike an
+ * expense row, a trip tab has no row-position invariant to preserve, so
+ * removing the whole tab is safe.
+ * @param {string} id the trip's tab name
+ * @return {boolean} true
+ */
+function deleteTrip_(id) {
+  if (!id) throw new Error('Missing trip id')
+  var ss = getSpreadsheet_()
+  var tab = ss.getSheetByName(id)
+  if (!tab) throw new Error('Trip not found: ' + id)
+  // Same guard as updateTrip_: without it, an id of `Users` or `Categorie`
+  // would delete the participant roster or write allowlist tab.
+  if (classifyTab(id, tab.getRange(1, 1).getValue()) !== TAB_TYPE.trip) {
+    throw new Error('Not a trip tab: ' + id)
+  }
+  ss.deleteSheet(tab)
+  return true
 }
 
 /**

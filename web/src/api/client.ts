@@ -124,6 +124,17 @@ export async function updateExpense(id: string, expense: ExpenseInput, sheetId?:
   return data.expense
 }
 
+/** Deletes an existing expense. */
+export async function deleteExpense(id: string, sheetId?: string): Promise<void> {
+  if (!hasBackend) {
+    const list = mockExpensesFor(sheetId)
+    const index = list.findIndex((e) => e.id === id)
+    if (index !== -1) list.splice(index, 1)
+    return
+  }
+  await post({ action: 'deleteExpense', id, sheet: sheetId })
+}
+
 /** Creates a new expense category. */
 export async function addCategory(category: NewCategory): Promise<Category> {
   if (!hasBackend) {
@@ -158,6 +169,16 @@ export async function updateTrip(id: string, trip: NewTrip): Promise<Trip> {
   }
   const data = await post<{ trip: Trip }>({ action: 'updateTrip', id, trip })
   return data.trip
+}
+
+/** Deletes a trip and every expense on it. */
+export async function deleteTrip(id: string): Promise<void> {
+  if (!hasBackend) {
+    mock.trips = mock.trips.filter((t) => t.id !== id)
+    delete mock.tripExpenses[id]
+    return
+  }
+  await post({ action: 'deleteTrip', id })
 }
 
 // ---------------------------------------------------------------------------
