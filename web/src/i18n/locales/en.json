@@ -54,6 +54,8 @@
     "title": "vacations",
     "new": "new trip",
     "create": "create trip",
+    "edit": "edit trip",
+    "save": "save trip",
     "name": "destination",
     "namePlaceholder": "lisbon",
     "emoji": "icon",

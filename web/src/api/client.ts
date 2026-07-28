@@ -145,6 +145,21 @@ export async function createTrip(trip: NewTrip): Promise<Trip> {
   return data.trip
 }
 
+/** Updates an existing trip's metadata. Renaming or re-emoji-ing changes its id. */
+export async function updateTrip(id: string, trip: NewTrip): Promise<Trip> {
+  if (!hasBackend) {
+    const updated: Trip = { ...trip, id: `${trip.emoji} ${trip.name}` }
+    mock.trips = mock.trips.map((t) => (t.id === id ? updated : t))
+    if (updated.id !== id) {
+      mock.tripExpenses[updated.id] = mock.tripExpenses[id] ?? []
+      delete mock.tripExpenses[id]
+    }
+    return updated
+  }
+  const data = await post<{ trip: Trip }>({ action: 'updateTrip', id, trip })
+  return data.trip
+}
+
 // ---------------------------------------------------------------------------
 // HTTP transport (backend mode)
 // ---------------------------------------------------------------------------

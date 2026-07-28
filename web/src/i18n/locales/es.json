@@ -54,6 +54,8 @@
     "title": "viajes",
     "new": "nuevo viaje",
     "create": "crear viaje",
+    "edit": "editar viaje",
+    "save": "guardar viaje",
     "name": "destino",
     "namePlaceholder": "lisboa",
     "emoji": "icono",

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { PencilIcon } from 'lucide-react'
 import { createTrip, getExpenses, getTrips } from '@/api/client'
 import type { Expense } from '@/api/types'
 import { tripStatus, type Trip, type TripStatus } from '@/api/types'
@@ -151,19 +152,26 @@ export function TripsPage() {
             <section key={key} className="flex flex-col gap-2">
               <h3 className="text-muted-foreground text-sm font-medium">{label}</h3>
               {inGroup.map((trip) => (
-                <Link key={trip.id} to={`/trips/${trip.id}`}>
-                  <Card className="hover:bg-accent transition-colors">
-                    <CardContent className="flex items-center gap-3 py-3">
+                <Card key={trip.id} className="hover:bg-accent transition-colors">
+                  <CardContent className="flex items-center gap-3 py-3">
+                    <Link to={`/trips/${trip.id}`} className="flex min-w-0 flex-1 items-center gap-3">
                       <span className="text-2xl">{trip.emoji}</span>
-                      <div>
+                      <div className="min-w-0">
                         <p className="font-medium">{trip.name}</p>
                         <p className="text-muted-foreground text-sm">
                           {trip.startDate} → {trip.endDate}
                         </p>
                       </div>
-                    </CardContent>
-                  </Card>
-                </Link>
+                    </Link>
+                    {canWrite && (
+                      <Button asChild variant="ghost" size="icon" aria-label={t('trips.edit')}>
+                        <Link to={`/trips/${trip.id}/edit`}>
+                          <PencilIcon className="size-4" />
+                        </Link>
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
               ))}
             </section>
           )

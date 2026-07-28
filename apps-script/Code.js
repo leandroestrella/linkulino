@@ -4,7 +4,7 @@
  * The ONLY thing that touches the spreadsheet. Runs as the sheet owner and
  * exposes a small JSON API:
  *   - doGet  → reads   (?action=health, participants, categories, expenses[&sheet=], trips)
- *   - doPost → writes  (addExpense, updateExpense, createTrip, addCategory)
+ *   - doPost → writes  (addExpense, updateExpense, createTrip, updateTrip, addCategory)
  *
  * All pure logic (tab discovery, row↔object mapping, blank-slot finding) lives
  * in sheet.js and is unit-tested in Node. This file is just the glue: read
@@ -61,6 +61,8 @@ function doPost(e) {
         return json({ ok: true, expense: updateExpense_(body.id, body.expense, body.sheet) })
       case 'createTrip':
         return json({ ok: true, trip: createTrip_(body.trip) })
+      case 'updateTrip':
+        return json({ ok: true, trip: updateTrip_(body.id, body.trip) })
       case 'addCategory':
         return json({ ok: true, category: addCategory_(body.category) })
       default:
@@ -312,6 +314,40 @@ function createTrip_(input) {
   ss.moveActiveSheet(ss.getNumSheets())
 
   return { id: tabName, name: trip.name, emoji: trip.emoji, startDate: trip.startDate, endDate: trip.endDate }
+}
+
+/**
+ * Updates an existing trip's metadata in place. A trip's id IS its tab name
+ * (see tripTabName), so changing the name or emoji renames the tab; the
+ * caller must switch to the returned `id` afterwards.
+ * @param {string} id the trip's current tab name
+ * @param {{name: string, emoji: string, startDate: string, endDate: string}} input
+ * @return {Object} the updated trip
+ */
+function updateTrip_(id, input) {
+  if (!id) throw new Error('Missing trip id')
+  if (!input || !cellToString(input.name)) throw new Error('Trip name is required')
+
+  var tab = getSpreadsheet_().getSheetByName(id)
+  if (!tab) throw new Error('Trip not found: ' + id)
+
+  var trip = {
+    name: cellToString(input.name),
+    emoji: cellToString(input.emoji) || '🧳',
+    startDate: cellToString(input.startDate),
+    endDate: cellToString(input.endDate),
+  }
+  var newTabName = tripTabName(trip)
+  if (newTabName !== id) {
+    var existing = getSpreadsheet_().getSheetByName(newTabName)
+    if (existing) throw new Error('A trip tab named "' + newTabName + '" already exists')
+    tab.setName(newTabName)
+  }
+
+  var row1 = buildTripRow1Values(trip)
+  tab.getRange(1, 1, 1, row1.length).setValues([row1])
+
+  return { id: newTabName, name: trip.name, emoji: trip.emoji, startDate: trip.startDate, endDate: trip.endDate }
 }
 
 /**

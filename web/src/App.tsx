@@ -12,6 +12,7 @@ import { ExpenseFormPage } from '@/pages/ExpenseFormPage'
 import { AboutPage } from '@/pages/AboutPage'
 import { TripsPage } from '@/pages/TripsPage'
 import { TripDetailPage } from '@/pages/TripDetailPage'
+import { TripEditPage } from '@/pages/TripEditPage'
 import { OverviewPage } from '@/pages/OverviewPage'
 
 /**
@@ -141,6 +142,7 @@ function App() {
           <Route path="/add" element={<ExpenseFormPage mode="add" />} />
           <Route path="/expense/:id/edit" element={<ExpenseFormPage mode="edit" />} />
           <Route path="/trips" element={<TripsPage />} />
+          <Route path="/trips/:tripId/edit" element={<TripEditPage />} />
           <Route path="/trips/:tripId" element={<TripDetailPage />} />
           <Route path="/trips/:tripId/add" element={<ExpenseFormPage mode="add" />} />
           <Route path="/trips/:tripId/expense/:id/edit" element={<ExpenseFormPage mode="edit" />} />
