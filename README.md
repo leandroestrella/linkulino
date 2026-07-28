@@ -1,4 +1,4 @@
-<img src="assets/linkulino.png" alt="linkulino mascot" width=15%>
+<img src="assets/linkulino.gif" alt="linkulino mascot">
 
 # linkulino
 

@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, Navigate, Route, Routes } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { AuthBar } from '@/auth/AuthBar'
@@ -27,6 +28,7 @@ function Layout({ children }: { children: ReactNode }) {
   const { t } = useTranslation()
   const [slot, setSlot] = useState<HTMLDivElement | null>(null)
   const [adminSlot, setAdminSlot] = useState<HTMLDivElement | null>(null)
+  const [avatarHovered, setAvatarHovered] = useState(false)
   const hidden = useHideOnScroll()
 
   return (
@@ -40,10 +42,27 @@ function Layout({ children }: { children: ReactNode }) {
         <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-3 px-4 py-3">
           <div className="flex min-w-0 items-center gap-3">
             {/* The avatar opens the About page (the rendered README); the wordmark
-                stays the link home, so a home affordance remains. */}
-            <Link to="/about" aria-label={t('nav.about')} className="shrink-0">
-              <img src="/linkulino.png" alt="" className="w-10 sm:w-12" />
+                stays the link home, so a home affordance remains. Hovering it also
+                pops the mascot up full-size in a centered lightbox, which closes
+                the moment the pointer leaves. */}
+            <Link
+              to="/about"
+              aria-label={t('nav.about')}
+              className="shrink-0"
+              onMouseEnter={() => setAvatarHovered(true)}
+              onMouseLeave={() => setAvatarHovered(false)}
+            >
+              <img src="/linkulino.gif" alt="" className="w-10 sm:w-12" />
             </Link>
+            {avatarHovered &&
+              createPortal(
+                <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center">
+                  <div className="rounded-2xl bg-black p-4 shadow-2xl">
+                    <img src="/linkulino.gif" alt="" className="w-64 max-w-[80vw] sm:w-80" />
+                  </div>
+                </div>,
+                document.body,
+              )}
             <Link to="/" className="min-w-0">
               <h1 className="truncate text-lg leading-none font-semibold sm:text-xl">linkulino</h1>
               <p className="text-muted-foreground hidden truncate text-xs sm:block">{t('app.tagline')}</p>
