@@ -88,6 +88,20 @@ export function ExpenseDashboard({
   const [participants, setParticipants] = useState<Participant[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
+  // Which expense's split tooltip is open — tapping the ⚖️ icon toggles this on
+  // touch devices, which have no hover state to reveal a plain Tooltip.
+  const [openSplitId, setOpenSplitId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!openSplitId) return
+    function closeUnlessOnTrigger(e: PointerEvent) {
+      const target = e.target as HTMLElement
+      if (target.closest('[aria-label="uneven split"]')) return
+      setOpenSplitId(null)
+    }
+    document.addEventListener('pointerdown', closeUnlessOnTrigger)
+    return () => document.removeEventListener('pointerdown', closeUnlessOnTrigger)
+  }, [openSplitId])
 
   useEffect(() => {
     setLoading(true)
@@ -220,11 +234,31 @@ export function ExpenseDashboard({
                     <p className="flex items-center justify-end gap-1 font-medium whitespace-nowrap">
                       {formatAmount(expense.amount)}
                       {!isEvenSplit(expense, participants) && (
-                        <Tooltip>
+                        <Tooltip
+                          open={openSplitId === expense.id}
+                          onOpenChange={(open) => setOpenSplitId(open ? expense.id : null)}
+                        >
                           <TooltipTrigger asChild>
-                            <span className="text-muted-foreground text-xs" aria-label="uneven split">
+                            {/* A real button (not just hover) so tapping opens it on touch
+                                devices, which have no hover state to reveal a plain tooltip.
+                                Always force it open (rather than toggling) — on touch, the
+                                trigger's own onFocus already opens it before our onClick runs,
+                                so comparing against the current state here would read as
+                                "already open" and immediately close it again. Tapping the icon
+                                a second time to close, and TooltipTrigger's built-in
+                                pointerdown-closes-if-open behavior, together already close it;
+                                preventDefault only stops its onClick-always-closes behavior. */}
+                            <button
+                              type="button"
+                              className="text-muted-foreground text-xs"
+                              aria-label="uneven split"
+                              onClick={(e) => {
+                                e.preventDefault()
+                                setOpenSplitId(expense.id)
+                              }}
+                            >
                               ⚖️
-                            </span>
+                            </button>
                           </TooltipTrigger>
                           <TooltipContent>
                             {participants
