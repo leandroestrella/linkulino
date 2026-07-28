@@ -38,6 +38,26 @@ function evenSplit(participants: Participant[]): Record<string, number> {
   )
 }
 
+/** 100% for one participant, 0 for everyone else. */
+function soloSplit(participants: Participant[], name: string): Record<string, number> {
+  return Object.fromEntries(participants.map((p) => [p.name, p.name === name ? 100 : 0]))
+}
+
+/**
+ * Which preset chip (if any) the current split matches — 'even', a
+ * participant's name (for their solo 100%), or 'custom' when it's neither,
+ * so editing an existing expense opens straight into the right mode.
+ */
+function matchSplitMode(splits: Record<string, number>, participants: Participant[]): string {
+  const isMatch = (preset: Record<string, number>) =>
+    participants.every((p) => Math.round(splits[p.name] ?? 0) === Math.round(preset[p.name] ?? 0))
+  if (isMatch(evenSplit(participants))) return 'even'
+  for (const p of participants) {
+    if (isMatch(soloSplit(participants, p.name))) return p.name
+  }
+  return 'custom'
+}
+
 export function ExpenseFormPage({ mode }: { mode: 'add' | 'edit' }) {
   const navigate = useNavigate()
   const { t } = useTranslation()
@@ -53,6 +73,7 @@ export function ExpenseFormPage({ mode }: { mode: 'add' | 'edit' }) {
   const [payer, setPayer] = useState('')
   const [amount, setAmount] = useState('')
   const [splits, setSplits] = useState<Record<string, number>>({})
+  const [splitMode, setSplitMode] = useState('even')
   const [recurring, setRecurring] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -79,9 +100,11 @@ export function ExpenseFormPage({ mode }: { mode: 'add' | 'edit' }) {
         setPayer(existing.payer)
         setAmount(String(existing.amount))
         setSplits(existing.splits)
+        setSplitMode(matchSplitMode(existing.splits, p))
         setRecurring(existing.recurring)
       } else {
         setSplits(evenSplit(p))
+        setSplitMode('even')
         setPayer(p[0]?.name ?? '')
         setCategory(c[0]?.name ?? '')
       }
@@ -109,6 +132,15 @@ export function ExpenseFormPage({ mode }: { mode: 'add' | 'edit' }) {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  /** With exactly two participants, editing one's share auto-balances the other to the complement. */
+  function handleSplitChange(name: string, rawValue: string) {
+    const value = Number(rawValue)
+    setSplits((s) => {
+      const other = participants.length === 2 ? participants.find((p) => p.name !== name) : undefined
+      return other ? { ...s, [name]: value, [other.name]: 100 - value } : { ...s, [name]: value }
+    })
   }
 
   async function handleDelete() {
@@ -246,22 +278,57 @@ export function ExpenseFormPage({ mode }: { mode: 'add' | 'edit' }) {
 
             <div className="flex flex-col gap-1.5">
               <Label>{t('form.splitPercent')}</Label>
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={splitMode === 'even' ? 'default' : 'outline'}
+                  onClick={() => {
+                    setSplits(evenSplit(participants))
+                    setSplitMode('even')
+                  }}
+                >
+                  {t('form.splitEven')}
+                </Button>
                 {participants.map((p) => (
-                  <div key={p.name} className="flex flex-1 items-center gap-2">
-                    <span className="text-muted-foreground w-16 shrink-0 text-sm">{p.name}</span>
-                    <Input
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={splits[p.name] ?? 0}
-                      onChange={(e) =>
-                        setSplits((s) => ({ ...s, [p.name]: Number(e.target.value) }))
-                      }
-                    />
-                  </div>
+                  <Button
+                    key={p.name}
+                    type="button"
+                    size="sm"
+                    variant={splitMode === p.name ? 'default' : 'outline'}
+                    onClick={() => {
+                      setSplits(soloSplit(participants, p.name))
+                      setSplitMode(p.name)
+                    }}
+                  >
+                    {p.name} 100%
+                  </Button>
                 ))}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={splitMode === 'custom' ? 'default' : 'outline'}
+                  onClick={() => setSplitMode('custom')}
+                >
+                  {t('form.splitCustom')}
+                </Button>
               </div>
+              {splitMode === 'custom' && (
+                <div className="flex gap-3 pt-1">
+                  {participants.map((p) => (
+                    <div key={p.name} className="flex flex-1 items-center gap-2">
+                      <span className="text-muted-foreground w-16 shrink-0 text-sm">{p.name}</span>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={splits[p.name] ?? 0}
+                        onChange={(e) => handleSplitChange(p.name, e.target.value)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
               {Math.round(splitTotal) !== 100 && (
                 <p className="text-destructive text-sm">
                   {t('form.splitTotalWarning', { total: splitTotal })}

@@ -37,6 +37,8 @@
     "paidBy": "paid by",
     "amount": "amount",
     "splitPercent": "split %",
+    "splitEven": "even split",
+    "splitCustom": "custom",
     "recurring": "repeats every month",
     "save": "save expense",
     "saving": "saving",

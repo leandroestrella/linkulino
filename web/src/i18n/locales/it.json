@@ -37,6 +37,8 @@
     "paidBy": "pagato da",
     "amount": "importo",
     "splitPercent": "quota %",
+    "splitEven": "quota paritaria",
+    "splitCustom": "personalizzata",
     "recurring": "si ripete ogni mese",
     "save": "salva spesa",
     "saving": "salvataggio",

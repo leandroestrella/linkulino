@@ -37,6 +37,8 @@
     "paidBy": "pagado por",
     "amount": "importe",
     "splitPercent": "reparto %",
+    "splitEven": "reparto equitativo",
+    "splitCustom": "personalizado",
     "recurring": "se repite cada mes",
     "save": "guardar gasto",
     "saving": "guardando",
