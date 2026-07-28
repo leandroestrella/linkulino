@@ -55,50 +55,153 @@ in **mock mode** (fake in-memory data) rather than erroring.
 
 ## first-time production backend setup
 
-Do this once, before the first deploy.
+Do this once, before the first deploy. Each step ends with a way to check it
+worked — don't move on until it does.
 
-1. **Create the production spreadsheet.** Easiest is
-   File → Make a copy of the testing sheet, which carries the tab structure
-   over; then delete the copied rows so you start clean. It needs a `Users` tab,
-   a `Categorie` tab, and a household tab — see
-   [sheet-setup.md](sheet-setup.md). Keep it **private**. Fill in the `Users`
-   tab with the real participants (the first two named rows become Persona A and
-   B, and double as the write allowlist).
+### 1. Create the production spreadsheet
 
-2. **Create the bound Apps Script.** From the production sheet:
-   Extensions → Apps Script. Then copy its script id from
-   Project Settings → IDs, and point clasp at it:
+Open the testing sheet → File → Make a copy. That carries the tab structure
+over; then delete the copied data rows so production starts clean. It needs a
+`Users` tab, a `Categorie` tab, and a household tab — see
+[sheet-setup.md](sheet-setup.md). Keep it **private** (never link-share it; the
+app reads it through the backend).
 
-   ```bash
-   cd apps-script
-   cat > .clasp.prod.json <<'JSON'
-   {
-     "scriptId": "<the production script id>",
-     "rootDir": ".",
-     "fileExtension": "gs"
-   }
-   JSON
-   npm run push:prod
-   ```
+Fill in the `Users` tab with the real participants: `Email`, `Name`, `Icon`
+columns, one row each. The first two named rows become Persona A and B, and
+that list doubles as the write allowlist.
 
-3. **Add the OAuth client id** as a script property on the production project:
-   Project Settings → Script Properties → `OAUTH_CLIENT_ID` = the same client id
-   used for `VITE_GOOGLE_CLIENT_ID`. Without it the backend can't verify
-   sign-in tokens and every write is rejected.
+### 2. Create the bound Apps Script project
 
-4. **Grant the scopes.** Run any function once from the Apps Script editor and
-   click through the consent screen (spreadsheet + external requests +
-   triggers).
+**2a.** With the *production* spreadsheet open, go to **Extensions → Apps
+Script** in the sheet's menu bar. A new browser tab opens with an editor
+containing a single `Code.gs` and an empty `myFunction`. This project is now
+*bound* to that spreadsheet — that binding is what makes it production.
 
-5. **Deploy it as a web app:** Deploy → New deployment → Web app, with
-   *execute as: me* and *who has access: anyone*. Copy the `/exec` URL — that is
-   `VITE_API_URL`.
+Leave this tab open, you'll need it through step 5.
 
-6. **Recurring expenses (optional):** add a `Ricorrente` column to the household
-   tab, then run `installMonthlyRecurringTrigger` once from the editor.
+**2b.** Get the script id: click the **⚙️ Project Settings** icon in the editor's
+left sidebar. Under **IDs** you'll see **Script ID** with a *Copy* button.
 
-7. **Authorize the origin:** add `https://linkulino.leandroestrella.com` to the
-   OAuth client's Authorized JavaScript origins.
+**2c.** One-time account prerequisite: open
+<https://script.google.com/home/usersettings> and turn the **Google Apps Script
+API** toggle **on**. Without it `clasp push` fails with a "User has not enabled
+the Apps Script API" error. (You may already have done this for the dev script.)
+
+**2d.** Point clasp at the production project. Create
+`apps-script/.clasp.prod.json` with the id you copied — it's gitignored, like
+the dev `.clasp.json`:
+
+```bash
+cd apps-script
+cat > .clasp.prod.json <<'JSON'
+{
+  "scriptId": "PASTE_THE_PRODUCTION_SCRIPT_ID_HERE",
+  "rootDir": ".",
+  "fileExtension": "gs"
+}
+JSON
+```
+
+Then open that file and replace `PASTE_THE_PRODUCTION_SCRIPT_ID_HERE` with the
+real id (keep the quotes).
+
+**2e.** Push the backend code (if it's been a while, `npm run login` first):
+
+```bash
+npm run push:prod
+```
+
+> ✅ **Check:** it prints `Pushed 4 files.` Reload the Apps Script editor tab —
+> the placeholder `Code.gs` is replaced by `Code.gs`, `sheet.gs`, `auth.gs`.
+
+### 3. Add the OAuth client id as a script property
+
+Still in the Apps Script editor: **⚙️ Project Settings** → scroll to **Script
+Properties** → **Add script property**.
+
+| field | value |
+| --- | --- |
+| Property | `OAUTH_CLIENT_ID` |
+| Value | the same client id used for `VITE_GOOGLE_CLIENT_ID` |
+
+Click **Save script properties**.
+
+The backend compares every sign-in token's audience against this value. Without
+it, *every write is rejected* — reads would still work, so the app would look
+fine until someone tried to add an expense.
+
+### 4. Grant the OAuth scopes
+
+Apps Script won't let the web app touch the sheet until you've approved its
+scopes interactively, once.
+
+In the editor, pick **`setupUsersTab`** from the function dropdown in the
+toolbar (next to ▶ Run), then click **Run**. It's the right function for this:
+it needs the spreadsheet scope, and it's safe to re-run — it creates the `Users`
+tab only if missing and otherwise just reports what's there.
+
+You'll be walked through:
+
+1. **Review permissions** → choose your Google account.
+2. A **"Google hasn't verified this app"** warning — expected, since this is
+   your own unpublished script. Click **Advanced**, then
+   **Go to \<project name\> (unsafe)**.
+3. **Allow** the requested scopes.
+
+> ✅ **Check:** the Execution log shows something like
+> `Users tab ready with 2 user(s).` — no red error.
+
+Functions whose names end in `_` are private to Apps Script and won't appear in
+that dropdown; that's why `setupUsersTab` (no underscore) is the one to run.
+
+### 5. Deploy as a web app
+
+In the editor, top right: **Deploy → New deployment**. Then:
+
+1. Click the **⚙️ gear** next to "Select type" and choose **Web app**.
+2. Description: anything, e.g. `production`.
+3. **Execute as: Me** — so the script runs as the sheet's owner.
+4. **Who has access: Anyone** — the SPA calls it without a Google session;
+   writes are still gated by token verification against the `Users` allowlist.
+5. **Deploy**.
+
+Copy the **Web app URL** it shows (ends in `/exec`). **That is `VITE_API_URL`.**
+
+> ✅ **Check:** it answers, and reports the production sheet — not the test one:
+>
+> ```bash
+> curl -sL "<the /exec url>?action=health"
+> # {"ok":true,"service":"linkulino","version":"0.3.0"}
+> curl -sL "<the /exec url>?action=participants"
+> # the real participants from the production Users tab
+> ```
+>
+> `-L` matters: Apps Script answers with a redirect first.
+
+### 6. Set the two remaining repo secrets
+
+```bash
+gh secret set VITE_API_URL           # paste the /exec url from step 5
+gh secret set VITE_GOOGLE_CLIENT_ID  # paste the OAuth client id
+gh secret list                       # all five should now be listed
+```
+
+### 7. Recurring expenses (optional)
+
+Add a `Ricorrente` column (anywhere after column E) to the **household** tab
+only — not trip tabs — then run `installMonthlyRecurringTrigger` once from the
+editor, the same way as step 4.
+
+### 8. Authorize the production origin
+
+In Google Cloud Console → APIs & Services → Credentials → your OAuth 2.0 Web
+client → **Authorized JavaScript origins**, add:
+
+```
+https://linkulino.leandroestrella.com
+```
+
+Without this, the sign-in button silently fails to render on the live site.
 
 ## shipping backend changes
 
