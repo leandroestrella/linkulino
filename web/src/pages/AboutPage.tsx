@@ -5,9 +5,21 @@ import Markdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
 import { Mermaid } from '@/components/Mermaid'
-// The repo-root README is the single source of truth; we render it verbatim.
-// It lives above web/, so vite.config allows the dev server to read it.
-import readme from '../../../README.md?raw'
+// The repo-root READMEs are the single source of truth; we render them
+// verbatim. They live above web/, so vite.config allows the dev server to
+// read them. Each translation is cross-linked at the top of the others (see
+// docs/translations.md) — README.md is the fallback for any language without
+// its own file.
+import readmeEn from '../../../README.md?raw'
+import readmeIt from '../../../README.it.md?raw'
+import readmeEs from '../../../README.es.md?raw'
+import type { LanguageCode } from '@/i18n'
+
+const README_BY_LANGUAGE: Record<LanguageCode, string> = {
+  en: readmeEn,
+  it: readmeIt,
+  es: readmeEs,
+}
 
 /** True for links that leave the app (http/https or mailto). */
 function isExternal(href: string) {
@@ -80,7 +92,8 @@ const components: Components = {
 }
 
 export function AboutPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const readme = README_BY_LANGUAGE[i18n.resolvedLanguage as LanguageCode] ?? readmeEn
   return (
     <div className="flex w-full flex-col gap-6">
       <Link

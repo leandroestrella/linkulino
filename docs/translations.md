@@ -86,6 +86,14 @@ resources: {
 }
 ```
 
+3. Translate the README too — copy `README.md` to `README.<code>.md` at the
+   repo root, translate it, and add a language link for it at the top of
+   every `README*.md` file (including the English one). Then add it to
+   `README_BY_LANGUAGE` in `web/src/pages/AboutPage.tsx` (import it with
+   `?raw`, same as the existing ones) — that map is what the About page uses
+   to pick the right file for the current language, falling back to English
+   for any language without one.
+
 ## checking the locales agree
 
 There's no automated check, so before shipping a translation change confirm
@@ -115,5 +123,5 @@ row-1 type markers (`casa` / `viaggio`), which are configurable but live in
 `apps-script/sheet.js`, not in the locale files — see
 [sheet-setup.md](sheet-setup.md#tab-discovery).
 
-The About page renders `README.md` verbatim, so it's English regardless of the
-selected language.
+Everything else — the app UI and the About page's rendered README — is
+translated (see below for the README).

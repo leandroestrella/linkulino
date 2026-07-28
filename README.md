@@ -1,5 +1,7 @@
 <img src="assets/linkulino.gif" alt="linkulino animated avatar" width=25%>
 
+🇬🇧 English · 🇮🇹 [Italiano](README.it.md) · 🇪🇸 [Español](README.es.md)
+
 # linkulino
 
 a smart, friendly web app for households and small groups to manage shared expenses together — tracking budgets, splitting bills, and keeping everyone in sync.
