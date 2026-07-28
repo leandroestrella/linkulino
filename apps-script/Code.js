@@ -14,12 +14,14 @@
  * SPA POSTs with Content-Type text/plain and a JSON string body — hence the
  * manual JSON.parse of e.postData.contents below.
  *
- * AUTH: reads are public; every write verifies the caller's Google ID token
- * (via Google's tokeninfo endpoint) and checks the email against the
- * participant allowlist in the `Users` tab before touching the sheet (see
- * requireUser_). Auth decisions themselves are pure logic in auth.js. The
- * `Users` tab doubles as the participant roster: its first two named rows
- * (Email, Name, Icon columns) are Persona A and B, in order.
+ * AUTH: `health` is the only public action. Every other read or write verifies
+ * the caller's Google ID token (via Google's tokeninfo endpoint) and checks
+ * the email against the participant allowlist in the `Users` tab before
+ * touching the sheet (see requireUser_). Reads take the token as an
+ * `idToken` query param (GET has no body); writes take it in the JSON POST
+ * body. Auth decisions themselves are pure logic in auth.js. The `Users` tab
+ * doubles as the participant roster: its first two named rows (Email, Name,
+ * Icon columns) are Persona A and B, in order.
  */
 
 var VERSION = '0.3.0'
@@ -27,6 +29,7 @@ var VERSION = '0.3.0'
 function doGet(e) {
   try {
     var action = (e && e.parameter && e.parameter.action) || 'health'
+    if (action !== 'health') requireUser_((e && e.parameter) || {})
     switch (action) {
       case 'health':
         return json({ ok: true, service: 'linkulino', version: VERSION })
@@ -448,7 +451,7 @@ function whoAmI_(body) {
 
 /**
  * Verifies the caller is an allowed participant, or throws.
- * @param {Object} body parsed POST body (expects `idToken`)
+ * @param {Object} body a POST body or a GET's query params — either way, expects `idToken`
  * @return {{email: string, name: string}}
  */
 function requireUser_(body) {

@@ -65,7 +65,7 @@ linkulino is a template for anyone who wants to track shared expenses with a par
 6. copy `web/.env.example` to `web/.env.local` and fill in `VITE_API_URL` (your `/exec` url) and `VITE_GOOGLE_CLIENT_ID` — both are public, so they can also live in github repo secrets for the deploy action
 7. `npm install && npm run build` in `web/`, and host the `dist/` folder anywhere static files live (an `.htaccess` for spa routing + basic headers will be included for apache/cpanel)
 
-both config values are safe to publish (the oauth client id is public by design, and every write is gated server-side by google id-token verification against the `Users` allowlist) — nothing secret ever lands in the repo.
+both config values are safe to publish (the oauth client id is public by design, and every read and write is gated server-side by google id-token verification against the `Users` allowlist) — nothing secret ever lands in the repo.
 
 ## maintainer guides
 

@@ -1,9 +1,11 @@
 import { useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { Link, Navigate, Route, Routes } from 'react-router-dom'
+import { Link, Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { AuthBar } from '@/auth/AuthBar'
+import { useAuth } from '@/auth/AuthProvider'
 import { AdminSlotContext, SubHeaderContext } from '@/components/subheader'
+import { LoadingDots } from '@/components/LoadingDots'
 import { useHideOnScroll } from '@/hooks/useHideOnScroll'
 import { cn } from '@/lib/utils'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -15,6 +17,35 @@ import { TripsPage } from '@/pages/TripsPage'
 import { TripDetailPage } from '@/pages/TripDetailPage'
 import { TripEditPage } from '@/pages/TripEditPage'
 import { OverviewPage } from '@/pages/OverviewPage'
+
+/**
+ * Gates every route except /about behind sign-in: the backend now requires a
+ * verified, allowlisted ID token for reads as well as writes (see
+ * apps-script/Code.js), so there's no data left to show an anonymous or
+ * not-yet-authorized visitor. /about is the rendered README and never calls
+ * the API, so it stays outside this gate.
+ */
+function ReadGate() {
+  const { t } = useTranslation()
+  const { configured, status, authorized } = useAuth()
+
+  if (!configured || (status === 'signed-in' && authorized)) return <Outlet />
+
+  if (status === 'loading') {
+    return (
+      <p className="text-muted-foreground">
+        {t('home.loading')}
+        <LoadingDots />
+      </p>
+    )
+  }
+
+  if (status === 'signed-in' && !authorized) {
+    return <p className="text-destructive">{t('form.notAllowlisted')}</p>
+  }
+
+  return <p className="text-muted-foreground">{t('auth.readGateMessage')}</p>
+}
 
 /**
  * App shell: a sticky header (brand · language · sign-in) over the routed
@@ -157,15 +188,17 @@ function App() {
     <TooltipProvider>
       <Layout>
         <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/add" element={<ExpenseFormPage mode="add" />} />
-          <Route path="/expense/:id/edit" element={<ExpenseFormPage mode="edit" />} />
-          <Route path="/trips" element={<TripsPage />} />
-          <Route path="/trips/:tripId/edit" element={<TripEditPage />} />
-          <Route path="/trips/:tripId" element={<TripDetailPage />} />
-          <Route path="/trips/:tripId/add" element={<ExpenseFormPage mode="add" />} />
-          <Route path="/trips/:tripId/expense/:id/edit" element={<ExpenseFormPage mode="edit" />} />
-          <Route path="/overview" element={<OverviewPage />} />
+          <Route element={<ReadGate />}>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/add" element={<ExpenseFormPage mode="add" />} />
+            <Route path="/expense/:id/edit" element={<ExpenseFormPage mode="edit" />} />
+            <Route path="/trips" element={<TripsPage />} />
+            <Route path="/trips/:tripId/edit" element={<TripEditPage />} />
+            <Route path="/trips/:tripId" element={<TripDetailPage />} />
+            <Route path="/trips/:tripId/add" element={<ExpenseFormPage mode="add" />} />
+            <Route path="/trips/:tripId/expense/:id/edit" element={<ExpenseFormPage mode="edit" />} />
+            <Route path="/overview" element={<OverviewPage />} />
+          </Route>
           <Route path="/about" element={<AboutPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

@@ -24,7 +24,8 @@ function GoogleButton() {
 
 /**
  * Sign-in control for the header: the Google button for anonymous visitors, an
- * identity badge once signed in. Cosmetic only — the backend enforces who may write.
+ * identity badge once signed in. Cosmetic only — the backend enforces who may
+ * read or write.
  */
 export function AuthBar() {
   const { status, user, authorized, configured, googleReady, error, signOut } = useAuth()

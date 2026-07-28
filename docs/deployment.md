@@ -48,8 +48,8 @@ Set under Settings → Secrets and variables → Actions (or with
 | `FTP_PASSWORD` | that account's password |
 
 Neither `VITE_*` value is secret — the OAuth client id is public by design, and
-every write is verified server-side against the `Users` allowlist — but they
-live in secrets so the repo stays environment-agnostic. The workflow fails fast
+every read and write is verified server-side against the `Users` allowlist —
+but they live in secrets so the repo stays environment-agnostic. The workflow fails fast
 if either is empty, because an empty `VITE_API_URL` would silently build the app
 in **mock mode** (fake in-memory data) rather than erroring.
 
@@ -162,21 +162,25 @@ In the editor, top right: **Deploy → New deployment**. Then:
 2. Description: anything, e.g. `production`.
 3. **Execute as: Me** — so the script runs as the sheet's owner.
 4. **Who has access: Anyone** — the SPA calls it without a Google session;
-   writes are still gated by token verification against the `Users` allowlist.
+   every read and write is still gated by token verification against the
+   `Users` allowlist (`health` is the only public action).
 5. **Deploy**.
 
 Copy the **Web app URL** it shows (ends in `/exec`). **That is `VITE_API_URL`.**
 
-> ✅ **Check:** it answers, and reports the production sheet — not the test one:
+> ✅ **Check:** it answers, from the production sheet:
 >
 > ```bash
 > curl -sL "<the /exec url>?action=health"
 > # {"ok":true,"service":"linkulino","version":"0.3.0"}
 > curl -sL "<the /exec url>?action=participants"
-> # the real participants from the production Users tab
+> # {"ok":false,"error":"Not authorized: sign-in required"} — expected, no token given
 > ```
 >
-> `-L` matters: Apps Script answers with a redirect first.
+> `-L` matters: Apps Script answers with a redirect first. Everything past
+> `health` now requires a real Google ID token, so there's no anonymous
+> curl check for it — verify participants/expenses/trips by signing in through
+> the deployed SPA instead once `VITE_API_URL` is set (step 6).
 
 ### 6. Set the two remaining repo secrets
 

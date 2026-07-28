@@ -14,7 +14,8 @@
     "signOut": "esci",
     "authorized": "autorizzato",
     "notAuthorized": "non nella lista consentiti",
-    "notConfigured": "accesso non configurato"
+    "notConfigured": "accesso non configurato",
+    "readGateMessage": "accedi qui sopra con un account Google autorizzato per vedere le tue spese condivise."
   },
   "home": {
     "thisMonth": "questo mese",

@@ -26,10 +26,10 @@ type ApiEnvelope<T> = ({ ok: true } & T) | { ok: false; error: string }
 /** Raised when the backend returns `{ ok: false }` or the request fails. */
 export class ApiError extends Error {}
 
-/** Supplies the current signed-in ID token for writes; wired up by AuthProvider. */
+/** Supplies the current signed-in ID token; wired up by AuthProvider. */
 let getIdToken: () => string | null = () => null
 
-/** Registers the provider used to obtain the ID token for write calls. */
+/** Registers the provider used to obtain the ID token for reads and writes. */
 export function setIdTokenProvider(provider: () => string | null): void {
   getIdToken = provider
 }
@@ -165,7 +165,10 @@ export async function updateTrip(id: string, trip: NewTrip): Promise<Trip> {
 // ---------------------------------------------------------------------------
 
 async function get<T>(action: string): Promise<T> {
-  const url = `${config.apiUrl}?action=${action}`
+  // Reads are gated the same as writes (see apps-script/Code.js) — GET has no
+  // body, so the token rides along as a query param instead.
+  const token = getIdToken()
+  const url = `${config.apiUrl}?action=${action}${token ? `&idToken=${encodeURIComponent(token)}` : ''}`
   let res: Response
   try {
     res = await fetch(url, { method: 'GET' })
