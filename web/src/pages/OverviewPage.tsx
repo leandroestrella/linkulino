@@ -5,7 +5,7 @@ import { getCategories, getExpenses, getParticipants, getTrips } from '@/api/cli
 import type { Category, Expense, Participant, Trip } from '@/api/types'
 import { CategoryPieChart } from '@/components/CategoryPieChart'
 import { LoadingAvatar } from '@/components/LoadingAvatar'
-import { PersonName } from '@/components/PersonName'
+import { findParticipant, PersonName } from '@/components/PersonName'
 import { VacationsOverallCard } from '@/components/VacationsOverallCard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { filtersToSearch } from '@/lib/filters'
@@ -108,12 +108,20 @@ function TimeBucketEntry({
 }
 
 /** Each single-user participant's total — first one left-aligned, last one right-aligned (mirrors the "by user" card). */
-function SingleUserBreakdown({ items }: { items: [string, number][] }) {
+function SingleUserBreakdown({
+  items,
+  participants,
+}: {
+  items: [string, number][]
+  participants: Participant[]
+}) {
   return (
     <div className="flex items-center justify-between pt-6">
       {items.map(([name, total], i) => (
         <div key={name} className={i === items.length - 1 ? 'text-right' : undefined}>
-          <p className="text-muted-foreground text-sm">{name}</p>
+          <p className="text-muted-foreground text-sm">
+            <PersonName person={findParticipant(participants, name)} />
+          </p>
           <p className="font-medium">{formatAmount(total)}</p>
         </div>
       ))}
@@ -236,7 +244,7 @@ export function OverviewPage() {
             <span className="text-muted-foreground text-sm">{t('overview.singleUser')}</span>
             <CategoryPieChart expenses={singleUser} categories={categories} linkFilters={{}} />
             <span className="font-medium block pt-1">{formatAmount(singleUserTotal)}</span>
-            {singleUserByParticipant.length > 0 && <SingleUserBreakdown items={singleUserByParticipant} />}
+            {singleUserByParticipant.length > 0 && <SingleUserBreakdown items={singleUserByParticipant} participants={participants} />}
           </div>
         </CardContent>
 
@@ -253,7 +261,7 @@ export function OverviewPage() {
           <span className="font-medium block pt-1">{formatAmount(commonTotal)}</span>
           <span className="font-medium block pt-1">{formatAmount(singleUserTotal)}</span>
           <span />
-          {singleUserByParticipant.length > 0 && <SingleUserBreakdown items={singleUserByParticipant} />}
+          {singleUserByParticipant.length > 0 && <SingleUserBreakdown items={singleUserByParticipant} participants={participants} />}
         </CardContent>
       </Card>
 
