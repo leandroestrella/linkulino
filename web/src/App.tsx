@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { lazy, Suspense, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -10,13 +10,25 @@ import { useHideOnScroll } from '@/hooks/useHideOnScroll'
 import { cn } from '@/lib/utils'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { LanguageSwitcher } from '@/i18n/LanguageSwitcher'
-import { HomePage } from '@/pages/HomePage'
-import { ExpenseFormPage } from '@/pages/ExpenseFormPage'
-import { AboutPage } from '@/pages/AboutPage'
-import { TripsPage } from '@/pages/TripsPage'
-import { TripDetailPage } from '@/pages/TripDetailPage'
-import { TripEditPage } from '@/pages/TripEditPage'
-import { OverviewPage } from '@/pages/OverviewPage'
+
+// Each page is its own chunk, fetched on first visit rather than bundled into
+// the main entry — the About page alone pulls in react-markdown/remark-gfm/
+// rehype-raw for the README, which most sessions never open.
+const HomePage = lazy(() => import('@/pages/HomePage').then((m) => ({ default: m.HomePage })))
+const ExpenseFormPage = lazy(() =>
+  import('@/pages/ExpenseFormPage').then((m) => ({ default: m.ExpenseFormPage })),
+)
+const AboutPage = lazy(() => import('@/pages/AboutPage').then((m) => ({ default: m.AboutPage })))
+const TripsPage = lazy(() => import('@/pages/TripsPage').then((m) => ({ default: m.TripsPage })))
+const TripDetailPage = lazy(() =>
+  import('@/pages/TripDetailPage').then((m) => ({ default: m.TripDetailPage })),
+)
+const TripEditPage = lazy(() =>
+  import('@/pages/TripEditPage').then((m) => ({ default: m.TripEditPage })),
+)
+const OverviewPage = lazy(() =>
+  import('@/pages/OverviewPage').then((m) => ({ default: m.OverviewPage })),
+)
 
 /**
  * Gates every route except /about behind sign-in: the backend now requires a
@@ -202,21 +214,23 @@ function App() {
   return (
     <TooltipProvider>
       <Layout>
-        <Routes>
-          <Route element={<ReadGate />}>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/add" element={<ExpenseFormPage mode="add" />} />
-            <Route path="/expense/:id/edit" element={<ExpenseFormPage mode="edit" />} />
-            <Route path="/trips" element={<TripsPage />} />
-            <Route path="/trips/:tripId/edit" element={<TripEditPage />} />
-            <Route path="/trips/:tripId" element={<TripDetailPage />} />
-            <Route path="/trips/:tripId/add" element={<ExpenseFormPage mode="add" />} />
-            <Route path="/trips/:tripId/expense/:id/edit" element={<ExpenseFormPage mode="edit" />} />
-            <Route path="/overview" element={<OverviewPage />} />
-          </Route>
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <Suspense fallback={<LoadingAvatar />}>
+          <Routes>
+            <Route element={<ReadGate />}>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/add" element={<ExpenseFormPage mode="add" />} />
+              <Route path="/expense/:id/edit" element={<ExpenseFormPage mode="edit" />} />
+              <Route path="/trips" element={<TripsPage />} />
+              <Route path="/trips/:tripId/edit" element={<TripEditPage />} />
+              <Route path="/trips/:tripId" element={<TripDetailPage />} />
+              <Route path="/trips/:tripId/add" element={<ExpenseFormPage mode="add" />} />
+              <Route path="/trips/:tripId/expense/:id/edit" element={<ExpenseFormPage mode="edit" />} />
+              <Route path="/overview" element={<OverviewPage />} />
+            </Route>
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
       </Layout>
     </TooltipProvider>
   )
