@@ -44,9 +44,19 @@ function ReadGate() {
     return <p className="text-destructive">{t('form.notAllowlisted')}</p>
   }
 
-  // Anonymous, sign-in configured: the header shows this as a speech bubble
-  // above the avatar instead (see Layout), so there's nothing to render here.
-  return null
+  // Anonymous, sign-in configured: a second, page-centered avatar (same size
+  // as the header one's hover lightbox) with the ask as a speech bubble above
+  // it — there's room to actually place the bubble above the image here,
+  // unlike the small header avatar pinned at the sticky header's top edge.
+  return (
+    <div className="flex flex-col items-center gap-6 pt-8 text-center">
+      <div className="relative inline-block rounded-2xl border-2 border-black bg-white px-4 py-2 text-sm font-bold text-black shadow-md">
+        {t('auth.readGateMessage')}
+        <div className="absolute top-full left-1/2 -mt-3 size-4 -translate-x-1/2 -rotate-45 border-r-2 border-b-2 border-black bg-white" />
+      </div>
+      <img src="/linkulino.gif" alt="" className="w-64 max-w-[80vw] sm:w-80" />
+    </div>
+  )
 }
 
 /**
@@ -59,12 +69,10 @@ function ReadGate() {
  */
 function Layout({ children }: { children: ReactNode }) {
   const { t } = useTranslation()
-  const { configured, status } = useAuth()
   const [slot, setSlot] = useState<HTMLDivElement | null>(null)
   const [adminSlot, setAdminSlot] = useState<HTMLDivElement | null>(null)
   const [avatarHovered, setAvatarHovered] = useState(false)
   const hidden = useHideOnScroll()
-  const needsSignIn = configured && status === 'anonymous'
 
   return (
     <div className="flex min-h-svh flex-col">
@@ -74,17 +82,6 @@ function Layout({ children }: { children: ReactNode }) {
           hidden && '-translate-y-full',
         )}
       >
-        {/* Sits directly above the avatar in normal document flow — the header
-            (sticky at the very top of the viewport) simply grows taller to fit
-            it, rather than needing free space above y=0. */}
-        {needsSignIn && (
-          <div className="mx-auto w-full max-w-2xl px-4 pt-3">
-            <div className="relative inline-block rounded-2xl border-2 border-black bg-white px-4 py-2 text-sm font-bold text-black shadow-md">
-              {t('auth.readGateMessage')}
-              <div className="absolute top-full left-5 -mt-3 size-4 -rotate-45 border-r-2 border-b-2 border-black bg-white" />
-            </div>
-          </div>
-        )}
         <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-3 px-4 py-3">
           <div className="flex min-w-0 items-center gap-3">
             {/* The avatar opens the About page (the rendered README); the wordmark
