@@ -328,8 +328,16 @@ function updateTrip_(id, input) {
   if (!id) throw new Error('Missing trip id')
   if (!input || !cellToString(input.name)) throw new Error('Trip name is required')
 
-  var tab = getSpreadsheet_().getSheetByName(id)
+  var ss = getSpreadsheet_()
+  var tab = ss.getSheetByName(id)
   if (!tab) throw new Error('Trip not found: ' + id)
+  // Only an actual trip tab may be renamed and have its row 1 rewritten. Without
+  // this, an `id` of `Users` or `Categorie` would rename that tab and overwrite
+  // its header row — destroying the participant roster / write allowlist. Same
+  // guard, for the same reason, as findExpenseTab_.
+  if (classifyTab(id, tab.getRange(1, 1).getValue()) !== TAB_TYPE.trip) {
+    throw new Error('Not a trip tab: ' + id)
+  }
 
   var trip = {
     name: cellToString(input.name),
@@ -339,8 +347,9 @@ function updateTrip_(id, input) {
   }
   var newTabName = tripTabName(trip)
   if (newTabName !== id) {
-    var existing = getSpreadsheet_().getSheetByName(newTabName)
-    if (existing) throw new Error('A trip tab named "' + newTabName + '" already exists')
+    if (ss.getSheetByName(newTabName)) {
+      throw new Error('A trip tab named "' + newTabName + '" already exists')
+    }
     tab.setName(newTabName)
   }
 

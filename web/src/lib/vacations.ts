@@ -29,7 +29,9 @@ export function vacationsSummary(trips: Trip[], vacations: Expense[], participan
     tripCount: trips.length,
     totalDays,
     participantCount,
-    avgTripDays: trips.length > 0 ? Math.round(totalDays / trips.length) : null,
+    // Null rather than 0 when no trip has usable dates, so the card shows "—"
+    // instead of "0 days avg" next to an already-blank per-day figure.
+    avgTripDays: trips.length > 0 && totalDays > 0 ? Math.round(totalDays / trips.length) : null,
     perVacation: trips.length > 0 ? total / trips.length : null,
     perDay,
     perPersonPerDay: perDay !== null && participantCount > 0 ? perDay / participantCount : null,

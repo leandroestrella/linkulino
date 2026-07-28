@@ -19,9 +19,15 @@ jobs:
       # web/src/api/client.ts) and would ship a fake-data app to production
       # rather than failing — so check before spending a build on it.
       - name: Check backend config is present
+        env:
+          # Passed as env rather than interpolated into the script: `${{ }}` is
+          # spliced in as text, so a value containing a quote would break (or
+          # escape) the shell command.
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
         run: |
-          test -n "${{ secrets.VITE_API_URL }}" || { echo "::error::VITE_API_URL secret is empty — the build would ship in mock mode."; exit 1; }
-          test -n "${{ secrets.VITE_GOOGLE_CLIENT_ID }}" || { echo "::error::VITE_GOOGLE_CLIENT_ID secret is empty — sign-in would be disabled."; exit 1; }
+          test -n "$VITE_API_URL" || { echo "::error::VITE_API_URL secret is empty — the build would ship in mock mode."; exit 1; }
+          test -n "$VITE_GOOGLE_CLIENT_ID" || { echo "::error::VITE_GOOGLE_CLIENT_ID secret is empty — sign-in would be disabled."; exit 1; }
 
       - name: Install dependencies
         run: npm ci
