@@ -85,12 +85,19 @@ function TimeBucketEntry({
 }) {
   const [key, expenses] = bucket
   return (
-    <div className="flex flex-col">
+    // flex-1 so this fills its grid cell's full stretched height (the cell
+    // itself is just a plain div — nothing stretches this root to match
+    // otherwise), which the inner flex-1 wrapper below then needs to have
+    // any extra space to center the chart within.
+    <div className="flex flex-1 flex-col">
       <span className="text-muted-foreground text-sm mb-1 block">{key}</span>
-      {/* flex-1 fills the gap between label and total on a stretched grid row
-          (e.g. when the paired month/year has a taller legend), centering the
-          chart in it rather than leaving it pinned to the top. */}
-      <div className="flex flex-1 flex-col justify-center">
+      {/* Fills the gap between label and total (e.g. when the paired month/
+          year has a taller legend), centering the chart in it rather than
+          leaving it pinned to the top. min-h-0 overrides the flex item's
+          default min-height:auto, which otherwise keeps it from shrinking
+          below its own content size and stops it from correctly filling
+          (and centering within) the available space. */}
+      <div className="flex min-h-0 flex-1 flex-col justify-center">
         <CategoryPieChart expenses={expenses} categories={categories} linkFilters={range} />
       </div>
       <FilterLink search={filtersToSearch(range)}>
