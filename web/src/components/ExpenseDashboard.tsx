@@ -192,67 +192,61 @@ export function ExpenseDashboard({
         {!loading && sorted.length === 0 && <p className="text-muted-foreground">{t('home.empty')}</p>}
         {sorted.map((expense) => (
           <Card key={expense.id}>
-            <CardContent className="flex flex-col gap-2 py-3">
-              <div className="flex items-center gap-3">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="text-2xl">{categoryIcon(expense.category)}</span>
-                  </TooltipTrigger>
-                  <TooltipContent className="lowercase">{expense.category}</TooltipContent>
-                </Tooltip>
-                <div className="flex min-w-0 flex-1 items-center justify-between gap-4">
-                  <div className="min-w-0">
-                    <p className="flex items-center gap-1.5 font-medium">
-                      <span className="min-w-0 truncate">
-                        {expense.description} ·{' '}
-                        <span className="text-muted-foreground lowercase font-normal">{expense.category}</span>
-                      </span>
-                      {expense.recurring && (
-                        <RepeatIcon
-                          className="text-muted-foreground size-3.5 shrink-0"
-                          aria-label={t('form.recurring')}
-                        />
+            <CardContent className="flex items-center gap-3 py-3">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-2xl">{categoryIcon(expense.category)}</span>
+                </TooltipTrigger>
+                <TooltipContent className="lowercase">{expense.category}</TooltipContent>
+              </Tooltip>
+              <div className="flex min-w-0 flex-1 items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="flex items-center gap-1.5 font-medium">
+                    <span className="min-w-0 truncate">
+                      {expense.description} ·{' '}
+                      <span className="text-muted-foreground lowercase font-normal">{expense.category}</span>
+                    </span>
+                    {expense.recurring && (
+                      <RepeatIcon
+                        className="text-muted-foreground size-3.5 shrink-0"
+                        aria-label={t('form.recurring')}
+                      />
+                    )}
+                  </p>
+                  <p className="text-muted-foreground text-sm whitespace-nowrap">{expense.date}</p>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <div className="text-right">
+                    <p className="flex items-center justify-end gap-1 font-medium whitespace-nowrap">
+                      {formatAmount(expense.amount)}
+                      {!isEvenSplit(expense, participants) && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="text-muted-foreground text-xs" aria-label="uneven split">
+                              ⚖️
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {participants
+                              .map((p) => `${Math.round(expense.splits[p.name] ?? 0)}% ${p.name}`)
+                              .join(' · ')}
+                          </TooltipContent>
+                        </Tooltip>
                       )}
                     </p>
-                    <p className="text-muted-foreground text-sm whitespace-nowrap">{expense.date}</p>
+                    <p className="text-muted-foreground text-sm whitespace-nowrap">
+                      {t('home.paidByPrefix')} <PersonName person={findParticipant(participants, expense.payer)} />
+                    </p>
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <div className="text-right">
-                      <p className="font-medium whitespace-nowrap">{formatAmount(expense.amount)}</p>
-                      <p className="text-muted-foreground text-sm whitespace-nowrap">
-                        {t('home.paidByPrefix')} <PersonName person={findParticipant(participants, expense.payer)} />
-                      </p>
-                    </div>
-                    {canWrite && (
-                      <Button asChild variant="ghost" size="icon" aria-label={t('form.editTitle')}>
-                        <Link to={`${editBase}/${expense.id}/edit`}>
-                          <PencilIcon className="size-4" />
-                        </Link>
-                      </Button>
-                    )}
-                  </div>
+                  {canWrite && (
+                    <Button asChild variant="ghost" size="icon" aria-label={t('form.editTitle')}>
+                      <Link to={`${editBase}/${expense.id}/edit`}>
+                        <PencilIcon className="size-4" />
+                      </Link>
+                    </Button>
+                  )}
                 </div>
               </div>
-              {!isEvenSplit(expense, participants) && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                      {participants.map((p, i) => (
-                        <div
-                          key={p.name}
-                          className={i === 0 ? 'bg-foreground/70' : 'bg-muted-foreground/40'}
-                          style={{ width: `${expense.splits[p.name] ?? 0}%` }}
-                        />
-                      ))}
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {participants
-                      .map((p) => `${Math.round(expense.splits[p.name] ?? 0)}% ${p.name}`)
-                      .join(' · ')}
-                  </TooltipContent>
-                </Tooltip>
-              )}
             </CardContent>
           </Card>
         ))}
