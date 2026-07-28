@@ -78,20 +78,22 @@ function TimeBucketEntry({
   bucket,
   categories,
   range,
-  totalClassName,
 }: {
   bucket: [string, Expense[]]
   categories: Category[]
   range: { from: string; to: string }
-  /** Extra classes on the total's wrapper — desktop uses mt-auto to align across a stretched grid row. */
-  totalClassName?: string
 }) {
   const [key, expenses] = bucket
   return (
     <div className="flex flex-col">
       <span className="text-muted-foreground text-sm mb-1 block">{key}</span>
-      <CategoryPieChart expenses={expenses} categories={categories} linkFilters={range} />
-      <FilterLink search={filtersToSearch(range)} className={totalClassName}>
+      {/* flex-1 fills the gap between label and total on a stretched grid row
+          (e.g. when the paired month/year has a taller legend), centering the
+          chart in it rather than leaving it pinned to the top. */}
+      <div className="flex flex-1 flex-col justify-center">
+        <CategoryPieChart expenses={expenses} categories={categories} linkFilters={range} />
+      </div>
+      <FilterLink search={filtersToSearch(range)}>
         <span className="font-medium block pt-1">{formatAmount(sum(expenses))}</span>
       </FilterLink>
     </div>
@@ -195,30 +197,13 @@ export function OverviewPage() {
                   {i === 0 && byMonth.length === 0 && (
                     <p className="text-muted-foreground text-sm">{t('overview.empty')}</p>
                   )}
-                  {/* mt-auto pins the total to the bottom of the row's stretched
-                      height, so it lines up with its pair even when one chart's
-                      legend has more rows than the other. */}
-                  {month && (
-                    <TimeBucketEntry
-                      bucket={month}
-                      categories={categories}
-                      range={monthRange(month[0])}
-                      totalClassName="mt-auto"
-                    />
-                  )}
+                  {month && <TimeBucketEntry bucket={month} categories={categories} range={monthRange(month[0])} />}
                 </div>
                 <div className="flex flex-col">
                   {i === 0 && byYear.length === 0 && (
                     <p className="text-muted-foreground text-sm">{t('overview.empty')}</p>
                   )}
-                  {year && (
-                    <TimeBucketEntry
-                      bucket={year}
-                      categories={categories}
-                      range={yearRange(year[0])}
-                      totalClassName="mt-auto"
-                    />
-                  )}
+                  {year && <TimeBucketEntry bucket={year} categories={categories} range={yearRange(year[0])} />}
                 </div>
               </Fragment>
             )
@@ -250,9 +235,10 @@ export function OverviewPage() {
 
         {/* sm+: row-paired grid (label row, chart row, total row) so the two
             charts and totals line up regardless of how many categories each
-            side's legend has — items-start keeps each cell's content pinned
-            to the top of its row instead of stretching/centering into it. */}
-        <CardContent className="hidden sm:grid sm:grid-cols-2 sm:items-start sm:gap-x-6 sm:gap-y-1">
+            side's legend has — items-center vertically centers each cell
+            within its row, so a shorter legend's chart sits centered between
+            the label above and the total below rather than pinned to either. */}
+        <CardContent className="hidden sm:grid sm:grid-cols-2 sm:items-center sm:gap-x-6 sm:gap-y-1">
           <span className="text-muted-foreground text-sm">{t('overview.common')}</span>
           <span className="text-muted-foreground text-sm">{t('overview.singleUser')}</span>
           <CategoryPieChart expenses={common} categories={categories} linkFilters={{}} />
