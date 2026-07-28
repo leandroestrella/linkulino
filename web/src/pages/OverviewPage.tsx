@@ -123,7 +123,7 @@ export function OverviewPage() {
 
   const byMonth = groupBy(household, (e) => e.date.slice(0, 7))
   const byYear = groupBy(household, (e) => e.date.slice(0, 4))
-  const vacationsStats = vacationsSummary(trips, vacations)
+  const vacationsStats = vacationsSummary(trips, vacations, participants.length)
   const byUser = totalsByParticipant(household, participants)
   const common = household.filter(isCommon)
   const singleUser = household.filter((e) => !isCommon(e))

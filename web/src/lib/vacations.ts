@@ -10,17 +10,28 @@ export function tripDays(trip: Trip): number {
 
 export interface VacationsSummary {
   total: number
+  tripCount: number
+  totalDays: number
+  participantCount: number
+  avgTripDays: number | null
   perVacation: number | null
   perDay: number | null
+  perPersonPerDay: number | null
 }
 
-/** Aggregate vacation spend across every trip: total, and per-vacation/per-day averages. */
-export function vacationsSummary(trips: Trip[], vacations: Expense[]): VacationsSummary {
+/** Aggregate vacation spend across every trip: total, and per-vacation/per-day/per-person-per-day averages. */
+export function vacationsSummary(trips: Trip[], vacations: Expense[], participantCount: number): VacationsSummary {
   const total = vacations.reduce((sum, e) => sum + e.amount, 0)
   const totalDays = trips.reduce((sum, trip) => sum + tripDays(trip), 0)
+  const perDay = totalDays > 0 ? total / totalDays : null
   return {
     total,
+    tripCount: trips.length,
+    totalDays,
+    participantCount,
+    avgTripDays: trips.length > 0 ? Math.round(totalDays / trips.length) : null,
     perVacation: trips.length > 0 ? total / trips.length : null,
-    perDay: totalDays > 0 ? total / totalDays : null,
+    perDay,
+    perPersonPerDay: perDay !== null && participantCount > 0 ? perDay / participantCount : null,
   }
 }

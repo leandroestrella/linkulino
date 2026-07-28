@@ -3,8 +3,8 @@ import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { PencilIcon } from 'lucide-react'
-import { createTrip, getExpenses, getTrips } from '@/api/client'
-import type { Expense } from '@/api/types'
+import { createTrip, getExpenses, getParticipants, getTrips } from '@/api/client'
+import type { Expense, Participant } from '@/api/types'
 import { tripStatus, type Trip, type TripStatus } from '@/api/types'
 import { useAuth } from '@/auth/AuthProvider'
 import { LoadingDots } from '@/components/LoadingDots'
@@ -26,6 +26,7 @@ export function TripsPage() {
 
   const [trips, setTrips] = useState<Trip[]>([])
   const [vacations, setVacations] = useState<Expense[]>([])
+  const [participants, setParticipants] = useState<Participant[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [name, setName] = useState('')
@@ -37,9 +38,10 @@ export function TripsPage() {
 
   async function load() {
     setLoading(true)
-    const tripList = await getTrips()
+    const [tripList, participantList] = await Promise.all([getTrips(), getParticipants()])
     const perTrip = await Promise.all(tripList.map((trip) => getExpenses(trip.id)))
     setTrips(tripList)
+    setParticipants(participantList)
     setVacations(perTrip.flat())
     setLoading(false)
   }
@@ -86,7 +88,7 @@ export function TripsPage() {
         !loading &&
         createPortal(
           <div className="mx-auto w-full max-w-2xl px-4 pb-3">
-            <VacationsOverallCard summary={vacationsSummary(trips, vacations)} />
+            <VacationsOverallCard summary={vacationsSummary(trips, vacations, participants.length)} />
           </div>,
           subHeader,
         )}

@@ -14,7 +14,13 @@ import { findParticipant, PersonName } from '@/components/PersonName'
 import { useAdminSlotContainer, useSubHeaderContainer } from '@/components/subheader'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { todayIso } from '@/lib/date'
-import { EMPTY_FILTERS, filterExpenses, filtersFromSearchParams, filtersToSearch } from '@/lib/filters'
+import {
+  EMPTY_FILTERS,
+  filterExpenses,
+  filtersFromSearchParams,
+  filtersToSearch,
+  matchingTimeframeKey,
+} from '@/lib/filters'
 import { formatAmount } from '@/lib/format'
 
 /** Each participant's balance: total paid minus their share of every expense. Positive = owed money. */
@@ -101,6 +107,22 @@ export function ExpenseDashboard({
   const sorted = [...scoped].sort((a, b) => b.date.localeCompare(a.date))
   const categoryIcon = (name: string) => categories.find((c) => c.name === name)?.icon ?? '💸'
 
+  // For the filterable (household budget) dashboard, the card title tracks the
+  // active timeframe filter instead of always saying "this month" — falls back
+  // to the given `title` when there's no filter bar (e.g. a trip's dashboard).
+  let cardTitle = title
+  if (showFilters) {
+    if (!filters.from && !filters.to) {
+      cardTitle = t('home.thisMonth')
+    } else {
+      const timeframeKey = matchingTimeframeKey(filters)
+      if (timeframeKey) cardTitle = t(`filters.${timeframeKey}`)
+      else if (filters.from && filters.to) cardTitle = `${filters.from} → ${filters.to}`
+      else if (filters.from) cardTitle = `${t('filters.from')} ${filters.from}`
+      else cardTitle = `${t('filters.to')} ${filters.to}`
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       {adminSlot &&
@@ -126,7 +148,7 @@ export function ExpenseDashboard({
               )}
               <Card>
                 <CardHeader>
-                  <CardTitle>{title}</CardTitle>
+                  <CardTitle>{cardTitle}</CardTitle>
                 </CardHeader>
                 <CardContent className="flex items-center justify-between gap-4">
                   <div>
