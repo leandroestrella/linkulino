@@ -44,7 +44,9 @@ function ReadGate() {
     return <p className="text-destructive">{t('form.notAllowlisted')}</p>
   }
 
-  return <p className="text-muted-foreground">{t('auth.readGateMessage')}</p>
+  // Anonymous, sign-in configured: the header shows this as a speech bubble
+  // above the avatar instead (see Layout), so there's nothing to render here.
+  return null
 }
 
 /**
@@ -57,10 +59,12 @@ function ReadGate() {
  */
 function Layout({ children }: { children: ReactNode }) {
   const { t } = useTranslation()
+  const { configured, status } = useAuth()
   const [slot, setSlot] = useState<HTMLDivElement | null>(null)
   const [adminSlot, setAdminSlot] = useState<HTMLDivElement | null>(null)
   const [avatarHovered, setAvatarHovered] = useState(false)
   const hidden = useHideOnScroll()
+  const needsSignIn = configured && status === 'anonymous'
 
   return (
     <div className="flex min-h-svh flex-col">
@@ -70,6 +74,17 @@ function Layout({ children }: { children: ReactNode }) {
           hidden && '-translate-y-full',
         )}
       >
+        {/* Sits directly above the avatar in normal document flow — the header
+            (sticky at the very top of the viewport) simply grows taller to fit
+            it, rather than needing free space above y=0. */}
+        {needsSignIn && (
+          <div className="mx-auto w-full max-w-2xl px-4 pt-3">
+            <div className="relative inline-block rounded-2xl border-2 border-black bg-white px-4 py-2 text-sm font-bold text-black shadow-md">
+              {t('auth.readGateMessage')}
+              <div className="absolute top-full left-5 -mt-3 size-4 -rotate-45 border-r-2 border-b-2 border-black bg-white" />
+            </div>
+          </div>
+        )}
         <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-3 px-4 py-3">
           <div className="flex min-w-0 items-center gap-3">
             {/* The avatar opens the About page (the rendered README); the wordmark
