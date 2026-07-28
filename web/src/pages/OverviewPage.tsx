@@ -98,6 +98,20 @@ function TimeBucketEntry({
   )
 }
 
+/** Each single-user participant's total — first one left-aligned, last one right-aligned (mirrors the "by user" card). */
+function SingleUserBreakdown({ items }: { items: [string, number][] }) {
+  return (
+    <div className="flex items-center justify-between pt-6">
+      {items.map(([name, total], i) => (
+        <div key={name} className={i === items.length - 1 ? 'text-right' : undefined}>
+          <p className="text-muted-foreground text-sm">{name}</p>
+          <p className="font-medium">{formatAmount(total)}</p>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export function OverviewPage() {
   const { t } = useTranslation()
   const [household, setHousehold] = useState<Expense[]>([])
@@ -129,7 +143,9 @@ export function OverviewPage() {
   const singleUser = household.filter((e) => !isCommon(e))
   const commonTotal = sum(common)
   const singleUserTotal = sum(singleUser)
-  const singleUserByParticipant = totalsByParticipant(singleUser, participants)
+  const singleUserByParticipant = totalsByParticipant(singleUser, participants).filter(
+    ([, total]) => total > 0,
+  )
 
   if (loading) {
     return <LoadingAvatar />
@@ -214,11 +230,11 @@ export function OverviewPage() {
         <CardHeader>
           <CardTitle>{t('overview.commonVsSingle')}</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-          {/* Each side is a self-contained column rather than six grid items
-              relying on 2-column auto-flow to pair up — that ordering falls
-              apart on the sm:grid-cols-1 mobile layout, interleaving the two
-              sides' labels/charts/totals instead of stacking each fully. */}
+        {/* Mobile: each side is a self-contained, fully-stacked column — a
+            row-paired grid (below) would interleave the two sides' labels/
+            charts/totals on the sm:grid-cols-1 mobile layout, since there's
+            no second column to pair against. */}
+        <CardContent className="flex flex-col gap-6 sm:hidden">
           <div className="flex flex-col gap-1">
             <span className="text-muted-foreground text-sm">{t('overview.common')}</span>
             <CategoryPieChart expenses={common} categories={categories} linkFilters={{}} />
@@ -228,19 +244,23 @@ export function OverviewPage() {
             <span className="text-muted-foreground text-sm">{t('overview.singleUser')}</span>
             <CategoryPieChart expenses={singleUser} categories={categories} linkFilters={{}} />
             <span className="font-medium block pt-1">{formatAmount(singleUserTotal)}</span>
-            {singleUserTotal > 0 && (
-              <div className="flex flex-wrap gap-x-8 gap-y-2 pt-6">
-                {singleUserByParticipant
-                  .filter(([, total]) => total > 0)
-                  .map(([name, total]) => (
-                    <div key={name}>
-                      <p className="text-muted-foreground text-sm">{name}</p>
-                      <p className="font-medium">{formatAmount(total)}</p>
-                    </div>
-                  ))}
-              </div>
-            )}
+            {singleUserByParticipant.length > 0 && <SingleUserBreakdown items={singleUserByParticipant} />}
           </div>
+        </CardContent>
+
+        {/* sm+: row-paired grid (label row, chart row, total row) so the two
+            charts and totals line up regardless of how many categories each
+            side's legend has — items-start keeps each cell's content pinned
+            to the top of its row instead of stretching/centering into it. */}
+        <CardContent className="hidden sm:grid sm:grid-cols-2 sm:items-start sm:gap-x-6 sm:gap-y-1">
+          <span className="text-muted-foreground text-sm">{t('overview.common')}</span>
+          <span className="text-muted-foreground text-sm">{t('overview.singleUser')}</span>
+          <CategoryPieChart expenses={common} categories={categories} linkFilters={{}} />
+          <CategoryPieChart expenses={singleUser} categories={categories} linkFilters={{}} />
+          <span className="font-medium block pt-1">{formatAmount(commonTotal)}</span>
+          <span className="font-medium block pt-1">{formatAmount(singleUserTotal)}</span>
+          <span />
+          {singleUserByParticipant.length > 0 && <SingleUserBreakdown items={singleUserByParticipant} />}
         </CardContent>
       </Card>
 
