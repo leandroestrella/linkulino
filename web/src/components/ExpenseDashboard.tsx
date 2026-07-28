@@ -9,7 +9,7 @@ import { useAuth } from '@/auth/AuthProvider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ExpenseFilters } from '@/components/ExpenseFilters'
-import { LoadingDots } from '@/components/LoadingDots'
+import { LoadingAvatar } from '@/components/LoadingAvatar'
 import { findParticipant, PersonName } from '@/components/PersonName'
 import { useAdminSlotContainer, useSubHeaderContainer } from '@/components/subheader'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -197,12 +197,7 @@ export function ExpenseDashboard({
         )}
 
       <section className="flex flex-col gap-2">
-        {loading && (
-          <p className="text-muted-foreground">
-            {t('home.loading')}
-            <LoadingDots />
-          </p>
-        )}
+        {loading && <LoadingAvatar />}
         {!loading && sorted.length === 0 && <p className="text-muted-foreground">{t('home.empty')}</p>}
         {sorted.map((expense) => (
           <Card key={expense.id}>

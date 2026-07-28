@@ -7,7 +7,7 @@ import { createTrip, getExpenses, getParticipants, getTrips } from '@/api/client
 import type { Expense, Participant } from '@/api/types'
 import { tripStatus, type Trip, type TripStatus } from '@/api/types'
 import { useAuth } from '@/auth/AuthProvider'
-import { LoadingDots } from '@/components/LoadingDots'
+import { LoadingAvatar } from '@/components/LoadingAvatar'
 import { useAdminSlotContainer, useSubHeaderContainer } from '@/components/subheader'
 import { VacationsOverallCard } from '@/components/VacationsOverallCard'
 import { Button } from '@/components/ui/button'
@@ -139,12 +139,7 @@ export function TripsPage() {
         </Card>
       )}
 
-      {loading && (
-        <p className="text-muted-foreground">
-          {t('home.loading')}
-          <LoadingDots />
-        </p>
-      )}
+      {loading && <LoadingAvatar />}
 
       {!loading &&
         groups.map(({ key, label }) => {

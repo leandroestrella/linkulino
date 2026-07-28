@@ -45,7 +45,6 @@
     "delete": "elimina spesa",
     "deleting": "eliminazione",
     "deleteConfirm": "eliminare questa spesa? l'azione non è reversibile.",
-    "loading": "caricamento",
     "signInPrompt": "accedi dalla home per aggiungere una spesa.",
     "notAllowlisted": "il tuo account non è nella lista consentiti per questo foglio.",
     "errorDescriptionRequired": "la descrizione è obbligatoria.",

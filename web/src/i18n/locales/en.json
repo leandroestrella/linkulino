@@ -45,7 +45,6 @@
     "delete": "delete expense",
     "deleting": "deleting",
     "deleteConfirm": "delete this expense? this can't be undone.",
-    "loading": "loading",
     "signInPrompt": "sign in from the home page to add an expense.",
     "notAllowlisted": "your account isn't on the allowlist for this sheet.",
     "errorDescriptionRequired": "description is required.",

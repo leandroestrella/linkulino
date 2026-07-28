@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { AuthBar } from '@/auth/AuthBar'
 import { useAuth } from '@/auth/AuthProvider'
 import { AdminSlotContext, SubHeaderContext } from '@/components/subheader'
-import { LoadingDots } from '@/components/LoadingDots'
+import { LoadingAvatar } from '@/components/LoadingAvatar'
 import { useHideOnScroll } from '@/hooks/useHideOnScroll'
 import { cn } from '@/lib/utils'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -32,12 +32,7 @@ function ReadGate() {
   if (!configured || (status === 'signed-in' && authorized)) return <Outlet />
 
   if (status === 'loading') {
-    return (
-      <p className="text-muted-foreground">
-        {t('home.loading')}
-        <LoadingDots />
-      </p>
-    )
+    return <LoadingAvatar />
   }
 
   if (status === 'signed-in' && !authorized) {

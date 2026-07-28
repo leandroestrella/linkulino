@@ -45,7 +45,6 @@
     "delete": "eliminar gasto",
     "deleting": "eliminando",
     "deleteConfirm": "¿eliminar este gasto? esta acción no se puede deshacer.",
-    "loading": "cargando",
     "signInPrompt": "inicia sesión desde el inicio para añadir un gasto.",
     "notAllowlisted": "tu cuenta no está en la lista de permitidos de esta hoja.",
     "errorDescriptionRequired": "la descripción es obligatoria.",

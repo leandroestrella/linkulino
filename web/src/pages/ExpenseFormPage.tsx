@@ -13,6 +13,7 @@ import {
 } from '@/api/client'
 import type { Category, Participant } from '@/api/types'
 import { useAuth } from '@/auth/AuthProvider'
+import { LoadingAvatar } from '@/components/LoadingAvatar'
 import { PersonIcon } from '@/components/PersonName'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -179,7 +180,7 @@ export function ExpenseFormPage({ mode }: { mode: 'add' | 'edit' }) {
           {configured && status === 'signed-in' && !authorized && (
             <p className="text-destructive">{t('form.notAllowlisted')}</p>
           )}
-          {ready && !loaded && <p className="text-muted-foreground">{t('form.loading')}</p>}
+          {ready && !loaded && <LoadingAvatar />}
           {ready && loaded && (
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { getCategories, getExpenses, getParticipants, getTrips } from '@/api/client'
 import type { Category, Expense, Participant, Trip } from '@/api/types'
 import { CategoryPieChart } from '@/components/CategoryPieChart'
-import { LoadingDots } from '@/components/LoadingDots'
+import { LoadingAvatar } from '@/components/LoadingAvatar'
 import { PersonName } from '@/components/PersonName'
 import { VacationsOverallCard } from '@/components/VacationsOverallCard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -132,12 +132,7 @@ export function OverviewPage() {
   const singleUserByParticipant = totalsByParticipant(singleUser, participants)
 
   if (loading) {
-    return (
-      <p className="text-muted-foreground">
-        {t('home.loading')}
-        <LoadingDots />
-      </p>
-    )
+    return <LoadingAvatar />
   }
 
   return (
