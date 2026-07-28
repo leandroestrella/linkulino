@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ExpenseFilters } from '@/components/ExpenseFilters'
 import { LoadingDots } from '@/components/LoadingDots'
-import { findParticipant, PersonName } from '@/components/PersonName'
+import { findParticipant, PersonIcon, PersonName } from '@/components/PersonName'
 import { useAdminSlotContainer, useSubHeaderContainer } from '@/components/subheader'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { todayIso } from '@/lib/date'
@@ -37,6 +37,13 @@ function balances(expenses: Expense[], participants: Participant[]): Record<stri
     }
   }
   return result
+}
+
+/** True when every participant's share is the plain even split (e.g. 50/50 for two people). */
+function isEvenSplit(expense: Expense, participants: Participant[]): boolean {
+  if (participants.length < 2) return true
+  const even = 100 / participants.length
+  return participants.every((p) => Math.abs((expense.splits[p.name] ?? 0) - even) < 0.5)
 }
 
 /** Who owes whom, as a single amount — avoids showing the same number twice for two people. */
@@ -214,6 +221,16 @@ export function ExpenseDashboard({
                     <p className="text-muted-foreground text-sm whitespace-nowrap">
                       {t('home.paidByPrefix')} <PersonName person={findParticipant(participants, expense.payer)} />
                     </p>
+                    {!isEvenSplit(expense, participants) && (
+                      <p className="text-muted-foreground text-xs whitespace-nowrap">
+                        {participants.map((p, i) => (
+                          <span key={p.name}>
+                            {i > 0 && ' / '}
+                            <PersonIcon icon={p.icon} /> {Math.round(expense.splits[p.name] ?? 0)}%
+                          </span>
+                        ))}
+                      </p>
+                    )}
                   </div>
                   {canWrite && (
                     <Button asChild variant="ghost" size="icon" aria-label={t('form.editTitle')}>
