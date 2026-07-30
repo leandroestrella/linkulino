@@ -9,7 +9,9 @@
     "back": "volver al inicio",
     "trips": "viajes",
     "overview": "resumen",
-    "history": "actividad"
+    "history": "actividad",
+    "backToTrip": "volver a {{trip}}",
+    "backToTrips": "volver a los viajes"
   },
   "auth": {
     "signOut": "cerrar sesión",

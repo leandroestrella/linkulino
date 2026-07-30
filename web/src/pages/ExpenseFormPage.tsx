@@ -13,6 +13,7 @@ import {
 } from '@/api/client'
 import type { Category, Participant } from '@/api/types'
 import { useAuth } from '@/auth/AuthProvider'
+import { BackLink } from '@/components/BackLink'
 import { LoadingAvatar } from '@/components/LoadingAvatar'
 import { PersonIcon } from '@/components/PersonName'
 import { Button } from '@/components/ui/button'
@@ -169,7 +170,10 @@ export function ExpenseFormPage({ mode }: { mode: 'add' | 'edit' }) {
   const ready = canWrite
 
   return (
-    <div className="mx-auto w-full max-w-lg">
+    <div className="mx-auto flex w-full max-w-lg flex-col gap-4">
+      <BackLink to={tripId ? `/trips/${tripId}` : '/'}>
+        {tripId ? t('nav.backToTrip', { trip: tripId }) : t('nav.back')}
+      </BackLink>
       <Card>
         <CardHeader>
           <CardTitle>{mode === 'edit' ? t('form.editTitle') : t('form.title')}</CardTitle>

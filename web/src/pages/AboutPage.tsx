@@ -1,9 +1,8 @@
-import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeftIcon } from 'lucide-react'
 import Markdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
+import { BackLink } from '@/components/BackLink'
 import { Mermaid } from '@/components/Mermaid'
 // The repo-root READMEs are the single source of truth; we render them
 // verbatim. They live above web/, so vite.config allows the dev server to
@@ -116,12 +115,7 @@ export function AboutPage() {
   const readme = README_BY_LANGUAGE[i18n.resolvedLanguage as LanguageCode] ?? readmeEn
   return (
     <div className="flex w-full flex-col gap-6">
-      <Link
-        to="/"
-        className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 self-start text-sm"
-      >
-        <ArrowLeftIcon className="size-4" /> {t('nav.back')}
-      </Link>
+      <BackLink to="/">{t('nav.back')}</BackLink>
       <div className="text-foreground">
         {/* rehypeRaw renders the README's inline HTML (e.g. the leading <img>
             avatar) instead of escaping it to literal text. The source is our own

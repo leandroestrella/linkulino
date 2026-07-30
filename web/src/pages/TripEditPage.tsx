@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { deleteTrip, getTrips, updateTrip } from '@/api/client'
 import { useAuth } from '@/auth/AuthProvider'
+import { BackLink } from '@/components/BackLink'
 import { LoadingAvatar } from '@/components/LoadingAvatar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -72,7 +73,8 @@ export function TripEditPage() {
   const ready = canWrite
 
   return (
-    <div className="mx-auto w-full max-w-lg">
+    <div className="mx-auto flex w-full max-w-lg flex-col gap-4">
+      {tripId && <BackLink to={`/trips/${tripId}`}>{t('nav.backToTrip', { trip: tripId })}</BackLink>}
       <Card>
         <CardHeader>
           <CardTitle>{t('trips.edit')}</CardTitle>
