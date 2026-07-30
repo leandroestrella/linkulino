@@ -19,9 +19,6 @@ const PALETTE = [
   '#008300', // green
   '#4a3aa7', // violet
 ]
-/** Past this many explicit slices, the remainder folds into "Other" (dataviz skill's series ladder). */
-const MAX_SLICES = 6
-
 interface Slice {
   name: string
   icon: string
@@ -40,22 +37,16 @@ function totalsByCategory(expenses: Expense[]): [string, number][] {
 
 function toSlices(expenses: Expense[], categories: Category[]): Slice[] {
   const ranked = totalsByCategory(expenses)
-  const top = ranked.slice(0, MAX_SLICES)
-  const rest = ranked.slice(MAX_SLICES)
   const total = ranked.reduce((sum, [, value]) => sum + value, 0)
   if (total === 0) return []
 
-  const slices: Omit<Slice, 'color'>[] = top.map(([name, value]) => ({
+  return ranked.map(([name, value], i) => ({
     name,
     icon: categories.find((c) => c.name === name)?.icon ?? '💸',
     value,
     fraction: value / total,
+    color: PALETTE[i % PALETTE.length],
   }))
-  if (rest.length > 0) {
-    const restTotal = rest.reduce((sum, [, value]) => sum + value, 0)
-    slices.push({ name: 'other', icon: '➕', value: restTotal, fraction: restTotal / total })
-  }
-  return slices.map((slice, i) => ({ ...slice, color: PALETTE[i % PALETTE.length] }))
 }
 
 function polarToCartesian(cx: number, cy: number, r: number, angle: number) {
@@ -73,9 +64,9 @@ function arcPath(cx: number, cy: number, r: number, startAngle: number, endAngle
 
 /**
  * A pie chart (with legend) of expense totals by category. Renders nothing
- * when there's no data. When `linkFilters` is given, each slice (except the
- * folded-together "Other") links back to the home dashboard filtered to that
- * category, layered on top of `linkFilters` (e.g. a month's date range).
+ * when there's no data. When `linkFilters` is given, each slice links back
+ * to the home dashboard filtered to that category, layered on top of
+ * `linkFilters` (e.g. a month's date range).
  */
 export function CategoryPieChart({
   expenses,
@@ -103,10 +94,10 @@ export function CategoryPieChart({
   })
 
   const goToCategory = (name: string) => {
-    if (!linkFilters || name === 'other') return
+    if (!linkFilters) return
     navigate(`/${filtersToSearch({ ...linkFilters, category: name })}`)
   }
-  const clickable = (name: string) => !!linkFilters && name !== 'other'
+  const clickable = !!linkFilters
 
   return (
     <div className="flex flex-wrap items-center gap-4 pt-1">
@@ -120,7 +111,7 @@ export function CategoryPieChart({
                 stroke="var(--card)"
                 strokeWidth="1"
                 opacity={hovered && hovered !== arc.name ? 0.4 : 1}
-                className={`transition-opacity ${clickable(arc.name) ? 'cursor-pointer' : ''}`}
+                className={`transition-opacity ${clickable ? 'cursor-pointer' : ''}`}
                 onClick={() => goToCategory(arc.name)}
                 onMouseEnter={() => setHovered(arc.name)}
                 onMouseLeave={() => setHovered(null)}
@@ -136,7 +127,7 @@ export function CategoryPieChart({
         {arcs.map((arc) => (
           <div
             key={arc.name}
-            className={`flex items-center gap-1.5 rounded-sm px-1 -mx-1 text-xs transition-colors ${clickable(arc.name) ? 'cursor-pointer' : ''} ${hovered === arc.name ? 'bg-muted' : ''}`}
+            className={`flex items-center gap-1.5 rounded-sm px-1 -mx-1 text-xs transition-colors ${clickable ? 'cursor-pointer' : ''} ${hovered === arc.name ? 'bg-muted' : ''}`}
             onClick={() => goToCategory(arc.name)}
             onMouseEnter={() => setHovered(arc.name)}
             onMouseLeave={() => setHovered(null)}
