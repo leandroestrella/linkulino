@@ -73,7 +73,7 @@ export function HistoryPage() {
                 {detail && <span className="text-muted-foreground lowercase"> · {detail}</span>}
               </p>
               {entry.changes && <p className="text-muted-foreground text-xs">{entry.changes}</p>}
-              <p className="text-muted-foreground text-xs">{formatDateTime(entry.timestamp)}</p>
+              <p className="text-muted-foreground text-right text-xs">{formatDateTime(entry.timestamp)}</p>
             </CardContent>
           )
           return (
