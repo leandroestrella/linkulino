@@ -414,18 +414,14 @@ function buildSplitValues(expense, participants) {
 // ---------------------------------------------------------------------------
 
 /**
- * A one-line human-readable label for an expense, used as a history entry's
- * "what" — same shape regardless of add/update/delete, so the log reads
- * consistently. The trip id (already an "{emoji} {name}" string) is appended
- * for trip expenses so a household-vs-trip entry isn't ambiguous.
+ * An expense's display label for a history entry — just its description
+ * (category/amount/date are logged as their own fields; see logHistory_ in
+ * Code.js), with a placeholder for the rare truly-blank one.
  * @param {Object|null} expense
- * @param {string=} sheetId
  * @return {string}
  */
-function formatExpenseSummary(expense, sheetId) {
-  if (!expense) return ''
-  var s = (expense.description || '(no description)') + ' · ' + expense.amount + ' · ' + expense.date
-  return sheetId ? s + ' (' + sheetId + ')' : s
+function expenseLabel(expense) {
+  return (expense && expense.description) || '(no description)'
 }
 
 /**
@@ -499,23 +495,47 @@ function formatCategorySummary(category) {
   return (category.icon ? category.icon + ' ' : '') + category.name
 }
 
+/** Column order for the History tab — shared by logHistory_ (Code.js) and parseHistory. */
+var HISTORY_COL = {
+  timestamp: 0,
+  actor: 1,
+  action: 2,
+  entity: 3,
+  entityId: 4,
+  sheetId: 5,
+  label: 6,
+  category: 7,
+  amount: 8,
+  date: 9,
+  changes: 10,
+}
+
 /**
  * Maps the History tab's raw rows to entries, newest first (rows are appended
- * oldest-last by logHistory_ — see Code.js).
+ * oldest-last by logHistory_ — see Code.js). `entityId` is blank for deletes
+ * (the row/tab it pointed to is gone, so it's never safe to link) and for
+ * categories (no per-category page exists to link to).
  * @param {Array<Array<*>>} values full History sheet values incl. header row
- * @return {Array<{timestamp: string, actor: string, action: string, entity: string, summary: string, changes: string}>}
+ * @return {Array<{timestamp: string, actor: string, action: string, entity: string,
+ *   entityId: string, sheetId: string, label: string, category: string, amount: number,
+ *   date: string, changes: string}>}
  */
 function parseHistory(values) {
   var entries = []
   for (var r = 1; r < values.length; r++) {
     var row = values[r]
     entries.push({
-      timestamp: cellToString(row[0]),
-      actor: cellToString(row[1]),
-      action: cellToString(row[2]),
-      entity: cellToString(row[3]),
-      summary: cellToString(row[4]),
-      changes: cellToString(row[5]),
+      timestamp: cellToString(row[HISTORY_COL.timestamp]),
+      actor: cellToString(row[HISTORY_COL.actor]),
+      action: cellToString(row[HISTORY_COL.action]),
+      entity: cellToString(row[HISTORY_COL.entity]),
+      entityId: cellToString(row[HISTORY_COL.entityId]),
+      sheetId: cellToString(row[HISTORY_COL.sheetId]),
+      label: cellToString(row[HISTORY_COL.label]),
+      category: cellToString(row[HISTORY_COL.category]),
+      amount: cellToNumber(row[HISTORY_COL.amount]),
+      date: cellToString(row[HISTORY_COL.date]),
+      changes: cellToString(row[HISTORY_COL.changes]),
     })
   }
   return entries.reverse()
@@ -574,6 +594,7 @@ if (typeof module !== 'undefined' && module.exports) {
     USERS_TAB: USERS_TAB,
     CATEGORIES_TAB: CATEGORIES_TAB,
     HISTORY_TAB: HISTORY_TAB,
+    HISTORY_COL: HISTORY_COL,
     TEMPLATE_TAB: TEMPLATE_TAB,
     normalizeTabName: normalizeTabName,
     HOUSEHOLD_MARKER: HOUSEHOLD_MARKER,
@@ -603,7 +624,7 @@ if (typeof module !== 'undefined' && module.exports) {
     buildExpenseRowValues: buildExpenseRowValues,
     buildSplitValues: buildSplitValues,
     expensesToRecreateThisMonth: expensesToRecreateThisMonth,
-    formatExpenseSummary: formatExpenseSummary,
+    expenseLabel: expenseLabel,
     diffExpense: diffExpense,
     formatTripSummary: formatTripSummary,
     diffTrip: diffTrip,

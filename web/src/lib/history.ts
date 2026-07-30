@@ -1,16 +1,16 @@
 /**
  * Pure history-entry formatting, mirroring apps-script/sheet.js's
- * format*Summary/diff* functions. The real backend does this server-side and
- * logs to the History tab; mock/demo mode has no backend to do that, so
- * api/client.ts's mock write paths call these directly to keep the activity
- * page populated the same way in every mode.
+ * expenseLabel/formatTripSummary/formatCategorySummary/diff* functions. The
+ * real backend does this server-side and logs to the History tab; mock/demo
+ * mode has no backend to do that, so api/client.ts's mock write paths call
+ * these directly to keep the activity page populated the same way in every
+ * mode.
  */
 import type { Category, Expense, NewCategory, NewTrip, Trip } from '@/api/types'
 
-/** One-line label for an expense, consistent across add/update/delete. */
-export function formatExpenseSummary(expense: Expense | ExpenseLike, sheetId?: string): string {
-  const s = `${expense.description || '(no description)'} · ${expense.amount} · ${expense.date}`
-  return sheetId ? `${s} (${sheetId})` : s
+/** An expense's display label, consistent across add/update/delete. */
+export function expenseLabel(expense: Expense | ExpenseLike): string {
+  return expense.description || '(no description)'
 }
 
 type ExpenseLike = Omit<Expense, 'id'>

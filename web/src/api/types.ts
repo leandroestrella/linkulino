@@ -63,8 +63,22 @@ export interface HistoryEntry {
   actor: string
   action: 'add' | 'update' | 'delete'
   entity: 'expense' | 'trip' | 'category'
-  /** One-line label for the affected item. */
-  summary: string
+  /**
+   * The row number (expense) or tab name (trip) this entry refers to — used to
+   * link back to it. Blank for deletes (nothing left to link to) and
+   * categories (no per-category page exists).
+   */
+  entityId: string
+  /** The trip tab an expense lives on; '' for a household expense or a non-expense entry. */
+  sheetId: string
+  /** Description/name/category label for the item. */
+  label: string
+  /** Expense category — '' for trip/category entries. */
+  category: string
+  /** Expense amount — 0 for trip/category entries. */
+  amount: number
+  /** Expense date (ISO `YYYY-MM-DD`) — '' for trip/category entries. */
+  date: string
   /** Field-by-field diff for an edit (e.g. "amount: 50 → 84.5"), '' otherwise. */
   changes: string
 }

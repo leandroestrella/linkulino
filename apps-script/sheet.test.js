@@ -374,19 +374,16 @@ test('classifyTab ignores the History tab', () => {
   assert.equal(sheet.classifyTab('History', ''), sheet.TAB_TYPE.ignore)
 })
 
-test('formatExpenseSummary joins description, amount, date', () => {
-  const expense = { description: 'rent', amount: 1200, date: '2026-07-01' }
-  assert.equal(sheet.formatExpenseSummary(expense), 'rent · 1200 · 2026-07-01')
+test('expenseLabel returns the description', () => {
+  assert.equal(sheet.expenseLabel({ description: 'rent', amount: 1200, date: '2026-07-01' }), 'rent')
 })
 
-test('formatExpenseSummary appends the trip id when given', () => {
-  const expense = { description: 'cabin rental', amount: 640, date: '2026-07-20' }
-  assert.equal(sheet.formatExpenseSummary(expense, '🏔️ mountains'), 'cabin rental · 640 · 2026-07-20 (🏔️ mountains)')
+test('expenseLabel falls back to a placeholder for a blank description', () => {
+  assert.equal(sheet.expenseLabel({ description: '', amount: 5, date: '2026-07-01' }), '(no description)')
 })
 
-test('formatExpenseSummary falls back to a placeholder for a blank description', () => {
-  const expense = { description: '', amount: 5, date: '2026-07-01' }
-  assert.equal(sheet.formatExpenseSummary(expense), '(no description) · 5 · 2026-07-01')
+test('expenseLabel falls back to a placeholder for null', () => {
+  assert.equal(sheet.expenseLabel(null), '(no description)')
 })
 
 test('diffExpense returns empty for a create (no prior state)', () => {
@@ -435,13 +432,29 @@ test('formatCategorySummary joins icon and name', () => {
 
 test('parseHistory maps rows newest-first', () => {
   const values = [
-    ['Timestamp', 'Actor', 'Action', 'Entity', 'Summary', 'Changes'],
-    ['2026-07-01T10:00:00.000Z', 'alex', 'add', 'expense', 'rent · 1200 · 2026-07-01', ''],
-    ['2026-07-02T10:00:00.000Z', 'sam', 'update', 'expense', 'rent · 1300 · 2026-07-01', 'amount: 1200 → 1300'],
+    ['Timestamp', 'Actor', 'Action', 'Entity', 'Entity Id', 'Sheet', 'Label', 'Category', 'Amount', 'Date', 'Changes'],
+    ['2026-07-01T10:00:00.000Z', 'alex', 'add', 'expense', '5', '', 'rent', 'rent', 1200, '2026-07-01', ''],
+    [
+      '2026-07-02T10:00:00.000Z',
+      'sam',
+      'update',
+      'expense',
+      '5',
+      '',
+      'rent',
+      'utilities',
+      1300,
+      '2026-07-01',
+      'amount: 1200 → 1300',
+    ],
   ]
   const entries = sheet.parseHistory(values)
   assert.equal(entries.length, 2)
   assert.equal(entries[0].actor, 'sam')
+  assert.equal(entries[0].entityId, '5')
+  assert.equal(entries[0].category, 'utilities')
+  assert.equal(entries[0].amount, 1300)
   assert.equal(entries[0].changes, 'amount: 1200 → 1300')
   assert.equal(entries[1].actor, 'alex')
+  assert.equal(entries[1].amount, 1200)
 })

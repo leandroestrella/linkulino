@@ -67,47 +67,88 @@ function doPost(e) {
     switch (body.action) {
       case 'addExpense': {
         var added = addExpense_(body.expense, body.sheet)
-        logHistory_(user.name, 'add', 'expense', formatExpenseSummary(added, body.sheet), '')
+        logHistory_({
+          actor: user.name,
+          action: 'add',
+          entity: 'expense',
+          entityId: added.id,
+          sheetId: body.sheet,
+          label: expenseLabel(added),
+          category: added.category,
+          amount: added.amount,
+          date: added.date,
+        })
         return json({ ok: true, expense: added })
       }
       case 'updateExpense': {
         var beforeExpense = getExpenseSnapshot_(body.id, body.sheet)
         var updatedExpense = updateExpense_(body.id, body.expense, body.sheet)
-        logHistory_(
-          user.name,
-          'update',
-          'expense',
-          formatExpenseSummary(updatedExpense, body.sheet),
-          diffExpense(beforeExpense, updatedExpense),
-        )
+        logHistory_({
+          actor: user.name,
+          action: 'update',
+          entity: 'expense',
+          entityId: updatedExpense.id,
+          sheetId: body.sheet,
+          label: expenseLabel(updatedExpense),
+          category: updatedExpense.category,
+          amount: updatedExpense.amount,
+          date: updatedExpense.date,
+          changes: diffExpense(beforeExpense, updatedExpense),
+        })
         return json({ ok: true, expense: updatedExpense })
       }
       case 'deleteExpense': {
         var deletedExpense = getExpenseSnapshot_(body.id, body.sheet)
         var deletedExpenseOk = deleteExpense_(body.id, body.sheet)
-        logHistory_(user.name, 'delete', 'expense', formatExpenseSummary(deletedExpense, body.sheet), '')
+        // No entityId: the row is now a blank slot that a future add could
+        // reuse, so linking back to it could point at the wrong expense later.
+        logHistory_({
+          actor: user.name,
+          action: 'delete',
+          entity: 'expense',
+          sheetId: body.sheet,
+          label: expenseLabel(deletedExpense),
+          category: deletedExpense ? deletedExpense.category : '',
+          amount: deletedExpense ? deletedExpense.amount : '',
+          date: deletedExpense ? deletedExpense.date : '',
+        })
         return json({ ok: true, deleted: deletedExpenseOk })
       }
       case 'createTrip': {
         var createdTrip = createTrip_(body.trip)
-        logHistory_(user.name, 'add', 'trip', formatTripSummary(createdTrip), '')
+        logHistory_({
+          actor: user.name,
+          action: 'add',
+          entity: 'trip',
+          entityId: createdTrip.id,
+          label: formatTripSummary(createdTrip),
+        })
         return json({ ok: true, trip: createdTrip })
       }
       case 'updateTrip': {
         var beforeTrip = getTripSnapshot_(body.id)
         var updatedTrip = updateTrip_(body.id, body.trip)
-        logHistory_(user.name, 'update', 'trip', formatTripSummary(updatedTrip), diffTrip(beforeTrip, updatedTrip))
+        logHistory_({
+          actor: user.name,
+          action: 'update',
+          entity: 'trip',
+          entityId: updatedTrip.id,
+          label: formatTripSummary(updatedTrip),
+          changes: diffTrip(beforeTrip, updatedTrip),
+        })
         return json({ ok: true, trip: updatedTrip })
       }
       case 'deleteTrip': {
         var deletedTrip = getTripSnapshot_(body.id)
         var deletedTripOk = deleteTrip_(body.id)
-        logHistory_(user.name, 'delete', 'trip', formatTripSummary(deletedTrip), '')
+        // No entityId: the tab is gone.
+        logHistory_({ actor: user.name, action: 'delete', entity: 'trip', label: formatTripSummary(deletedTrip) })
         return json({ ok: true, deleted: deletedTripOk })
       }
       case 'addCategory': {
         var addedCategory = addCategory_(body.category)
-        logHistory_(user.name, 'add', 'category', formatCategorySummary(addedCategory), '')
+        // No entityId: there's no per-category page to link to.
+        logHistory_({ actor: user.name, action: 'add', entity: 'category', label: formatCategorySummary(addedCategory) })
         return json({ ok: true, category: addedCategory })
       }
       default:
@@ -515,25 +556,47 @@ function getTripSnapshot_(id) {
 }
 
 /**
- * Appends one row to the History tab (created on first use, header included).
- * Never throws on its own account — a logging failure shouldn't roll back or
- * mask the write it's recording, so any error here is swallowed.
- * @param {string} actor participant name (see requireUser_)
- * @param {string} action 'add' | 'update' | 'delete'
- * @param {string} entity 'expense' | 'trip' | 'category'
- * @param {string} summary one-line label for the item (see format*Summary in sheet.js)
- * @param {string} changes field-by-field diff, or '' when not applicable (see diff* in sheet.js)
+ * Appends one row to the History tab (created on first use, header included;
+ * column order must match HISTORY_COL in sheet.js). Never throws on its own
+ * account — a logging failure shouldn't roll back or mask the write it's
+ * recording, so any error here is swallowed.
+ * @param {Object} entry
+ * @param {string} entry.actor participant name (see requireUser_)
+ * @param {string} entry.action 'add' | 'update' | 'delete'
+ * @param {string} entry.entity 'expense' | 'trip' | 'category'
+ * @param {string=} entry.entityId the row number (expense) or tab name (trip) this
+ *   points to — omitted for deletes (nothing left to point at) and categories
+ *   (no per-category page exists), so the app knows not to render a link.
+ * @param {string=} entry.sheetId the trip tab an expense lives on, '' for household.
+ * @param {string} entry.label one-line label for the item — see expenseLabel/
+ *   formatTripSummary/formatCategorySummary in sheet.js.
+ * @param {string=} entry.category expense category — expenses only.
+ * @param {number=} entry.amount expense amount — expenses only.
+ * @param {string=} entry.date expense date — expenses only.
+ * @param {string=} entry.changes field-by-field diff — see diffExpense/diffTrip in sheet.js.
  */
-function logHistory_(actor, action, entity, summary, changes) {
+function logHistory_(entry) {
   try {
     var ss = getSpreadsheet_()
     var tab = ss.getSheetByName(HISTORY_TAB)
     if (!tab) {
       tab = ss.insertSheet(HISTORY_TAB)
-      tab.appendRow(['Timestamp', 'Actor', 'Action', 'Entity', 'Summary', 'Changes'])
-      tab.getRange(1, 1, 1, 6).setFontWeight('bold')
+      tab.appendRow(['Timestamp', 'Actor', 'Action', 'Entity', 'Entity Id', 'Sheet', 'Label', 'Category', 'Amount', 'Date', 'Changes'])
+      tab.getRange(1, 1, 1, 11).setFontWeight('bold')
     }
-    tab.appendRow([new Date().toISOString(), actor, action, entity, summary, changes])
+    tab.appendRow([
+      new Date().toISOString(),
+      entry.actor,
+      entry.action,
+      entry.entity,
+      entry.entityId || '',
+      entry.sheetId || '',
+      entry.label || '',
+      entry.category || '',
+      entry.amount != null ? entry.amount : '',
+      entry.date || '',
+      entry.changes || '',
+    ])
   } catch (err) {
     // Swallowed — see doc comment above.
   }

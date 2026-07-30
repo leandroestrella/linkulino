@@ -16,13 +16,7 @@
  * as `sheetId` to address its expenses instead of the household ones.
  */
 import { config, hasBackend } from '@/config'
-import {
-  diffExpense,
-  diffTrip,
-  formatCategorySummary,
-  formatExpenseSummary,
-  formatTripSummary,
-} from '@/lib/history'
+import { diffExpense, diffTrip, expenseLabel, formatCategorySummary, formatTripSummary } from '@/lib/history'
 import type {
   Category,
   Expense,
@@ -71,9 +65,22 @@ function freshMockStore() {
   }
 }
 
+type MockHistoryInput = Pick<HistoryEntry, 'action' | 'entity' | 'label'> &
+  Partial<Pick<HistoryEntry, 'entityId' | 'sheetId' | 'category' | 'amount' | 'date' | 'changes'>>
+
 /** Prepends a mock history entry (newest-first, matching getHistory_'s server-side ordering). */
-function logMockHistory(action: HistoryEntry['action'], entity: HistoryEntry['entity'], summary: string, changes: string): void {
-  mock.history.unshift({ timestamp: new Date().toISOString(), actor: MOCK_ACTOR, action, entity, summary, changes })
+function logMockHistory(entry: MockHistoryInput): void {
+  mock.history.unshift({
+    timestamp: new Date().toISOString(),
+    actor: MOCK_ACTOR,
+    entityId: '',
+    sheetId: '',
+    category: '',
+    amount: 0,
+    date: '',
+    changes: '',
+    ...entry,
+  })
 }
 
 function mockExpensesFor(sheetId?: string): Expense[] {
@@ -221,7 +228,16 @@ export async function addExpense(expense: ExpenseInput, sheetId?: string): Promi
     const created: Expense = { ...expense, id: crypto.randomUUID() }
     const list = mockExpensesFor(sheetId)
     list.push(created)
-    logMockHistory('add', 'expense', formatExpenseSummary(created, sheetId), '')
+    logMockHistory({
+      action: 'add',
+      entity: 'expense',
+      entityId: created.id,
+      sheetId,
+      label: expenseLabel(created),
+      category: created.category,
+      amount: created.amount,
+      date: created.date,
+    })
     return created
   }
   const data = await post<{ expense: Expense }>({ action: 'addExpense', expense, sheet: sheetId })
@@ -239,7 +255,17 @@ export async function updateExpense(id: string, expense: ExpenseInput, sheetId?:
     const updated: Expense = { ...expense, id }
     if (index === -1) list.push(updated)
     else list[index] = updated
-    logMockHistory('update', 'expense', formatExpenseSummary(updated, sheetId), diffExpense(before, updated))
+    logMockHistory({
+      action: 'update',
+      entity: 'expense',
+      entityId: updated.id,
+      sheetId,
+      label: expenseLabel(updated),
+      category: updated.category,
+      amount: updated.amount,
+      date: updated.date,
+      changes: diffExpense(before, updated),
+    })
     return updated
   }
   const data = await post<{ expense: Expense }>({ action: 'updateExpense', id, expense, sheet: sheetId })
@@ -255,7 +281,17 @@ export async function deleteExpense(id: string, sheetId?: string): Promise<void>
     const index = list.findIndex((e) => e.id === id)
     if (index !== -1) {
       const [deleted] = list.splice(index, 1)
-      logMockHistory('delete', 'expense', formatExpenseSummary(deleted, sheetId), '')
+      // No entityId: the mock list has already dropped this expense, so
+      // there's nothing left to link to (matches the real backend's behavior).
+      logMockHistory({
+        action: 'delete',
+        entity: 'expense',
+        sheetId,
+        label: expenseLabel(deleted),
+        category: deleted.category,
+        amount: deleted.amount,
+        date: deleted.date,
+      })
     }
     return
   }
@@ -268,7 +304,8 @@ export async function deleteExpense(id: string, sheetId?: string): Promise<void>
 export async function addCategory(category: NewCategory): Promise<Category> {
   if (servingMock()) {
     mock.categories = [...mock.categories, category]
-    logMockHistory('add', 'category', formatCategorySummary(category), '')
+    // No entityId: there's no per-category page to link to.
+    logMockHistory({ action: 'add', entity: 'category', label: formatCategorySummary(category) })
     return category
   }
   const data = await post<{ category: Category }>({ action: 'addCategory', category })
@@ -282,7 +319,7 @@ export async function createTrip(trip: NewTrip): Promise<Trip> {
   if (servingMock()) {
     const created: Trip = { ...trip, id: `${trip.emoji} ${trip.name}` }
     mock.trips = [...mock.trips, created]
-    logMockHistory('add', 'trip', formatTripSummary(created), '')
+    logMockHistory({ action: 'add', entity: 'trip', entityId: created.id, label: formatTripSummary(created) })
     return created
   }
   const data = await post<{ trip: Trip }>({ action: 'createTrip', trip })
@@ -301,7 +338,13 @@ export async function updateTrip(id: string, trip: NewTrip): Promise<Trip> {
       mock.tripExpenses[updated.id] = mock.tripExpenses[id] ?? []
       delete mock.tripExpenses[id]
     }
-    logMockHistory('update', 'trip', formatTripSummary(updated), diffTrip(before, trip))
+    logMockHistory({
+      action: 'update',
+      entity: 'trip',
+      entityId: updated.id,
+      label: formatTripSummary(updated),
+      changes: diffTrip(before, trip),
+    })
     return updated
   }
   const data = await post<{ trip: Trip }>({ action: 'updateTrip', id, trip })
@@ -318,7 +361,8 @@ export async function deleteTrip(id: string): Promise<void> {
     const deleted = mock.trips.find((t) => t.id === id) ?? null
     mock.trips = mock.trips.filter((t) => t.id !== id)
     delete mock.tripExpenses[id]
-    if (deleted) logMockHistory('delete', 'trip', formatTripSummary(deleted), '')
+    // No entityId: the tab is gone.
+    if (deleted) logMockHistory({ action: 'delete', entity: 'trip', label: formatTripSummary(deleted) })
     return
   }
   await post({ action: 'deleteTrip', id })
