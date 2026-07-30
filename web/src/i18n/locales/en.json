@@ -117,6 +117,7 @@
   "history": {
     "title": "activity",
     "empty": "no activity yet.",
+    "loadError": "couldn't load the activity log — the backend may not have this feature deployed yet.",
     "addExpense": "added an expense",
     "updateExpense": "edited an expense",
     "deleteExpense": "deleted an expense",

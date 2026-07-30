@@ -17,13 +17,16 @@ export function HistoryPage() {
   const [entries, setEntries] = useState<HistoryEntry[]>([])
   const [participants, setParticipants] = useState<Participant[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
 
   useEffect(() => {
-    void Promise.all([getHistory(), getParticipants()]).then(([history, people]) => {
-      setEntries(history)
-      setParticipants(people)
-      setLoading(false)
-    })
+    void Promise.all([getHistory(), getParticipants()])
+      .then(([history, people]) => {
+        setEntries(history)
+        setParticipants(people)
+      })
+      .catch(() => setError(true))
+      .finally(() => setLoading(false))
   }, [])
 
   if (loading) return <LoadingAvatar />
@@ -32,7 +35,8 @@ export function HistoryPage() {
     <div className="flex flex-col gap-4">
       <h2 className="text-xl font-semibold">{t('history.title')}</h2>
 
-      {entries.length === 0 && <p className="text-muted-foreground">{t('history.empty')}</p>}
+      {error && <p className="text-destructive">{t('history.loadError')}</p>}
+      {!error && entries.length === 0 && <p className="text-muted-foreground">{t('history.empty')}</p>}
 
       <div className="flex flex-col gap-2">
         {entries.map((entry, i) => (

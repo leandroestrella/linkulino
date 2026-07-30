@@ -117,6 +117,7 @@
   "history": {
     "title": "attività",
     "empty": "nessuna attività ancora.",
+    "loadError": "impossibile caricare il registro attività — il backend potrebbe non avere ancora questa funzione.",
     "addExpense": "ha aggiunto una spesa",
     "updateExpense": "ha modificato una spesa",
     "deleteExpense": "ha eliminato una spesa",

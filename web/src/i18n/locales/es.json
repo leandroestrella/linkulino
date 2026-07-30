@@ -117,6 +117,7 @@
   "history": {
     "title": "actividad",
     "empty": "todavía no hay actividad.",
+    "loadError": "no se pudo cargar el registro de actividad — puede que el backend todavía no tenga esta función.",
     "addExpense": "añadió un gasto",
     "updateExpense": "editó un gasto",
     "deleteExpense": "eliminó un gasto",
