@@ -27,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { todayIso as today } from '@/lib/date'
 
 /** Splits 100% evenly across participants, rounding the remainder onto the first one. */
@@ -201,17 +202,22 @@ export function ExpenseFormPage({ mode }: { mode: 'add' | 'edit' }) {
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
                 <Label>{t('form.category')}</Label>
-                {authorized && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="size-6"
-                    aria-label={t('form.newCategory')}
-                    onClick={() => setAddingCategory((v) => !v)}
-                  >
-                    <PlusIcon className="size-4" />
-                  </Button>
+                {canWrite && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-6"
+                        aria-label={t('form.newCategory')}
+                        onClick={() => setAddingCategory((v) => !v)}
+                      >
+                        <PlusIcon className="size-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>{t('form.newCategory')}</TooltipContent>
+                  </Tooltip>
                 )}
               </div>
               <Select key={categories.length} value={category} onValueChange={setCategory}>

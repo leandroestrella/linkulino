@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { todayIso } from '@/lib/date'
 import { vacationsSummary } from '@/lib/vacations'
 
@@ -160,11 +161,16 @@ export function TripsPage() {
                       </div>
                     </Link>
                     {canWrite && (
-                      <Button asChild variant="ghost" size="icon" aria-label={t('trips.edit')}>
-                        <Link to={`/trips/${trip.id}/edit`}>
-                          <PencilIcon className="size-4" />
-                        </Link>
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button asChild variant="ghost" size="icon" aria-label={t('trips.edit')}>
+                            <Link to={`/trips/${trip.id}/edit`}>
+                              <PencilIcon className="size-4" />
+                            </Link>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>{t('trips.edit')}</TooltipContent>
+                      </Tooltip>
                     )}
                   </CardContent>
                 </Card>

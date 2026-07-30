@@ -215,10 +215,15 @@ export function ExpenseDashboard({
                       <span className="text-muted-foreground lowercase font-normal">{expense.category}</span>
                     </span>
                     {expense.recurring && (
-                      <RepeatIcon
-                        className="text-muted-foreground size-3.5 shrink-0"
-                        aria-label={t('form.recurring')}
-                      />
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <RepeatIcon
+                            className="text-muted-foreground size-3.5 shrink-0"
+                            aria-label={t('form.recurring')}
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent>{t('form.recurring')}</TooltipContent>
+                      </Tooltip>
                     )}
                   </p>
                   <p className="text-muted-foreground text-sm whitespace-nowrap">{expense.date}</p>
@@ -267,11 +272,16 @@ export function ExpenseDashboard({
                     </p>
                   </div>
                   {canWrite && (
-                    <Button asChild variant="ghost" size="icon" aria-label={t('form.editTitle')}>
-                      <Link to={`${editBase}/${expense.id}/edit`}>
-                        <PencilIcon className="size-4" />
-                      </Link>
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button asChild variant="ghost" size="icon" aria-label={t('form.editTitle')}>
+                          <Link to={`${editBase}/${expense.id}/edit`}>
+                            <PencilIcon className="size-4" />
+                          </Link>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>{t('form.editTitle')}</TooltipContent>
+                    </Tooltip>
                   )}
                 </div>
               </div>
