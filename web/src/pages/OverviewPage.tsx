@@ -186,13 +186,15 @@ export function OverviewPage() {
             against. */}
         <CardContent className="flex flex-col gap-6 sm:hidden">
           <div className="flex flex-col gap-4">
-            <h3 className="text-muted-foreground text-xs font-medium">{t('overview.byMonth')}</h3>
-            {byMonth.length > 0 && (
-              <p className="flex items-center gap-1 text-sm">
-                {t('overview.avgByMonth', { amount: formatAmount(avgByMonth) })}
-                <InfoTooltip>{t('overview.avgByMonthInfo')}</InfoTooltip>
-              </p>
-            )}
+            <div className="flex flex-col">
+              <h3 className="text-muted-foreground text-sm">{t('overview.byMonth')}</h3>
+              {byMonth.length > 0 && (
+                <p className="flex items-center gap-1.5 text-xl font-medium">
+                  {t('overview.avgByMonth', { amount: formatAmount(avgByMonth) })}
+                  <InfoTooltip>{t('overview.avgByMonthInfo')}</InfoTooltip>
+                </p>
+              )}
+            </div>
             {byMonth.length === 0 && <p className="text-muted-foreground text-sm">{t('overview.empty')}</p>}
             {byMonth.map(([month, expenses]) => (
               <TimeBucketEntry
@@ -204,13 +206,15 @@ export function OverviewPage() {
             ))}
           </div>
           <div className="flex flex-col gap-4">
-            <h3 className="text-muted-foreground text-xs font-medium">{t('overview.byYear')}</h3>
-            {byYear.length > 0 && (
-              <p className="flex items-center gap-1 text-sm">
-                {t('overview.avgByYear', { amount: formatAmount(avgByYear) })}
-                <InfoTooltip>{t('overview.avgByYearInfo')}</InfoTooltip>
-              </p>
-            )}
+            <div className="flex flex-col">
+              <h3 className="text-muted-foreground text-sm">{t('overview.byYear')}</h3>
+              {byYear.length > 0 && (
+                <p className="flex items-center gap-1.5 text-xl font-medium">
+                  {t('overview.avgByYear', { amount: formatAmount(avgByYear) })}
+                  <InfoTooltip>{t('overview.avgByYearInfo')}</InfoTooltip>
+                </p>
+              )}
+            </div>
             {byYear.length === 0 && <p className="text-muted-foreground text-sm">{t('overview.empty')}</p>}
             {byYear.map(([year, expenses]) => (
               <TimeBucketEntry key={year} bucket={[year, expenses]} categories={categories} range={yearRange(year)} />
@@ -220,24 +224,24 @@ export function OverviewPage() {
 
         {/* sm+: row-paired grid so each month/year lines up with its counterpart. */}
         <CardContent className="hidden sm:grid sm:grid-cols-2 sm:gap-x-6 sm:gap-y-4">
-          <h3 className="text-muted-foreground text-xs font-medium">{t('overview.byMonth')}</h3>
-          <h3 className="text-muted-foreground text-xs font-medium">{t('overview.byYear')}</h3>
-          {byMonth.length > 0 ? (
-            <p className="flex items-center gap-1 text-sm">
-              {t('overview.avgByMonth', { amount: formatAmount(avgByMonth) })}
-              <InfoTooltip>{t('overview.avgByMonthInfo')}</InfoTooltip>
-            </p>
-          ) : (
-            <span />
-          )}
-          {byYear.length > 0 ? (
-            <p className="flex items-center gap-1 text-sm">
-              {t('overview.avgByYear', { amount: formatAmount(avgByYear) })}
-              <InfoTooltip>{t('overview.avgByYearInfo')}</InfoTooltip>
-            </p>
-          ) : (
-            <span />
-          )}
+          <div className="flex flex-col">
+            <h3 className="text-muted-foreground text-sm">{t('overview.byMonth')}</h3>
+            {byMonth.length > 0 && (
+              <p className="flex items-center gap-1.5 text-xl font-medium">
+                {t('overview.avgByMonth', { amount: formatAmount(avgByMonth) })}
+                <InfoTooltip>{t('overview.avgByMonthInfo')}</InfoTooltip>
+              </p>
+            )}
+          </div>
+          <div className="flex flex-col">
+            <h3 className="text-muted-foreground text-sm">{t('overview.byYear')}</h3>
+            {byYear.length > 0 && (
+              <p className="flex items-center gap-1.5 text-xl font-medium">
+                {t('overview.avgByYear', { amount: formatAmount(avgByYear) })}
+                <InfoTooltip>{t('overview.avgByYearInfo')}</InfoTooltip>
+              </p>
+            )}
+          </div>
           {Array.from({ length: Math.max(byMonth.length, byYear.length, 1) }).map((_, i) => {
             const month = byMonth[i]
             const year = byYear[i]
