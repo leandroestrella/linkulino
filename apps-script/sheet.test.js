@@ -369,3 +369,79 @@ test('expensesToRecreateThisMonth uses the most recent occurrence as the templat
   assert.equal(toCreate.length, 1)
   assert.equal(toCreate[0].amount, 22.9)
 })
+
+test('classifyTab ignores the History tab', () => {
+  assert.equal(sheet.classifyTab('History', ''), sheet.TAB_TYPE.ignore)
+})
+
+test('formatExpenseSummary joins description, amount, date', () => {
+  const expense = { description: 'rent', amount: 1200, date: '2026-07-01' }
+  assert.equal(sheet.formatExpenseSummary(expense), 'rent · 1200 · 2026-07-01')
+})
+
+test('formatExpenseSummary appends the trip id when given', () => {
+  const expense = { description: 'cabin rental', amount: 640, date: '2026-07-20' }
+  assert.equal(sheet.formatExpenseSummary(expense, '🏔️ mountains'), 'cabin rental · 640 · 2026-07-20 (🏔️ mountains)')
+})
+
+test('formatExpenseSummary falls back to a placeholder for a blank description', () => {
+  const expense = { description: '', amount: 5, date: '2026-07-01' }
+  assert.equal(sheet.formatExpenseSummary(expense), '(no description) · 5 · 2026-07-01')
+})
+
+test('diffExpense returns empty for a create (no prior state)', () => {
+  const after = { date: '2026-07-01', description: 'rent', category: 'rent', payer: 'alex', amount: 1200, splits: {}, recurring: false }
+  assert.equal(sheet.diffExpense(null, after), '')
+})
+
+test('diffExpense lists only the fields that changed', () => {
+  const before = {
+    date: '2026-07-01',
+    description: 'rent',
+    category: 'rent',
+    payer: 'alex',
+    amount: 1200,
+    splits: { alex: 50, sam: 50 },
+    recurring: true,
+  }
+  const after = { ...before, amount: 1300, category: 'utilities' }
+  assert.equal(sheet.diffExpense(before, after), 'category: rent → utilities; amount: 1200 → 1300')
+})
+
+test('diffExpense reports a changed split per participant', () => {
+  const before = { date: '', description: '', category: '', payer: '', amount: 1, splits: { alex: 50, sam: 50 }, recurring: false }
+  const after = { ...before, splits: { alex: 70, sam: 30 } }
+  assert.equal(sheet.diffExpense(before, after), 'split alex: 50% → 70%; split sam: 50% → 30%')
+})
+
+test('diffExpense returns empty when nothing changed', () => {
+  const expense = { date: '2026-07-01', description: 'rent', category: 'rent', payer: 'alex', amount: 1200, splits: { alex: 50 }, recurring: false }
+  assert.equal(sheet.diffExpense(expense, { ...expense }), '')
+})
+
+test('formatTripSummary joins emoji and name', () => {
+  assert.equal(sheet.formatTripSummary({ name: 'lisbon', emoji: '🐚' }), '🐚 lisbon')
+})
+
+test('diffTrip lists only the fields that changed', () => {
+  const before = { name: 'lisbon', emoji: '🐚', startDate: '2026-08-24', endDate: '2026-08-30' }
+  const after = { ...before, endDate: '2026-09-02' }
+  assert.equal(sheet.diffTrip(before, after), 'end date: 2026-08-30 → 2026-09-02')
+})
+
+test('formatCategorySummary joins icon and name', () => {
+  assert.equal(sheet.formatCategorySummary({ name: 'groceries', icon: '🛒' }), '🛒 groceries')
+})
+
+test('parseHistory maps rows newest-first', () => {
+  const values = [
+    ['Timestamp', 'Actor', 'Action', 'Entity', 'Summary', 'Changes'],
+    ['2026-07-01T10:00:00.000Z', 'alex', 'add', 'expense', 'rent · 1200 · 2026-07-01', ''],
+    ['2026-07-02T10:00:00.000Z', 'sam', 'update', 'expense', 'rent · 1300 · 2026-07-01', 'amount: 1200 → 1300'],
+  ]
+  const entries = sheet.parseHistory(values)
+  assert.equal(entries.length, 2)
+  assert.equal(entries[0].actor, 'sam')
+  assert.equal(entries[0].changes, 'amount: 1200 → 1300')
+  assert.equal(entries[1].actor, 'alex')
+})

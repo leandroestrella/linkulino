@@ -33,6 +33,7 @@ flowchart LR
 - 🔍 filtra el panel por categoría, quién pagó, o rango de fechas — incluyendo atajos de un clic para periodos habituales (este/el mes pasado, últimos 7/30/90 días, este/el año pasado…) — y salta directamente a una vista filtrada haciendo clic en cualquier valor de la página de resumen
 - 🔒 privado por defecto — la hoja nunca se comparte por enlace, y el backend verifica un google id token contra la lista `Users` en **cada** llamada, así que un visitante anónimo no ve ni un byte de tu registro
 - 🎭 una demo integrada — quien no ha iniciado sesión entra en una app plenamente funcional con datos de ejemplo (navega, filtra, añade y edita), así puedes enseñar cómo funciona sin dar tus números; al iniciar sesión, la misma interfaz pasa a tu hoja real
+- 🕘 un registro de actividad — cada alta, edición o eliminación (gasto, viaje o categoría) queda registrada con quién, cuándo, y qué cambió exactamente, consultable en su propia página
 - ⚙️ una pestaña `Users` que hace doble función como lista de participantes y lista de acceso de lectura/escritura, configurada una vez, usada en todas partes
 - 🌍 interfaz en english, italiano y español
 

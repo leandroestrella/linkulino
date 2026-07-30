@@ -8,7 +8,8 @@
     "portfolio": "leandro estrella — portfolio",
     "back": "volver al inicio",
     "trips": "viajes",
-    "overview": "resumen"
+    "overview": "resumen",
+    "history": "actividad"
   },
   "auth": {
     "signOut": "cerrar sesión",
@@ -112,6 +113,17 @@
     "singleUser": "individuales (100%)",
     "singleUserInfo": "gastos a cargo de una sola persona — un reparto del 100%.",
     "empty": "todavía no hay gastos."
+  },
+  "history": {
+    "title": "actividad",
+    "empty": "todavía no hay actividad.",
+    "addExpense": "añadió un gasto",
+    "updateExpense": "editó un gasto",
+    "deleteExpense": "eliminó un gasto",
+    "addTrip": "añadió un viaje",
+    "updateTrip": "editó un viaje",
+    "deleteTrip": "eliminó un viaje",
+    "addCategory": "añadió una categoría"
   },
   "filters": {
     "category": "categoría",

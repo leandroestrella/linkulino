@@ -29,6 +29,9 @@ const TripEditPage = lazy(() =>
 const OverviewPage = lazy(() =>
   import('@/pages/OverviewPage').then((m) => ({ default: m.OverviewPage })),
 )
+const HistoryPage = lazy(() =>
+  import('@/pages/HistoryPage').then((m) => ({ default: m.HistoryPage })),
+)
 
 /**
  * Decides what a visitor sees before (or instead of) signing in.
@@ -158,6 +161,18 @@ function Layout({ children }: { children: ReactNode }) {
               </TooltipTrigger>
               <TooltipContent>{t('nav.overview')}</TooltipContent>
             </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link
+                  to="/history"
+                  aria-label={t('nav.history')}
+                  className="hover:bg-accent rounded-md p-2 text-lg leading-none"
+                >
+                  🕘
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent>{t('nav.history')}</TooltipContent>
+            </Tooltip>
           </div>
         </div>
         {/* Always visible (not per-page portaled) so sign-in status shows on every page;
@@ -232,6 +247,7 @@ function App() {
               <Route path="/trips/:tripId/add" element={<ExpenseFormPage mode="add" />} />
               <Route path="/trips/:tripId/expense/:id/edit" element={<ExpenseFormPage mode="edit" />} />
               <Route path="/overview" element={<OverviewPage />} />
+              <Route path="/history" element={<HistoryPage />} />
             </Route>
             <Route path="/about" element={<AboutPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />

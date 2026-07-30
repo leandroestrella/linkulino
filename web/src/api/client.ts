@@ -16,7 +16,23 @@
  * as `sheetId` to address its expenses instead of the household ones.
  */
 import { config, hasBackend } from '@/config'
-import type { Category, Expense, ExpenseInput, NewCategory, NewTrip, Participant, Trip } from './types'
+import {
+  diffExpense,
+  diffTrip,
+  formatCategorySummary,
+  formatExpenseSummary,
+  formatTripSummary,
+} from '@/lib/history'
+import type {
+  Category,
+  Expense,
+  ExpenseInput,
+  HistoryEntry,
+  NewCategory,
+  NewTrip,
+  Participant,
+  Trip,
+} from './types'
 import {
   MOCK_CATEGORIES,
   MOCK_EXPENSES,
@@ -24,6 +40,9 @@ import {
   MOCK_TRIPS,
   MOCK_TRIP_EXPENSES,
 } from './mock'
+
+/** Attributed to every mock/demo-mode action — there's no real sign-in to name an actor after (see fetchMe). */
+const MOCK_ACTOR = 'dev'
 
 /** Shape of every backend JSON response. */
 type ApiEnvelope<T> = ({ ok: true } & T) | { ok: false; error: string }
@@ -48,7 +67,13 @@ function freshMockStore() {
     participants: clone(MOCK_PARTICIPANTS),
     categories: clone(MOCK_CATEGORIES),
     trips: clone(MOCK_TRIPS),
+    history: [] as HistoryEntry[],
   }
+}
+
+/** Prepends a mock history entry (newest-first, matching getHistory_'s server-side ordering). */
+function logMockHistory(action: HistoryEntry['action'], entity: HistoryEntry['entity'], summary: string, changes: string): void {
+  mock.history.unshift({ timestamp: new Date().toISOString(), actor: MOCK_ACTOR, action, entity, summary, changes })
 }
 
 function mockExpensesFor(sheetId?: string): Expense[] {
@@ -159,6 +184,15 @@ export async function getTrips(): Promise<Trip[]> {
   })
 }
 
+/** Every logged add/edit/delete action, newest first. */
+export async function getHistory(): Promise<HistoryEntry[]> {
+  if (servingMock()) return clone(mock.history)
+  return cached('history', async () => {
+    const data = await get<{ history: HistoryEntry[] }>('history')
+    return data.history
+  })
+}
+
 /** The caller's authorization status, resolved server-side from their ID token. */
 export interface Me {
   authorized: boolean
@@ -187,10 +221,12 @@ export async function addExpense(expense: ExpenseInput, sheetId?: string): Promi
     const created: Expense = { ...expense, id: crypto.randomUUID() }
     const list = mockExpensesFor(sheetId)
     list.push(created)
+    logMockHistory('add', 'expense', formatExpenseSummary(created, sheetId), '')
     return created
   }
   const data = await post<{ expense: Expense }>({ action: 'addExpense', expense, sheet: sheetId })
   invalidate(expensesCacheKey(sheetId))
+  invalidate('history')
   return data.expense
 }
 
@@ -199,13 +235,16 @@ export async function updateExpense(id: string, expense: ExpenseInput, sheetId?:
   if (servingMock()) {
     const list = mockExpensesFor(sheetId)
     const index = list.findIndex((e) => e.id === id)
+    const before = index === -1 ? null : list[index]
     const updated: Expense = { ...expense, id }
     if (index === -1) list.push(updated)
     else list[index] = updated
+    logMockHistory('update', 'expense', formatExpenseSummary(updated, sheetId), diffExpense(before, updated))
     return updated
   }
   const data = await post<{ expense: Expense }>({ action: 'updateExpense', id, expense, sheet: sheetId })
   invalidate(expensesCacheKey(sheetId))
+  invalidate('history')
   return data.expense
 }
 
@@ -214,21 +253,27 @@ export async function deleteExpense(id: string, sheetId?: string): Promise<void>
   if (servingMock()) {
     const list = mockExpensesFor(sheetId)
     const index = list.findIndex((e) => e.id === id)
-    if (index !== -1) list.splice(index, 1)
+    if (index !== -1) {
+      const [deleted] = list.splice(index, 1)
+      logMockHistory('delete', 'expense', formatExpenseSummary(deleted, sheetId), '')
+    }
     return
   }
   await post({ action: 'deleteExpense', id, sheet: sheetId })
   invalidate(expensesCacheKey(sheetId))
+  invalidate('history')
 }
 
 /** Creates a new expense category. */
 export async function addCategory(category: NewCategory): Promise<Category> {
   if (servingMock()) {
     mock.categories = [...mock.categories, category]
+    logMockHistory('add', 'category', formatCategorySummary(category), '')
     return category
   }
   const data = await post<{ category: Category }>({ action: 'addCategory', category })
   invalidate('categories')
+  invalidate('history')
   return data.category
 }
 
@@ -237,26 +282,31 @@ export async function createTrip(trip: NewTrip): Promise<Trip> {
   if (servingMock()) {
     const created: Trip = { ...trip, id: `${trip.emoji} ${trip.name}` }
     mock.trips = [...mock.trips, created]
+    logMockHistory('add', 'trip', formatTripSummary(created), '')
     return created
   }
   const data = await post<{ trip: Trip }>({ action: 'createTrip', trip })
   invalidate('trips')
+  invalidate('history')
   return data.trip
 }
 
 /** Updates an existing trip's metadata. Renaming or re-emoji-ing changes its id. */
 export async function updateTrip(id: string, trip: NewTrip): Promise<Trip> {
   if (servingMock()) {
+    const before = mock.trips.find((t) => t.id === id) ?? null
     const updated: Trip = { ...trip, id: `${trip.emoji} ${trip.name}` }
     mock.trips = mock.trips.map((t) => (t.id === id ? updated : t))
     if (updated.id !== id) {
       mock.tripExpenses[updated.id] = mock.tripExpenses[id] ?? []
       delete mock.tripExpenses[id]
     }
+    logMockHistory('update', 'trip', formatTripSummary(updated), diffTrip(before, trip))
     return updated
   }
   const data = await post<{ trip: Trip }>({ action: 'updateTrip', id, trip })
   invalidate('trips')
+  invalidate('history')
   invalidate(expensesCacheKey(id))
   invalidate(expensesCacheKey(data.trip.id))
   return data.trip
@@ -265,12 +315,15 @@ export async function updateTrip(id: string, trip: NewTrip): Promise<Trip> {
 /** Deletes a trip and every expense on it. */
 export async function deleteTrip(id: string): Promise<void> {
   if (servingMock()) {
+    const deleted = mock.trips.find((t) => t.id === id) ?? null
     mock.trips = mock.trips.filter((t) => t.id !== id)
     delete mock.tripExpenses[id]
+    if (deleted) logMockHistory('delete', 'trip', formatTripSummary(deleted), '')
     return
   }
   await post({ action: 'deleteTrip', id })
   invalidate('trips')
+  invalidate('history')
   invalidate(expensesCacheKey(id))
 }
 

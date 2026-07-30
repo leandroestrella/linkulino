@@ -3,13 +3,17 @@
  *
  * The ONLY thing that touches the spreadsheet. Runs as the sheet owner and
  * exposes a small JSON API:
- *   - doGet  → reads   (?action=health, participants, categories, expenses[&sheet=], trips)
+ *   - doGet  → reads   (?action=health, participants, categories, expenses[&sheet=], trips, history)
  *   - doPost → writes  (addExpense, updateExpense, deleteExpense, createTrip,
  *              updateTrip, deleteTrip, addCategory)
  *
  * All pure logic (tab discovery, row↔object mapping, blank-slot finding) lives
  * in sheet.js and is unit-tested in Node. This file is just the glue: read
  * values → call pure fn → write values. See docs/sheet-setup.md for the schema.
+ *
+ * Every write also appends a row to the `History` tab (created on first use) —
+ * who did what, when, and (for edits) exactly which fields changed. See
+ * logHistory_ and the formatXSummary/diffX pure functions in sheet.js.
  *
  * Cross-origin note: browsers can't send a JSON preflight to Apps Script, so the
  * SPA POSTs with Content-Type text/plain and a JSON string body — hence the
@@ -42,6 +46,8 @@ function doGet(e) {
         return json({ ok: true, expenses: getExpenses_(e.parameter.sheet) })
       case 'trips':
         return json({ ok: true, trips: getTrips_() })
+      case 'history':
+        return json({ ok: true, history: getHistory_() })
       default:
         return json({ ok: false, error: 'unknown action: ' + action })
     }
@@ -57,22 +63,53 @@ function doPost(e) {
     // SPA uses it right after sign-in to decide what to show.
     if (body.action === 'me') return json(whoAmI_(body))
 
-    requireUser_(body) // throws unless the caller is an allowed participant
+    var user = requireUser_(body) // throws unless the caller is an allowed participant
     switch (body.action) {
-      case 'addExpense':
-        return json({ ok: true, expense: addExpense_(body.expense, body.sheet) })
-      case 'updateExpense':
-        return json({ ok: true, expense: updateExpense_(body.id, body.expense, body.sheet) })
-      case 'deleteExpense':
-        return json({ ok: true, deleted: deleteExpense_(body.id, body.sheet) })
-      case 'createTrip':
-        return json({ ok: true, trip: createTrip_(body.trip) })
-      case 'updateTrip':
-        return json({ ok: true, trip: updateTrip_(body.id, body.trip) })
-      case 'deleteTrip':
-        return json({ ok: true, deleted: deleteTrip_(body.id) })
-      case 'addCategory':
-        return json({ ok: true, category: addCategory_(body.category) })
+      case 'addExpense': {
+        var added = addExpense_(body.expense, body.sheet)
+        logHistory_(user.name, 'add', 'expense', formatExpenseSummary(added, body.sheet), '')
+        return json({ ok: true, expense: added })
+      }
+      case 'updateExpense': {
+        var beforeExpense = getExpenseSnapshot_(body.id, body.sheet)
+        var updatedExpense = updateExpense_(body.id, body.expense, body.sheet)
+        logHistory_(
+          user.name,
+          'update',
+          'expense',
+          formatExpenseSummary(updatedExpense, body.sheet),
+          diffExpense(beforeExpense, updatedExpense),
+        )
+        return json({ ok: true, expense: updatedExpense })
+      }
+      case 'deleteExpense': {
+        var deletedExpense = getExpenseSnapshot_(body.id, body.sheet)
+        var deletedExpenseOk = deleteExpense_(body.id, body.sheet)
+        logHistory_(user.name, 'delete', 'expense', formatExpenseSummary(deletedExpense, body.sheet), '')
+        return json({ ok: true, deleted: deletedExpenseOk })
+      }
+      case 'createTrip': {
+        var createdTrip = createTrip_(body.trip)
+        logHistory_(user.name, 'add', 'trip', formatTripSummary(createdTrip), '')
+        return json({ ok: true, trip: createdTrip })
+      }
+      case 'updateTrip': {
+        var beforeTrip = getTripSnapshot_(body.id)
+        var updatedTrip = updateTrip_(body.id, body.trip)
+        logHistory_(user.name, 'update', 'trip', formatTripSummary(updatedTrip), diffTrip(beforeTrip, updatedTrip))
+        return json({ ok: true, trip: updatedTrip })
+      }
+      case 'deleteTrip': {
+        var deletedTrip = getTripSnapshot_(body.id)
+        var deletedTripOk = deleteTrip_(body.id)
+        logHistory_(user.name, 'delete', 'trip', formatTripSummary(deletedTrip), '')
+        return json({ ok: true, deleted: deletedTripOk })
+      }
+      case 'addCategory': {
+        var addedCategory = addCategory_(body.category)
+        logHistory_(user.name, 'add', 'category', formatCategorySummary(addedCategory), '')
+        return json({ ok: true, category: addedCategory })
+      }
       default:
         return json({ ok: false, error: 'unknown action: ' + body.action })
     }
@@ -155,6 +192,16 @@ function ensureBlankSlotRow_(tab, read) {
   if (read.cols.recurring !== -1) tab.getRange(totaleRow, read.cols.recurring + 1).clearContent()
 
   return totaleRow
+}
+
+/**
+ * @return {Array<{timestamp: string, actor: string, action: string, entity: string, summary: string, changes: string}>}
+ * every logged action, newest first (empty if nothing has been logged yet).
+ */
+function getHistory_() {
+  var tab = getSpreadsheet_().getSheetByName(HISTORY_TAB)
+  if (!tab) return []
+  return parseHistory(tab.getDataRange().getValues())
 }
 
 /** @return {Object[]} metadata for every trip tab (name, dates, emoji). */
@@ -429,6 +476,67 @@ function addCategory_(input) {
   var category = { name: cellToString(input.name), icon: cellToString(input.icon) }
   tab.appendRow(buildCategoryRowValues(category))
   return category
+}
+
+// ---------------------------------------------------------------------------
+// Action history (History tab)
+// ---------------------------------------------------------------------------
+
+/**
+ * Reads an expense's current state, for diffing against what it's about to
+ * become (update) or logging what's about to be lost (delete). Must be called
+ * BEFORE the corresponding write, since that overwrites/clears the row.
+ * @param {string} id
+ * @param {string=} sheetId
+ * @return {Object|null} null if the expense/tab no longer exists
+ */
+function getExpenseSnapshot_(id, sheetId) {
+  var rowNumber = parseInt(id, 10)
+  var tab = findExpenseTab_(sheetId)
+  if (!tab || !rowNumber || rowNumber < 1 || rowNumber > tab.getLastRow()) return null
+  var read = readExpenseTab_(tab)
+  var participants = parseParticipants(readValues_(USERS_TAB))
+  var row = tab.getRange(rowNumber, 1, 1, tab.getLastColumn()).getValues()[0]
+  return rowToExpense(row, rowNumber, participants, read.cols)
+}
+
+/**
+ * Reads a trip's current metadata, for diffing (update) or logging what's
+ * about to be deleted. Must be called BEFORE the corresponding write.
+ * @param {string} id the trip's tab name
+ * @return {Object|null} null if no such tab exists
+ */
+function getTripSnapshot_(id) {
+  var tab = id ? getSpreadsheet_().getSheetByName(id) : null
+  if (!tab) return null
+  var row1 = tab.getRange(1, 1, 1, 5).getValues()[0]
+  var meta = parseTabMeta(row1)
+  return { id: id, name: meta.name || id, emoji: meta.emoji, startDate: meta.startDate, endDate: meta.endDate }
+}
+
+/**
+ * Appends one row to the History tab (created on first use, header included).
+ * Never throws on its own account — a logging failure shouldn't roll back or
+ * mask the write it's recording, so any error here is swallowed.
+ * @param {string} actor participant name (see requireUser_)
+ * @param {string} action 'add' | 'update' | 'delete'
+ * @param {string} entity 'expense' | 'trip' | 'category'
+ * @param {string} summary one-line label for the item (see format*Summary in sheet.js)
+ * @param {string} changes field-by-field diff, or '' when not applicable (see diff* in sheet.js)
+ */
+function logHistory_(actor, action, entity, summary, changes) {
+  try {
+    var ss = getSpreadsheet_()
+    var tab = ss.getSheetByName(HISTORY_TAB)
+    if (!tab) {
+      tab = ss.insertSheet(HISTORY_TAB)
+      tab.appendRow(['Timestamp', 'Actor', 'Action', 'Entity', 'Summary', 'Changes'])
+      tab.getRange(1, 1, 1, 6).setFontWeight('bold')
+    }
+    tab.appendRow([new Date().toISOString(), actor, action, entity, summary, changes])
+  } catch (err) {
+    // Swallowed — see doc comment above.
+  }
 }
 
 // ---------------------------------------------------------------------------

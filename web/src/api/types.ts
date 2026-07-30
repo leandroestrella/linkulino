@@ -55,6 +55,20 @@ export interface Trip {
 /** Fields accepted when creating a trip. The backend derives the tab name from `name`. */
 export type NewTrip = Omit<Trip, 'id'>
 
+/** One logged action against an expense, trip, or category — see apps-script/Code.js's History tab. */
+export interface HistoryEntry {
+  /** ISO 8601 timestamp (UTC). */
+  timestamp: string
+  /** Participant name who performed the action. */
+  actor: string
+  action: 'add' | 'update' | 'delete'
+  entity: 'expense' | 'trip' | 'category'
+  /** One-line label for the affected item. */
+  summary: string
+  /** Field-by-field diff for an edit (e.g. "amount: 50 → 84.5"), '' otherwise. */
+  changes: string
+}
+
 export type TripStatus = 'active' | 'upcoming' | 'past'
 
 /** A trip's status today, by comparing its date range to the given date (defaults to now). */

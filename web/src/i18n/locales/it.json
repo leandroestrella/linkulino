@@ -8,7 +8,8 @@
     "portfolio": "leandro estrella — portfolio",
     "back": "torna alla home",
     "trips": "viaggi",
-    "overview": "riepilogo"
+    "overview": "riepilogo",
+    "history": "attività"
   },
   "auth": {
     "signOut": "esci",
@@ -112,6 +113,17 @@
     "singleUser": "individuali (100%)",
     "singleUserInfo": "spese a carico di una sola persona — quota 100%.",
     "empty": "nessuna spesa ancora."
+  },
+  "history": {
+    "title": "attività",
+    "empty": "nessuna attività ancora.",
+    "addExpense": "ha aggiunto una spesa",
+    "updateExpense": "ha modificato una spesa",
+    "deleteExpense": "ha eliminato una spesa",
+    "addTrip": "ha aggiunto un viaggio",
+    "updateTrip": "ha modificato un viaggio",
+    "deleteTrip": "ha eliminato un viaggio",
+    "addCategory": "ha aggiunto una categoria"
   },
   "filters": {
     "category": "categoria",

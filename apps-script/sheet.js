@@ -18,6 +18,7 @@
 
 var USERS_TAB = 'Users'
 var CATEGORIES_TAB = 'Categorie'
+var HISTORY_TAB = 'History'
 // Must match your trip-template tab's name EXACTLY (createTrip_ duplicates
 // this tab, and classifyTab excludes it by this name so it isn't mistaken
 // for a real trip) — rename this constant if you rename the tab.
@@ -124,6 +125,7 @@ function normalizeTabName(name) {
 function classifyTab(name, a1) {
   if (name === USERS_TAB) return TAB_TYPE.ignore
   if (name === CATEGORIES_TAB) return TAB_TYPE.ignore
+  if (name === HISTORY_TAB) return TAB_TYPE.ignore
   if (normalizeTabName(name) === normalizeTabName(TEMPLATE_TAB)) return TAB_TYPE.ignore
   if (name.toLowerCase().indexOf(AUX_TAB_PREFIX) === 0) return TAB_TYPE.ignore
   var marker = cellToString(a1).toLowerCase()
@@ -408,6 +410,118 @@ function buildSplitValues(expense, participants) {
 }
 
 // ---------------------------------------------------------------------------
+// Action history (History tab)
+// ---------------------------------------------------------------------------
+
+/**
+ * A one-line human-readable label for an expense, used as a history entry's
+ * "what" — same shape regardless of add/update/delete, so the log reads
+ * consistently. The trip id (already an "{emoji} {name}" string) is appended
+ * for trip expenses so a household-vs-trip entry isn't ambiguous.
+ * @param {Object|null} expense
+ * @param {string=} sheetId
+ * @return {string}
+ */
+function formatExpenseSummary(expense, sheetId) {
+  if (!expense) return ''
+  var s = (expense.description || '(no description)') + ' · ' + expense.amount + ' · ' + expense.date
+  return sheetId ? s + ' (' + sheetId + ')' : s
+}
+
+/**
+ * Field-by-field diff between an expense's state before and after an edit,
+ * e.g. `"amount: 50 → 84.5; category: rent → utilities"`. Only changed fields
+ * are listed; splits are compared per participant name. Returns `''` when
+ * there's no prior state (a create) or nothing changed.
+ * @param {Object|null} before
+ * @param {Object} after
+ * @return {string}
+ */
+function diffExpense(before, after) {
+  if (!before) return ''
+  var parts = []
+  if (before.date !== after.date) parts.push('date: ' + before.date + ' → ' + after.date)
+  if (before.description !== after.description) {
+    parts.push('description: ' + before.description + ' → ' + after.description)
+  }
+  if (before.category !== after.category) parts.push('category: ' + before.category + ' → ' + after.category)
+  if (before.payer !== after.payer) parts.push('payer: ' + before.payer + ' → ' + after.payer)
+  if (before.amount !== after.amount) parts.push('amount: ' + before.amount + ' → ' + after.amount)
+  if (!!before.recurring !== !!after.recurring) {
+    parts.push('recurring: ' + !!before.recurring + ' → ' + !!after.recurring)
+  }
+  var names = {}
+  var beforeSplits = before.splits || {}
+  var afterSplits = after.splits || {}
+  for (var n1 in beforeSplits) names[n1] = true
+  for (var n2 in afterSplits) names[n2] = true
+  for (var name in names) {
+    var b = beforeSplits[name] || 0
+    var a = afterSplits[name] || 0
+    if (b !== a) parts.push('split ' + name + ': ' + b + '% → ' + a + '%')
+  }
+  return parts.join('; ')
+}
+
+/**
+ * A one-line label for a trip, used as a history entry's "what".
+ * @param {Object|null} trip
+ * @return {string}
+ */
+function formatTripSummary(trip) {
+  if (!trip) return ''
+  return (trip.emoji ? trip.emoji + ' ' : '') + trip.name
+}
+
+/**
+ * Field-by-field diff between a trip's state before and after an edit.
+ * @param {Object|null} before
+ * @param {Object} after
+ * @return {string}
+ */
+function diffTrip(before, after) {
+  if (!before) return ''
+  var parts = []
+  if (before.name !== after.name) parts.push('name: ' + before.name + ' → ' + after.name)
+  if (before.emoji !== after.emoji) parts.push('emoji: ' + before.emoji + ' → ' + after.emoji)
+  if (before.startDate !== after.startDate) parts.push('start date: ' + before.startDate + ' → ' + after.startDate)
+  if (before.endDate !== after.endDate) parts.push('end date: ' + before.endDate + ' → ' + after.endDate)
+  return parts.join('; ')
+}
+
+/**
+ * A one-line label for a category, used as a history entry's "what".
+ * @param {Object|null} category
+ * @return {string}
+ */
+function formatCategorySummary(category) {
+  if (!category) return ''
+  return (category.icon ? category.icon + ' ' : '') + category.name
+}
+
+/**
+ * Maps the History tab's raw rows to entries, newest first (rows are appended
+ * oldest-last by logHistory_ — see Code.js).
+ * @param {Array<Array<*>>} values full History sheet values incl. header row
+ * @return {Array<{timestamp: string, actor: string, action: string, entity: string, summary: string, changes: string}>}
+ */
+function parseHistory(values) {
+  var entries = []
+  for (var r = 1; r < values.length; r++) {
+    var row = values[r]
+    entries.push({
+      timestamp: cellToString(row[0]),
+      actor: cellToString(row[1]),
+      action: cellToString(row[2]),
+      entity: cellToString(row[3]),
+      summary: cellToString(row[4]),
+      changes: cellToString(row[5]),
+    })
+  }
+  return entries.reverse()
+}
+
+// ---------------------------------------------------------------------------
 // Recurring expenses
 // ---------------------------------------------------------------------------
 
@@ -459,6 +573,7 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     USERS_TAB: USERS_TAB,
     CATEGORIES_TAB: CATEGORIES_TAB,
+    HISTORY_TAB: HISTORY_TAB,
     TEMPLATE_TAB: TEMPLATE_TAB,
     normalizeTabName: normalizeTabName,
     HOUSEHOLD_MARKER: HOUSEHOLD_MARKER,
@@ -488,5 +603,11 @@ if (typeof module !== 'undefined' && module.exports) {
     buildExpenseRowValues: buildExpenseRowValues,
     buildSplitValues: buildSplitValues,
     expensesToRecreateThisMonth: expensesToRecreateThisMonth,
+    formatExpenseSummary: formatExpenseSummary,
+    diffExpense: diffExpense,
+    formatTripSummary: formatTripSummary,
+    diffTrip: diffTrip,
+    formatCategorySummary: formatCategorySummary,
+    parseHistory: parseHistory,
   }
 }
