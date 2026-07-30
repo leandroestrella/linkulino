@@ -5,6 +5,7 @@ import { getCategories, getExpenses, getParticipants, getTrips } from '@/api/cli
 import type { Category, Expense, Participant, Trip } from '@/api/types'
 import { CategoryPieChart } from '@/components/CategoryPieChart'
 import { LoadingAvatar } from '@/components/LoadingAvatar'
+import { InfoTooltip } from '@/components/InfoTooltip'
 import { findParticipant, PersonName } from '@/components/PersonName'
 import { VacationsOverallCard } from '@/components/VacationsOverallCard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -154,6 +155,9 @@ export function OverviewPage() {
 
   const byMonth = groupBy(household, (e) => e.date.slice(0, 7))
   const byYear = groupBy(household, (e) => e.date.slice(0, 4))
+  const householdTotal = sum(household)
+  const avgByMonth = byMonth.length > 0 ? householdTotal / byMonth.length : 0
+  const avgByYear = byYear.length > 0 ? householdTotal / byYear.length : 0
   const vacationsStats = vacationsSummary(trips, vacations, participants.length)
   const byUser = totalsByParticipant(household, participants)
   const common = household.filter(isCommon)
@@ -173,6 +177,9 @@ export function OverviewPage() {
       <h2 className="text-xl font-semibold">{t('overview.title')}</h2>
 
       <Card>
+        <CardHeader>
+          <CardTitle>{t('overview.byTimeframe')}</CardTitle>
+        </CardHeader>
         {/* Mobile: grouped sections (all months, then all years) — a row-major
             layout (below) would interleave "by month"/"by year" titles and
             entries on a single column, since there's no second column to pair
@@ -180,6 +187,12 @@ export function OverviewPage() {
         <CardContent className="flex flex-col gap-6 sm:hidden">
           <div className="flex flex-col gap-4">
             <h3 className="text-muted-foreground text-xs font-medium">{t('overview.byMonth')}</h3>
+            {byMonth.length > 0 && (
+              <p className="flex items-center gap-1 text-sm">
+                {t('overview.avgByMonth', { amount: formatAmount(avgByMonth) })}
+                <InfoTooltip>{t('overview.avgByMonthInfo')}</InfoTooltip>
+              </p>
+            )}
             {byMonth.length === 0 && <p className="text-muted-foreground text-sm">{t('overview.empty')}</p>}
             {byMonth.map(([month, expenses]) => (
               <TimeBucketEntry
@@ -192,6 +205,12 @@ export function OverviewPage() {
           </div>
           <div className="flex flex-col gap-4">
             <h3 className="text-muted-foreground text-xs font-medium">{t('overview.byYear')}</h3>
+            {byYear.length > 0 && (
+              <p className="flex items-center gap-1 text-sm">
+                {t('overview.avgByYear', { amount: formatAmount(avgByYear) })}
+                <InfoTooltip>{t('overview.avgByYearInfo')}</InfoTooltip>
+              </p>
+            )}
             {byYear.length === 0 && <p className="text-muted-foreground text-sm">{t('overview.empty')}</p>}
             {byYear.map(([year, expenses]) => (
               <TimeBucketEntry key={year} bucket={[year, expenses]} categories={categories} range={yearRange(year)} />
@@ -203,6 +222,22 @@ export function OverviewPage() {
         <CardContent className="hidden sm:grid sm:grid-cols-2 sm:gap-x-6 sm:gap-y-4">
           <h3 className="text-muted-foreground text-xs font-medium">{t('overview.byMonth')}</h3>
           <h3 className="text-muted-foreground text-xs font-medium">{t('overview.byYear')}</h3>
+          {byMonth.length > 0 ? (
+            <p className="flex items-center gap-1 text-sm">
+              {t('overview.avgByMonth', { amount: formatAmount(avgByMonth) })}
+              <InfoTooltip>{t('overview.avgByMonthInfo')}</InfoTooltip>
+            </p>
+          ) : (
+            <span />
+          )}
+          {byYear.length > 0 ? (
+            <p className="flex items-center gap-1 text-sm">
+              {t('overview.avgByYear', { amount: formatAmount(avgByYear) })}
+              <InfoTooltip>{t('overview.avgByYearInfo')}</InfoTooltip>
+            </p>
+          ) : (
+            <span />
+          )}
           {Array.from({ length: Math.max(byMonth.length, byYear.length, 1) }).map((_, i) => {
             const month = byMonth[i]
             const year = byYear[i]
@@ -236,12 +271,18 @@ export function OverviewPage() {
             no second column to pair against. */}
         <CardContent className="flex flex-col gap-6 sm:hidden">
           <div className="flex flex-col gap-1">
-            <span className="text-muted-foreground text-sm">{t('overview.common')}</span>
+            <span className="flex items-center gap-1 text-muted-foreground text-sm">
+              {t('overview.common')}
+              <InfoTooltip>{t('overview.commonInfo')}</InfoTooltip>
+            </span>
             <CategoryPieChart expenses={common} categories={categories} linkFilters={{}} />
             <span className="font-medium block pt-1">{formatAmount(commonTotal)}</span>
           </div>
           <div className="flex flex-col gap-1">
-            <span className="text-muted-foreground text-sm">{t('overview.singleUser')}</span>
+            <span className="flex items-center gap-1 text-muted-foreground text-sm">
+              {t('overview.singleUser')}
+              <InfoTooltip>{t('overview.singleUserInfo')}</InfoTooltip>
+            </span>
             <CategoryPieChart expenses={singleUser} categories={categories} linkFilters={{}} />
             <span className="font-medium block pt-1">{formatAmount(singleUserTotal)}</span>
             {singleUserByParticipant.length > 0 && <SingleUserBreakdown items={singleUserByParticipant} participants={participants} />}
@@ -254,8 +295,14 @@ export function OverviewPage() {
             within its row, so a shorter legend's chart sits centered between
             the label above and the total below rather than pinned to either. */}
         <CardContent className="hidden sm:grid sm:grid-cols-2 sm:items-center sm:gap-x-6 sm:gap-y-1">
-          <span className="text-muted-foreground text-sm">{t('overview.common')}</span>
-          <span className="text-muted-foreground text-sm">{t('overview.singleUser')}</span>
+          <span className="flex items-center gap-1 text-muted-foreground text-sm">
+            {t('overview.common')}
+            <InfoTooltip>{t('overview.commonInfo')}</InfoTooltip>
+          </span>
+          <span className="flex items-center gap-1 text-muted-foreground text-sm">
+            {t('overview.singleUser')}
+            <InfoTooltip>{t('overview.singleUserInfo')}</InfoTooltip>
+          </span>
           <CategoryPieChart expenses={common} categories={categories} linkFilters={{}} />
           <CategoryPieChart expenses={singleUser} categories={categories} linkFilters={{}} />
           <span className="font-medium block pt-1">{formatAmount(commonTotal)}</span>
@@ -267,7 +314,10 @@ export function OverviewPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t('overview.byUser')}</CardTitle>
+          <CardTitle className="flex items-center gap-1.5">
+            {t('overview.byUser')}
+            <InfoTooltip>{t('overview.byUserInfo')}</InfoTooltip>
+          </CardTitle>
         </CardHeader>
         <CardContent className="flex items-center justify-between">
           {byUser.map(([name, total], i) => {

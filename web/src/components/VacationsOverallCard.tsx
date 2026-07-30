@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { InfoTooltip } from '@/components/InfoTooltip'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { VacationsSummary } from '@/lib/vacations'
 import { formatAmount } from '@/lib/format'
@@ -23,7 +24,10 @@ export function VacationsOverallCard({ summary }: { summary: VacationsSummary })
             </p>
           </div>
           <div className="text-right">
-            <p className="text-muted-foreground text-sm">{t('overview.perVacation')}</p>
+            <p className="flex items-center justify-end gap-1 text-muted-foreground text-sm">
+              {t('overview.perVacation')}
+              <InfoTooltip>{t('overview.perVacationInfo')}</InfoTooltip>
+            </p>
             <p className="text-xl font-medium">
               {summary.perVacation !== null ? formatAmount(summary.perVacation) : '—'}
               {summary.avgTripDays !== null && (
@@ -34,7 +38,10 @@ export function VacationsOverallCard({ summary }: { summary: VacationsSummary })
         </div>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-muted-foreground text-sm">{t('overview.perDay')}</p>
+            <p className="flex items-center gap-1 text-muted-foreground text-sm">
+              {t('overview.perDay')}
+              <InfoTooltip>{t('overview.perDayInfo')}</InfoTooltip>
+            </p>
             <p className="text-xl font-medium">
               {summary.perDay !== null ? formatAmount(summary.perDay) : '—'}
               {summary.totalDays > 0 && (
@@ -43,7 +50,10 @@ export function VacationsOverallCard({ summary }: { summary: VacationsSummary })
             </p>
           </div>
           <div className="text-right">
-            <p className="text-muted-foreground text-sm">{t('overview.perPersonPerDay')}</p>
+            <p className="flex items-center justify-end gap-1 text-muted-foreground text-sm">
+              {t('overview.perPersonPerDay')}
+              <InfoTooltip>{t('overview.perPersonPerDayInfo')}</InfoTooltip>
+            </p>
             <p className="text-xl font-medium">
               {summary.perPersonPerDay !== null ? formatAmount(summary.perPersonPerDay) : '—'}
               {summary.participantCount > 0 && (
