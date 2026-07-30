@@ -10,7 +10,7 @@
  * trip's current/upcoming/past status all keep demoing correctly no matter
  * when the dev server happens to be started.
  */
-import type { Category, Expense, Participant, Trip } from './types'
+import type { Category, Expense, HistoryEntry, Participant, Trip } from './types'
 import { localIsoDate } from '@/lib/date'
 
 /** ISO date for `day` of the month that is `monthOffset` months from the current one (0 = this month). */
@@ -27,6 +27,13 @@ function daysFromToday(days: number): string {
   const d = new Date()
   d.setDate(d.getDate() + days)
   return localIsoDate(d)
+}
+
+/** Full ISO timestamp `hours` in the past — for history entries, where a plain date isn't enough. */
+function hoursAgo(hours: number): string {
+  const d = new Date()
+  d.setHours(d.getHours() - hours)
+  return d.toISOString()
 }
 
 export const MOCK_PARTICIPANTS: Participant[] = [
@@ -161,3 +168,91 @@ export const MOCK_TRIP_EXPENSES: Record<string, Expense[]> = {
     },
   ],
 }
+
+/**
+ * A small, plausible-looking activity log so a fresh demo visit lands with
+ * something to show on the activity page, instead of "no activity yet" — the
+ * entries reference real mock ids (exp-4b, exp-4, 🎡 city break) so clicking
+ * through actually lands on that expense/trip, same as a real logged action.
+ * Newest first, matching how logMockHistory prepends new entries in client.ts.
+ */
+export const MOCK_HISTORY: HistoryEntry[] = [
+  {
+    timestamp: hoursAgo(2),
+    actor: 'mara',
+    action: 'add',
+    entity: 'expense',
+    entityId: 'exp-4b',
+    sheetId: '',
+    label: "mara's phone case",
+    category: 'other',
+    amount: 24,
+    date: ymd(0, 16),
+    changes: '',
+  },
+  {
+    timestamp: hoursAgo(26),
+    actor: 'momra',
+    action: 'add',
+    entity: 'expense',
+    entityId: 'exp-4',
+    sheetId: '',
+    label: "momra's new headphones",
+    category: 'other',
+    amount: 89,
+    date: ymd(0, 15),
+    changes: '',
+  },
+  {
+    timestamp: hoursAgo(50),
+    actor: 'momra',
+    action: 'update',
+    entity: 'expense',
+    entityId: 'exp-3',
+    sheetId: '',
+    label: 'electricity bill',
+    category: 'utilities',
+    amount: 63.2,
+    date: ymd(0, 12),
+    changes: 'amount: 58.1 → 63.2',
+  },
+  {
+    timestamp: hoursAgo(96),
+    actor: 'mara',
+    action: 'add',
+    entity: 'trip',
+    entityId: '🎡 city break',
+    sheetId: '',
+    label: '🎡 city break',
+    category: '',
+    amount: 0,
+    date: '',
+    changes: '',
+  },
+  {
+    timestamp: hoursAgo(150),
+    actor: 'momra',
+    action: 'delete',
+    entity: 'expense',
+    entityId: '',
+    sheetId: '',
+    label: 'coffee machine',
+    category: 'other',
+    amount: 45,
+    date: ymd(0, 3),
+    changes: '',
+  },
+  {
+    timestamp: hoursAgo(170),
+    actor: 'mara',
+    action: 'add',
+    entity: 'category',
+    entityId: '',
+    sheetId: '',
+    label: '🍽️ dining out',
+    category: '',
+    amount: 0,
+    date: '',
+    changes: '',
+  },
+]

@@ -30,6 +30,7 @@ import type {
 import {
   MOCK_CATEGORIES,
   MOCK_EXPENSES,
+  MOCK_HISTORY,
   MOCK_PARTICIPANTS,
   MOCK_TRIPS,
   MOCK_TRIP_EXPENSES,
@@ -61,7 +62,7 @@ function freshMockStore() {
     participants: clone(MOCK_PARTICIPANTS),
     categories: clone(MOCK_CATEGORIES),
     trips: clone(MOCK_TRIPS),
-    history: [] as HistoryEntry[],
+    history: clone(MOCK_HISTORY),
   }
 }
 
