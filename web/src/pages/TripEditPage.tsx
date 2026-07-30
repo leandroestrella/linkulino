@@ -109,11 +109,15 @@ export function TripEditPage() {
                 </div>
               </div>
               <div className="flex gap-3">
-                <div className="flex flex-1 flex-col gap-1.5">
+                {/* min-w-0 overrides the flex item's default min-width:auto, which
+                    otherwise keeps it from shrinking below the native date
+                    input's intrinsic width — without it, two side-by-side date
+                    fields push the row wider than a mobile screen. */}
+                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                   <Label htmlFor="start">{t('trips.startDate')}</Label>
                   <Input id="start" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
                 </div>
-                <div className="flex flex-1 flex-col gap-1.5">
+                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                   <Label htmlFor="end">{t('trips.endDate')}</Label>
                   <Input id="end" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
                 </div>
