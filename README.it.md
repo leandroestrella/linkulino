@@ -31,7 +31,8 @@ flowchart LR
 - 🔁 spese ricorrenti — segna una bolletta (affitto, internet…) una volta sola e viene ricreata automaticamente ogni mese
 - 🧳 una scheda vacanze — crea un nuovo viaggio in un passaggio (il backend costruisce la sua scheda da zero, formule incluse) oppure modifica nome, icona e date in seguito, vedendolo raggruppato come in corso / futuro / passato, con i viaggi in corso e futuri mostrati direttamente nella home
 - 🔍 filtra la dashboard per categoria, chi ha pagato, o intervallo di date — comprese scorciatoie con un clic per i periodi comuni (questo/scorso mese, ultimi 7/30/90 giorni, quest'anno/l'anno scorso…) — e passa direttamente a una vista filtrata cliccando su qualsiasi valore nella pagina di riepilogo
-- 🔒 privato per impostazione predefinita — il foglio non è mai condiviso tramite link, e il backend verifica un google id token contro la lista `Users` a **ogni** chiamata, così un visitatore anonimo riceve una richiesta di accesso invece del tuo registro
+- 🔒 privato per impostazione predefinita — il foglio non è mai condiviso tramite link, e il backend verifica un google id token contro la lista `Users` a **ogni** chiamata, così un visitatore anonimo non vede un solo byte del tuo registro
+- 🎭 una demo integrata — chi non ha effettuato l'accesso entra in un'app pienamente funzionante con dati di esempio (naviga, filtra, aggiunge e modifica), così puoi mostrare a qualcuno come funziona senza dargli i tuoi numeri; accedendo, la stessa interfaccia passa al tuo foglio reale
 - ⚙️ una scheda `Users` che funge sia da elenco partecipanti sia da lista di accesso in lettura/scrittura, configurata una volta, usata ovunque
 - 🌍 interfaccia in english, italiano ed español
 

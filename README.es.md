@@ -31,7 +31,8 @@ flowchart LR
 - 🔁 gastos recurrentes — marca una factura (alquiler, internet…) una sola vez y se recrea automáticamente cada mes
 - 🧳 una pestaña de vacaciones — crea un viaje nuevo en un paso (el backend construye su pestaña desde cero, fórmulas incluidas) o edita su nombre, icono y fechas más tarde, viéndolo agrupado como en curso / próximo / pasado, con los viajes en curso y próximos mostrados directamente en la página de inicio
 - 🔍 filtra el panel por categoría, quién pagó, o rango de fechas — incluyendo atajos de un clic para periodos habituales (este/el mes pasado, últimos 7/30/90 días, este/el año pasado…) — y salta directamente a una vista filtrada haciendo clic en cualquier valor de la página de resumen
-- 🔒 privado por defecto — la hoja nunca se comparte por enlace, y el backend verifica un google id token contra la lista `Users` en **cada** llamada, así que un visitante anónimo recibe una solicitud de inicio de sesión en lugar de tu registro
+- 🔒 privado por defecto — la hoja nunca se comparte por enlace, y el backend verifica un google id token contra la lista `Users` en **cada** llamada, así que un visitante anónimo no ve ni un byte de tu registro
+- 🎭 una demo integrada — quien no ha iniciado sesión entra en una app plenamente funcional con datos de ejemplo (navega, filtra, añade y edita), así puedes enseñar cómo funciona sin dar tus números; al iniciar sesión, la misma interfaz pasa a tu hoja real
 - ⚙️ una pestaña `Users` que hace doble función como lista de participantes y lista de acceso de lectura/escritura, configurada una vez, usada en todas partes
 - 🌍 interfaz en english, italiano y español
 

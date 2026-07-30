@@ -80,7 +80,7 @@ export function ExpenseDashboard({
   showFilters?: boolean
 }) {
   const { t } = useTranslation()
-  const { configured, status, authorized } = useAuth()
+  const { canWrite } = useAuth()
   const subHeader = useSubHeaderContainer()
   const adminSlot = useAdminSlotContainer()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -113,7 +113,6 @@ export function ExpenseDashboard({
     })
   }, [sheetId])
 
-  const canWrite = !configured || (status === 'signed-in' && authorized)
   const filters = showFilters ? filtersFromSearchParams(searchParams) : EMPTY_FILTERS
   const thisMonth = todayIso().slice(0, 7)
   const monthScoped =

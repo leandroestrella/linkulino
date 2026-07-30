@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label'
 export function TripEditPage() {
   const navigate = useNavigate()
   const { t } = useTranslation()
-  const { configured, status, authorized } = useAuth()
+  const { status, authorized, canWrite } = useAuth()
   const { tripId } = useParams<{ tripId: string }>()
 
   const [name, setName] = useState('')
@@ -69,7 +69,7 @@ export function TripEditPage() {
     }
   }
 
-  const ready = !configured || (status === 'signed-in' && authorized)
+  const ready = canWrite
 
   return (
     <div className="mx-auto w-full max-w-lg">
@@ -78,10 +78,10 @@ export function TripEditPage() {
           <CardTitle>{t('trips.edit')}</CardTitle>
         </CardHeader>
         <CardContent>
-          {configured && status !== 'signed-in' && (
+          {!ready && status !== 'signed-in' && (
             <p className="text-muted-foreground">{t('form.signInPrompt')}</p>
           )}
-          {configured && status === 'signed-in' && !authorized && (
+          {!ready && status === 'signed-in' && !authorized && (
             <p className="text-destructive">{t('form.notAllowlisted')}</p>
           )}
           {ready && !loaded && <LoadingAvatar />}

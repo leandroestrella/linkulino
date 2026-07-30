@@ -1,11 +1,16 @@
 /**
  * Typed API client for the Linkulino backend.
  *
- * Two modes, chosen automatically:
+ * Three modes:
  *  - **backend mode** (a `VITE_API_URL` is configured): reads via GET, writes
  *    via POST to the Apps Script web app.
  *  - **mock mode** (no backend): serves and mutates an in-memory copy of the
  *    fixtures so the whole UI works offline. Mutations persist for the session.
+ *  - **demo mode** (a backend exists, but nobody is signed in): serves those
+ *    same fixtures, so a visitor lands in a working app rather than a locked
+ *    door. Unlike the other two this is a *runtime* switch — `hasBackend` is
+ *    fixed at build time, but whether anyone is signed in is not (see
+ *    setDemoMode, driven by AuthProvider).
  *
  * Expenses live on either the household tab or a trip tab; pass a trip's `id`
  * as `sheetId` to address its expenses instead of the household ones.
@@ -34,17 +39,50 @@ export function setIdTokenProvider(provider: () => string | null): void {
   getIdToken = provider
 }
 
-const mock = {
-  expenses: clone(MOCK_EXPENSES),
-  tripExpenses: clone(MOCK_TRIP_EXPENSES),
-  participants: clone(MOCK_PARTICIPANTS),
-  categories: clone(MOCK_CATEGORIES),
-  trips: clone(MOCK_TRIPS),
+let mock = freshMockStore()
+
+function freshMockStore() {
+  return {
+    expenses: clone(MOCK_EXPENSES),
+    tripExpenses: clone(MOCK_TRIP_EXPENSES),
+    participants: clone(MOCK_PARTICIPANTS),
+    categories: clone(MOCK_CATEGORIES),
+    trips: clone(MOCK_TRIPS),
+  }
 }
 
 function mockExpensesFor(sheetId?: string): Expense[] {
   if (!sheetId) return mock.expenses
   return (mock.tripExpenses[sheetId] ??= [])
+}
+
+// ---------------------------------------------------------------------------
+// Demo mode
+// ---------------------------------------------------------------------------
+
+let demoMode = false
+
+/**
+ * Turns the sample-data demo on or off. On means every read and write is
+ * answered from the in-memory fixtures instead of the network, even though a
+ * real backend is configured — so a signed-out visitor gets a working app
+ * without ever touching (or being able to touch) somebody's real sheet.
+ *
+ * Entering resets the fixtures, so each visit starts from the same clean
+ * sample rather than inheriting the last visitor's edits. Either direction
+ * clears the read cache, so demo data can never be served to a signed-in user
+ * or vice versa.
+ */
+export function setDemoMode(on: boolean): void {
+  if (demoMode === on) return
+  demoMode = on
+  clearReadCache()
+  if (on) mock = freshMockStore()
+}
+
+/** True when this call should be answered from the fixtures rather than the network. */
+function servingMock(): boolean {
+  return !hasBackend || demoMode
 }
 
 // ---------------------------------------------------------------------------
@@ -89,7 +127,7 @@ function expensesCacheKey(sheetId?: string): string {
 // ---------------------------------------------------------------------------
 
 export async function getExpenses(sheetId?: string): Promise<Expense[]> {
-  if (!hasBackend) return clone(mockExpensesFor(sheetId))
+  if (servingMock()) return clone(mockExpensesFor(sheetId))
   const action = sheetId ? `expenses&sheet=${encodeURIComponent(sheetId)}` : 'expenses'
   return cached(expensesCacheKey(sheetId), async () => {
     const data = await get<{ expenses: Expense[] }>(action)
@@ -98,7 +136,7 @@ export async function getExpenses(sheetId?: string): Promise<Expense[]> {
 }
 
 export async function getParticipants(): Promise<Participant[]> {
-  if (!hasBackend) return clone(mock.participants)
+  if (servingMock()) return clone(mock.participants)
   return cached('participants', async () => {
     const data = await get<{ participants: Participant[] }>('participants')
     return data.participants
@@ -106,7 +144,7 @@ export async function getParticipants(): Promise<Participant[]> {
 }
 
 export async function getCategories(): Promise<Category[]> {
-  if (!hasBackend) return clone(mock.categories)
+  if (servingMock()) return clone(mock.categories)
   return cached('categories', async () => {
     const data = await get<{ categories: Category[] }>('categories')
     return data.categories
@@ -114,7 +152,7 @@ export async function getCategories(): Promise<Category[]> {
 }
 
 export async function getTrips(): Promise<Trip[]> {
-  if (!hasBackend) return clone(mock.trips)
+  if (servingMock()) return clone(mock.trips)
   return cached('trips', async () => {
     const data = await get<{ trips: Trip[] }>('trips')
     return data.trips
@@ -135,7 +173,7 @@ export interface Me {
  * authorization to keep the write UI reachable against the in-memory store.
  */
 export async function fetchMe(): Promise<Me> {
-  if (!hasBackend) return { authorized: true, email: 'dev@local', name: 'dev', reason: 'mock mode' }
+  if (servingMock()) return { authorized: true, email: 'dev@local', name: 'dev', reason: 'mock mode' }
   return post<Me>({ action: 'me' })
 }
 
@@ -145,7 +183,7 @@ export async function fetchMe(): Promise<Me> {
 
 /** Creates an expense; the backend assigns its ID. */
 export async function addExpense(expense: ExpenseInput, sheetId?: string): Promise<Expense> {
-  if (!hasBackend) {
+  if (servingMock()) {
     const created: Expense = { ...expense, id: crypto.randomUUID() }
     const list = mockExpensesFor(sheetId)
     list.push(created)
@@ -158,7 +196,7 @@ export async function addExpense(expense: ExpenseInput, sheetId?: string): Promi
 
 /** Updates an existing expense in place. */
 export async function updateExpense(id: string, expense: ExpenseInput, sheetId?: string): Promise<Expense> {
-  if (!hasBackend) {
+  if (servingMock()) {
     const list = mockExpensesFor(sheetId)
     const index = list.findIndex((e) => e.id === id)
     const updated: Expense = { ...expense, id }
@@ -173,7 +211,7 @@ export async function updateExpense(id: string, expense: ExpenseInput, sheetId?:
 
 /** Deletes an existing expense. */
 export async function deleteExpense(id: string, sheetId?: string): Promise<void> {
-  if (!hasBackend) {
+  if (servingMock()) {
     const list = mockExpensesFor(sheetId)
     const index = list.findIndex((e) => e.id === id)
     if (index !== -1) list.splice(index, 1)
@@ -185,7 +223,7 @@ export async function deleteExpense(id: string, sheetId?: string): Promise<void>
 
 /** Creates a new expense category. */
 export async function addCategory(category: NewCategory): Promise<Category> {
-  if (!hasBackend) {
+  if (servingMock()) {
     mock.categories = [...mock.categories, category]
     return category
   }
@@ -196,7 +234,7 @@ export async function addCategory(category: NewCategory): Promise<Category> {
 
 /** Creates a new trip tab (duplicated from the template) and returns its metadata. */
 export async function createTrip(trip: NewTrip): Promise<Trip> {
-  if (!hasBackend) {
+  if (servingMock()) {
     const created: Trip = { ...trip, id: `${trip.emoji} ${trip.name}` }
     mock.trips = [...mock.trips, created]
     return created
@@ -208,7 +246,7 @@ export async function createTrip(trip: NewTrip): Promise<Trip> {
 
 /** Updates an existing trip's metadata. Renaming or re-emoji-ing changes its id. */
 export async function updateTrip(id: string, trip: NewTrip): Promise<Trip> {
-  if (!hasBackend) {
+  if (servingMock()) {
     const updated: Trip = { ...trip, id: `${trip.emoji} ${trip.name}` }
     mock.trips = mock.trips.map((t) => (t.id === id ? updated : t))
     if (updated.id !== id) {
@@ -226,7 +264,7 @@ export async function updateTrip(id: string, trip: NewTrip): Promise<Trip> {
 
 /** Deletes a trip and every expense on it. */
 export async function deleteTrip(id: string): Promise<void> {
-  if (!hasBackend) {
+  if (servingMock()) {
     mock.trips = mock.trips.filter((t) => t.id !== id)
     delete mock.tripExpenses[id]
     return

@@ -31,45 +31,51 @@ const OverviewPage = lazy(() =>
 )
 
 /**
- * Gates every route except /about behind sign-in: the backend now requires a
- * verified, allowlisted ID token for reads as well as writes (see
- * apps-script/Code.js), so there's no data left to show an anonymous or
- * not-yet-authorized visitor. /about is the rendered README and never calls
- * the API, so it stays outside this gate.
+ * Decides what a visitor sees before (or instead of) signing in.
+ *
+ * The backend requires a verified, allowlisted ID token for reads as well as
+ * writes (see apps-script/Code.js), so there is genuinely no real data to show
+ * a signed-out visitor. Rather than a locked door, they get the app running on
+ * the sample fixtures — fully usable, edits included, since those only ever
+ * touch an in-memory copy (see setDemoMode in api/client.ts). Signing in swaps
+ * the same UI onto the real sheet.
+ *
+ * /about is the rendered README and never calls the API, so it sits outside
+ * this component entirely.
  */
 function ReadGate() {
   const { t } = useTranslation()
-  const { configured, status, authorized } = useAuth()
+  const { status, authorized, demo } = useAuth()
 
-  if (!configured || (status === 'signed-in' && authorized)) return <Outlet />
+  // Still working out whether anyone is signed in — showing the demo here
+  // would make the app flash sample data before the real data replaces it.
+  if (status === 'loading') return <LoadingAvatar />
 
-  if (status === 'loading') {
-    return <LoadingAvatar />
-  }
-
+  // Signed in, but this Google account isn't on the sheet's allowlist. Say so
+  // plainly instead of dropping them into the demo, which would look like
+  // their data had been replaced by someone else's.
   if (status === 'signed-in' && !authorized) {
     return <p className="text-destructive">{t('form.notAllowlisted')}</p>
   }
 
-  // Anonymous, sign-in configured: a second, page-centered avatar (same size
-  // as the header one's hover lightbox) with the ask as a speech bubble above
-  // it — there's room to actually place the bubble above the image here,
-  // unlike the small header avatar pinned at the sticky header's top edge.
+  if (!demo) return <Outlet />
+
   return (
-    <div className="flex flex-col items-center gap-6 pt-8 text-center">
-      <div className="relative inline-block rounded-2xl border-2 border-black bg-white px-4 py-2 text-sm font-bold text-black shadow-md">
-        {t('auth.readGateMessage')}
-        {/* A solid CSS triangle, not a rotated bordered square — that only
-            traces two edges and reads as a floating chevron rather than a
-            filled tail. Two triangles sharing the same top origin (bigger
-            black, smaller white) leave a black rim at the tip and sides,
-            consistent with the bubble's own 2px border. */}
-        <div className="absolute top-full left-1/2 -mt-px -translate-x-1/2">
-          <div className="h-0 w-0 border-x-[11px] border-t-[13px] border-x-transparent border-t-black" />
-          <div className="absolute top-0 left-1/2 h-0 w-0 -translate-x-1/2 border-x-[9px] border-t-[11px] border-x-transparent border-t-white" />
-        </div>
-      </div>
-      <img src="/linkulino.gif" alt="" className="w-64 max-w-[80vw] sm:w-80" />
+    <div className="flex flex-col gap-4">
+      <DemoBanner />
+      <Outlet />
+    </div>
+  )
+}
+
+/** Standing notice that the numbers on screen are sample data, not anyone's real ledger. */
+function DemoBanner() {
+  const { t } = useTranslation()
+  return (
+    <div className="border-primary/30 bg-primary/5 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border px-3 py-2 text-sm">
+      <span aria-hidden>👋</span>
+      <span className="font-medium">{t('demo.title')}</span>
+      <span className="text-muted-foreground">{t('demo.body')}</span>
     </div>
   )
 }

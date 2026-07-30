@@ -14,8 +14,11 @@
     "signOut": "sign out",
     "authorized": "authorized",
     "notAuthorized": "not on the allowlist",
-    "notConfigured": "sign-in not configured",
-    "readGateMessage": "sign in above with an allowed Google account to view your shared expenses."
+    "notConfigured": "sign-in not configured"
+  },
+  "demo": {
+    "title": "you're looking at a demo.",
+    "body": "sample data — edit anything you like, nothing is saved. sign in above to see your own."
   },
   "home": {
     "thisMonth": "this month",

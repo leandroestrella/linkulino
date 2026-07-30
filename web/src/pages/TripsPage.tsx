@@ -19,8 +19,7 @@ import { vacationsSummary } from '@/lib/vacations'
 
 export function TripsPage() {
   const { t } = useTranslation()
-  const { configured, status, authorized } = useAuth()
-  const canWrite = !configured || (status === 'signed-in' && authorized)
+  const { canWrite } = useAuth()
   const subHeader = useSubHeaderContainer()
   const adminSlot = useAdminSlotContainer()
 

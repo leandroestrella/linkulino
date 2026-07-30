@@ -14,8 +14,11 @@
     "signOut": "cerrar sesión",
     "authorized": "autorizado",
     "notAuthorized": "no está en la lista de permitidos",
-    "notConfigured": "inicio de sesión no configurado",
-    "readGateMessage": "inicia sesión arriba con una cuenta de Google autorizada para ver tus gastos compartidos."
+    "notConfigured": "inicio de sesión no configurado"
+  },
+  "demo": {
+    "title": "estás viendo una demo.",
+    "body": "datos de ejemplo — edita lo que quieras, no se guarda nada. inicia sesión arriba para ver los tuyos."
   },
   "home": {
     "thisMonth": "este mes",

@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { config, hasBackend } from '@/config'
-import { clearReadCache, fetchMe, setIdTokenProvider } from '@/api/client'
+import { clearReadCache, fetchMe, setDemoMode, setIdTokenProvider } from '@/api/client'
 
 /** The signed-in person's public profile (decoded from the Google ID token). */
 export interface AuthUser {
@@ -21,6 +21,20 @@ export interface AuthContextValue {
   participantName: string
   /** Whether Google sign-in is configured (a client ID is present). */
   configured: boolean
+  /**
+   * True when the app is showing sample data to a signed-out visitor. The app
+   * is fully usable in this state — edits just go to an in-memory copy of the
+   * fixtures and vanish on reload, never reaching anyone's sheet.
+   */
+  demo: boolean
+  /**
+   * Whether to offer the write UI (add/edit/delete). True for an allowlisted
+   * signed-in user, for local mock dev, and in the demo — where the writes are
+   * real as far as the UI is concerned but land in the in-memory fixtures.
+   * The backend re-checks authorization on every write regardless; this only
+   * decides whether the controls are worth showing.
+   */
+  canWrite: boolean
   /** Whether the GIS library has loaded and initialized. */
   googleReady: boolean
   error: string | null
@@ -85,6 +99,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const handleCredential = useCallback(async (credential: string) => {
     tokenRef.current = credential
+    // Leave the demo BEFORE asking the backend who we are: fetchMe answers
+    // from the fixtures while demo is on, and its canned reply says
+    // "authorized" — which would wrongly admit a real, non-allowlisted user.
+    setDemoMode(false)
     try {
       const claims = decodeJwt(credential)
       setUser({
@@ -137,6 +155,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [configured, handleCredential])
 
+  // Nobody signed in (but a real backend exists) → show the sample data rather
+  // than a locked door. `!hasBackend` is deliberately excluded: that's already
+  // mock mode for local dev, and badging it "demo" would just be noise.
+  const demo = hasBackend && status === 'anonymous'
+  const canWrite = demo || !configured || (status === 'signed-in' && authorized)
+
+  // Keep the API client in step, so its reads/writes go to the fixtures for
+  // exactly as long as the UI is showing the demo.
+  useEffect(() => {
+    setDemoMode(demo)
+  }, [demo])
+
   const signIn = useCallback(() => {
     window.google?.accounts.id.prompt()
   }, [])
@@ -166,13 +196,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       authorized,
       participantName,
       configured,
+      demo,
+      canWrite,
       googleReady,
       error,
       signIn,
       signOut,
       renderButton,
     }),
-    [status, user, authorized, participantName, configured, googleReady, error, signIn, signOut, renderButton],
+    [status, user, authorized, participantName, configured, demo, canWrite, googleReady, error, signIn, signOut, renderButton],
   )
 
   return <AuthContext value={value}>{children}</AuthContext>
