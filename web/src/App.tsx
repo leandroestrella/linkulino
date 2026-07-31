@@ -4,6 +4,7 @@ import { Link, Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { AuthBar } from '@/auth/AuthBar'
 import { useAuth } from '@/auth/AuthProvider'
+import { useBusy } from '@/components/BusyProvider'
 import { AdminSlotContext, SubHeaderContext } from '@/components/subheader'
 import { LoadingAvatar } from '@/components/LoadingAvatar'
 import { useHideOnScroll } from '@/hooks/useHideOnScroll'
@@ -93,10 +94,17 @@ function DemoBanner() {
  */
 function Layout({ children }: { children: ReactNode }) {
   const { t } = useTranslation()
+  const { status, authorized } = useAuth()
+  const { busy } = useBusy()
   const [slot, setSlot] = useState<HTMLDivElement | null>(null)
   const [adminSlot, setAdminSlot] = useState<HTMLDivElement | null>(null)
   const [avatarHovered, setAvatarHovered] = useState(false)
   const hidden = useHideOnScroll()
+  // The hover lightbox is a fun extra, not something to show over more
+  // important things on screen: auth still resolving (ReadGate would show a
+  // loading state), a write in flight (LoadingOverlay), or the current page
+  // telling a signed-in-but-not-allowlisted visitor they can't use the app.
+  const avatarHoverDisabled = status === 'loading' || busy || (status === 'signed-in' && !authorized)
 
   return (
     <div className="flex min-h-svh flex-col">
@@ -110,23 +118,24 @@ function Layout({ children }: { children: ReactNode }) {
           <div className="flex min-w-0 items-center gap-3">
             {/* The avatar opens the About page (the rendered README); the wordmark
                 stays the link home, so a home affordance remains. Hovering it also
-                pops the mascot up full-size in a centered lightbox, which closes
-                the moment the pointer leaves. */}
+                pops the mascot up full-size in a centered, frameless lightbox
+                (just the gif), which closes the moment the pointer leaves.
+                Suppressed via avatarHoverDisabled while something more important
+                is happening on screen (see above). */}
             <Link
               to="/about"
               aria-label={t('nav.about')}
               className="shrink-0"
-              onMouseEnter={() => setAvatarHovered(true)}
+              onMouseEnter={() => !avatarHoverDisabled && setAvatarHovered(true)}
               onMouseLeave={() => setAvatarHovered(false)}
             >
               <img src="/linkulino.gif" alt="" className="w-10 sm:w-12" />
             </Link>
             {avatarHovered &&
+              !avatarHoverDisabled &&
               createPortal(
                 <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center">
-                  <div className="rounded-2xl bg-black p-4 shadow-2xl">
-                    <img src="/linkulino.gif" alt="" className="w-64 max-w-[80vw] sm:w-80" />
-                  </div>
+                  <img src="/linkulino.gif" alt="" className="w-64 max-w-[80vw] sm:w-80" />
                 </div>,
                 document.body,
               )}
