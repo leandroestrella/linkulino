@@ -16,6 +16,7 @@ import { useAuth } from '@/auth/AuthProvider'
 import { BackLink } from '@/components/BackLink'
 import { LoadingAvatar } from '@/components/LoadingAvatar'
 import { PersonIcon } from '@/components/PersonName'
+import { useAdminAction } from '@/hooks/useAdminAction'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -78,9 +79,7 @@ export function ExpenseFormPage({ mode }: { mode: 'add' | 'edit' }) {
   const [splits, setSplits] = useState<Record<string, number>>({})
   const [splitMode, setSplitMode] = useState('even')
   const [recurring, setRecurring] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
-  const [deleting, setDeleting] = useState(false)
-  const [error, setError] = useState('')
+  const { run, busy, error, setError } = useAdminAction()
   const [loaded, setLoaded] = useState(false)
 
   const [addingCategory, setAddingCategory] = useState(false)
@@ -119,22 +118,18 @@ export function ExpenseFormPage({ mode }: { mode: 'add' | 'edit' }) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setError('')
+    setError(null)
 
     const parsedAmount = Number(amount)
     if (!description.trim()) return setError(t('form.errorDescriptionRequired'))
     if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) return setError(t('form.errorAmountInvalid'))
     if (Math.round(splitTotal) !== 100) return setError(t('form.errorSplitTotal'))
 
-    setSubmitting(true)
-    try {
-      const payload = { date, description, category, payer, amount: parsedAmount, splits, recurring }
-      if (mode === 'edit' && id) await updateExpense(id, payload, tripId)
-      else await addExpense(payload, tripId)
-      navigate(tripId ? `/trips/${tripId}` : '/')
-    } finally {
-      setSubmitting(false)
-    }
+    const payload = { date, description, category, payer, amount: parsedAmount, splits, recurring }
+    await run(
+      () => (mode === 'edit' && id ? updateExpense(id, payload, tripId) : addExpense(payload, tripId)),
+      () => navigate(tripId ? `/trips/${tripId}` : '/'),
+    )
   }
 
   /** With exactly two participants, editing one's share auto-balances the other to the complement. */
@@ -148,23 +143,24 @@ export function ExpenseFormPage({ mode }: { mode: 'add' | 'edit' }) {
 
   async function handleDelete() {
     if (!id || !window.confirm(t('form.deleteConfirm'))) return
-    setDeleting(true)
-    try {
-      await deleteExpense(id, tripId)
-      navigate(tripId ? `/trips/${tripId}` : '/')
-    } finally {
-      setDeleting(false)
-    }
+    await run(
+      () => deleteExpense(id, tripId),
+      () => navigate(tripId ? `/trips/${tripId}` : '/'),
+    )
   }
 
   async function handleAddCategory() {
     if (!newCategoryName.trim()) return
-    const created = await addCategory({ name: newCategoryName.trim(), icon: newCategoryIcon.trim() })
-    setCategories((c) => [...c, created])
-    setCategory(created.name)
-    setNewCategoryName('')
-    setNewCategoryIcon('')
-    setAddingCategory(false)
+    await run(
+      () => addCategory({ name: newCategoryName.trim(), icon: newCategoryIcon.trim() }),
+      (created) => {
+        setCategories((c) => [...c, created])
+        setCategory(created.name)
+        setNewCategoryName('')
+        setNewCategoryIcon('')
+        setAddingCategory(false)
+      },
+    )
   }
 
   const ready = canWrite
@@ -251,7 +247,7 @@ export function ExpenseFormPage({ mode }: { mode: 'add' | 'edit' }) {
                     placeholder={t('form.newCategoryPlaceholder')}
                     className="flex-1"
                   />
-                  <Button type="button" size="sm" onClick={() => void handleAddCategory()}>
+                  <Button type="button" size="sm" disabled={busy} onClick={() => void handleAddCategory()}>
                     {t('form.newCategoryAdd')}
                   </Button>
                 </div>
@@ -364,17 +360,17 @@ export function ExpenseFormPage({ mode }: { mode: 'add' | 'edit' }) {
             {error && <p className="text-destructive text-sm">{error}</p>}
 
             <div className="flex gap-2">
-              <Button type="submit" disabled={submitting} className="flex-1">
-                {submitting ? t('form.saving') : t('form.save')}
+              <Button type="submit" disabled={busy} className="flex-1">
+                {busy ? t('form.saving') : t('form.save')}
               </Button>
               {mode === 'edit' && id && (
                 <Button
                   type="button"
                   variant="destructive"
-                  disabled={deleting}
+                  disabled={busy}
                   onClick={() => void handleDelete()}
                 >
-                  {deleting ? t('form.deleting') : t('form.delete')}
+                  {busy ? t('form.deleting') : t('form.delete')}
                 </Button>
               )}
             </div>

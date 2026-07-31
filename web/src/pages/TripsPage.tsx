@@ -15,6 +15,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { useAdminAction } from '@/hooks/useAdminAction'
 import { todayIso } from '@/lib/date'
 import { vacationsSummary } from '@/lib/vacations'
 
@@ -33,8 +34,7 @@ export function TripsPage() {
   const [emoji, setEmoji] = useState('🧳')
   const [startDate, setStartDate] = useState(todayIso())
   const [endDate, setEndDate] = useState(todayIso())
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState('')
+  const { run, busy, error, setError } = useAdminAction()
 
   async function load() {
     setLoading(true)
@@ -52,19 +52,18 @@ export function TripsPage() {
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
-    setError('')
+    setError(null)
     if (!name.trim()) return setError(t('trips.errorNameRequired'))
     if (endDate < startDate) return setError(t('trips.errorDateRange'))
 
-    setSubmitting(true)
-    try {
-      await createTrip({ name: name.trim(), emoji: emoji.trim() || '🧳', startDate, endDate })
-      setName('')
-      setShowForm(false)
-      await load()
-    } finally {
-      setSubmitting(false)
-    }
+    await run(
+      () => createTrip({ name: name.trim(), emoji: emoji.trim() || '🧳', startDate, endDate }),
+      async () => {
+        setName('')
+        setShowForm(false)
+        await load()
+      },
+    )
   }
 
   const groups: { key: TripStatus; label: string }[] = [
@@ -135,8 +134,8 @@ export function TripsPage() {
                 </div>
               </div>
               {error && <p className="text-destructive text-sm">{error}</p>}
-              <Button type="submit" disabled={submitting}>
-                {submitting ? t('form.saving') : t('trips.create')}
+              <Button type="submit" disabled={busy}>
+                {busy ? t('form.saving') : t('trips.create')}
               </Button>
             </form>
           </CardContent>

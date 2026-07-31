@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useAdminAction } from '@/hooks/useAdminAction'
 
 export function TripEditPage() {
   const navigate = useNavigate()
@@ -20,9 +21,7 @@ export function TripEditPage() {
   const [emoji, setEmoji] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [deleting, setDeleting] = useState(false)
-  const [error, setError] = useState('')
+  const { run, busy, error, setError } = useAdminAction()
   const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
@@ -40,34 +39,23 @@ export function TripEditPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setError('')
+    setError(null)
     if (!name.trim()) return setError(t('trips.errorNameRequired'))
     if (endDate < startDate) return setError(t('trips.errorDateRange'))
     if (!tripId) return
 
-    setSubmitting(true)
-    try {
-      const updated = await updateTrip(tripId, {
-        name: name.trim(),
-        emoji: emoji.trim() || '🧳',
-        startDate,
-        endDate,
-      })
-      navigate(`/trips/${updated.id}`)
-    } finally {
-      setSubmitting(false)
-    }
+    await run(
+      () => updateTrip(tripId, { name: name.trim(), emoji: emoji.trim() || '🧳', startDate, endDate }),
+      (updated) => navigate(`/trips/${updated.id}`),
+    )
   }
 
   async function handleDelete() {
     if (!tripId || !window.confirm(t('trips.deleteConfirm'))) return
-    setDeleting(true)
-    try {
-      await deleteTrip(tripId)
-      navigate('/')
-    } finally {
-      setDeleting(false)
-    }
+    await run(
+      () => deleteTrip(tripId),
+      () => navigate('/'),
+    )
   }
 
   const ready = canWrite
@@ -126,16 +114,11 @@ export function TripEditPage() {
               </div>
               {error && <p className="text-destructive text-sm">{error}</p>}
               <div className="flex gap-2">
-                <Button type="submit" disabled={submitting} className="flex-1">
-                  {submitting ? t('form.saving') : t('trips.save')}
+                <Button type="submit" disabled={busy} className="flex-1">
+                  {busy ? t('form.saving') : t('trips.save')}
                 </Button>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  disabled={deleting}
-                  onClick={() => void handleDelete()}
-                >
-                  {deleting ? t('form.deleting') : t('trips.delete')}
+                <Button type="button" variant="destructive" disabled={busy} onClick={() => void handleDelete()}>
+                  {busy ? t('form.deleting') : t('trips.delete')}
                 </Button>
               </div>
             </form>
