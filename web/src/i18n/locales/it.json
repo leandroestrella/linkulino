@@ -138,6 +138,8 @@
     "from": "dal",
     "to": "al",
     "all": "tutti",
+    "common": "comuni",
+    "singleUser": "individuali",
     "clear": "cancella",
     "title": "filtri",
     "timeframe": "periodo",

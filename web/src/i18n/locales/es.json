@@ -138,6 +138,8 @@
     "from": "desde",
     "to": "hasta",
     "all": "todos",
+    "common": "comunes",
+    "singleUser": "individuales",
     "clear": "borrar",
     "title": "filtros",
     "timeframe": "periodo",

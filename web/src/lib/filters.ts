@@ -1,5 +1,15 @@
 import type { Expense } from '@/api/types'
 import { localIsoDate } from '@/lib/date'
+import { isCommon } from '@/lib/expenses'
+
+/**
+ * `'common'` and `'single'` scope to expenses split between several people vs.
+ * covering just one (see `isCommon`); `'all'` applies no split filtering.
+ * Deliberately not blank-string like the other fields — `filtersFromSearchParams`
+ * treats an absent `split` param as `'common'` (the homepage's default view),
+ * so `'all'` has to be written explicitly to opt out of that default.
+ */
+export type ExpenseSplitFilter = 'common' | 'single' | 'all'
 
 export interface ExpenseFilterValues {
   category: string
@@ -8,20 +18,28 @@ export interface ExpenseFilterValues {
   from: string
   /** ISO `YYYY-MM-DD`, inclusive. */
   to: string
+  split: ExpenseSplitFilter
 }
 
-export const EMPTY_FILTERS: ExpenseFilterValues = { category: '', payer: '', from: '', to: '' }
+/**
+ * The neutral, no-filtering state — used by pages with no filter bar (e.g. a
+ * trip's dashboard), which should never silently hide single-user expenses
+ * with no UI to undo it. The homepage's own "cleared" state is `'common'`,
+ * not this — see ExpenseFilters' clear button.
+ */
+export const EMPTY_FILTERS: ExpenseFilterValues = { category: '', payer: '', from: '', to: '', split: 'all' }
 
 export function hasActiveFilters(filters: ExpenseFilterValues): boolean {
   return activeFilterCount(filters) > 0
 }
 
-/** How many of the four filter fields are set — shown as a badge on the mobile filters toggle. */
+/** How many filter fields are set away from their default — shown as a badge on the mobile filters toggle. */
 export function activeFilterCount(filters: ExpenseFilterValues): number {
-  return [filters.category, filters.payer, filters.from, filters.to].filter(Boolean).length
+  return [filters.category, filters.payer, filters.from, filters.to, filters.split !== 'common' ? filters.split : '']
+    .filter(Boolean).length
 }
 
-/** Applies category/payer (case-insensitive)/date-range filters; blank values are no-ops. */
+/** Applies category/payer (case-insensitive)/date-range/split filters; blank or 'all' values are no-ops. */
 export function filterExpenses(expenses: Expense[], filters: ExpenseFilterValues): Expense[] {
   const payer = filters.payer.toLowerCase()
   return expenses.filter((e) => {
@@ -29,16 +47,20 @@ export function filterExpenses(expenses: Expense[], filters: ExpenseFilterValues
     if (filters.payer && e.payer.toLowerCase() !== payer) return false
     if (filters.from && e.date < filters.from) return false
     if (filters.to && e.date > filters.to) return false
+    if (filters.split === 'common' && !isCommon(e)) return false
+    if (filters.split === 'single' && isCommon(e)) return false
     return true
   })
 }
 
+/** For pages with a filter bar — an absent `split` param defaults to `'common'` (see ExpenseSplitFilter). */
 export function filtersFromSearchParams(params: URLSearchParams): ExpenseFilterValues {
   return {
     category: params.get('category') ?? '',
     payer: params.get('payer') ?? '',
     from: params.get('from') ?? '',
     to: params.get('to') ?? '',
+    split: (params.get('split') as ExpenseSplitFilter | null) || 'common',
   }
 }
 
@@ -49,6 +71,7 @@ export function filtersToSearch(filters: Partial<ExpenseFilterValues>): string {
   if (filters.payer) params.set('payer', filters.payer)
   if (filters.from) params.set('from', filters.from)
   if (filters.to) params.set('to', filters.to)
+  if (filters.split && filters.split !== 'common') params.set('split', filters.split)
   const search = params.toString()
   return search ? `?${search}` : ''
 }

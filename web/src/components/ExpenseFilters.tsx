@@ -92,6 +92,20 @@ export function ExpenseFilters({
         />
 
         <Select
+          value={filters.split}
+          onValueChange={(v) => onChange({ ...filters, split: v as ExpenseFilterValues['split'] })}
+        >
+          <SelectTrigger size="sm" className="w-full sm:w-auto sm:shrink-0 sm:px-1.5 sm:text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="common">{t('filters.common')}</SelectItem>
+            <SelectItem value="single">{t('filters.singleUser')}</SelectItem>
+            <SelectItem value="all">{t('filters.all')}</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select
           value={filters.category || ALL}
           onValueChange={(v) => onChange({ ...filters, category: v === ALL ? '' : v })}
         >
@@ -134,7 +148,7 @@ export function ExpenseFilters({
                   size="icon-sm"
                   className="shrink-0"
                   aria-label={t('filters.clear')}
-                  onClick={() => onChange(EMPTY_FILTERS)}
+                  onClick={() => onChange({ ...EMPTY_FILTERS, split: 'common' })}
                 >
                   <XIcon className="size-3.5" />
                 </Button>

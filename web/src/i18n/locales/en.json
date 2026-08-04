@@ -138,6 +138,8 @@
     "from": "from",
     "to": "to",
     "all": "all",
+    "common": "common",
+    "singleUser": "single-user",
     "clear": "clear",
     "title": "filters",
     "timeframe": "timeframe",

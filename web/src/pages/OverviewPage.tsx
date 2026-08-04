@@ -95,9 +95,9 @@ function TimeBucketEntry({
           below its own content size and stops it from correctly filling
           (and centering within) the available space. */}
       <div className="flex min-h-0 flex-1 flex-col justify-center">
-        <CategoryPieChart expenses={expenses} categories={categories} linkFilters={range} />
+        <CategoryPieChart expenses={expenses} categories={categories} linkFilters={{ ...range, split: 'all' }} />
       </div>
-      <FilterLink search={filtersToSearch(range)}>
+      <FilterLink search={filtersToSearch({ ...range, split: 'all' })}>
         <span className="font-medium block pt-1">{formatAmount(sum(expenses))}</span>
       </FilterLink>
     </div>
@@ -275,7 +275,7 @@ export function OverviewPage() {
               {t('overview.common')}
               <InfoTooltip>{t('overview.commonInfo')}</InfoTooltip>
             </span>
-            <CategoryPieChart expenses={common} categories={categories} linkFilters={{}} />
+            <CategoryPieChart expenses={common} categories={categories} linkFilters={{ split: 'common' }} />
             <span className="font-medium block pt-1">{formatAmount(commonTotal)}</span>
           </div>
           <div className="flex flex-col gap-1">
@@ -283,7 +283,7 @@ export function OverviewPage() {
               {t('overview.singleUser')}
               <InfoTooltip>{t('overview.singleUserInfo')}</InfoTooltip>
             </span>
-            <CategoryPieChart expenses={singleUser} categories={categories} linkFilters={{}} />
+            <CategoryPieChart expenses={singleUser} categories={categories} linkFilters={{ split: 'single' }} />
             <span className="font-medium block pt-1">{formatAmount(singleUserTotal)}</span>
             {singleUserByParticipant.length > 0 && <SingleUserBreakdown items={singleUserByParticipant} participants={participants} />}
           </div>
@@ -303,8 +303,8 @@ export function OverviewPage() {
             {t('overview.singleUser')}
             <InfoTooltip>{t('overview.singleUserInfo')}</InfoTooltip>
           </span>
-          <CategoryPieChart expenses={common} categories={categories} linkFilters={{}} />
-          <CategoryPieChart expenses={singleUser} categories={categories} linkFilters={{}} />
+          <CategoryPieChart expenses={common} categories={categories} linkFilters={{ split: 'common' }} />
+          <CategoryPieChart expenses={singleUser} categories={categories} linkFilters={{ split: 'single' }} />
           <span className="font-medium block pt-1">{formatAmount(commonTotal)}</span>
           <span className="font-medium block pt-1">{formatAmount(singleUserTotal)}</span>
           <span />
@@ -323,7 +323,7 @@ export function OverviewPage() {
           {byUser.map(([name, total], i) => {
             const person = participants.find((p) => p.name === name) ?? { name, icon: '' }
             return (
-              <FilterLink key={name} search={filtersToSearch({ payer: name })}>
+              <FilterLink key={name} search={filtersToSearch({ payer: name, split: 'all' })}>
                 <div className={i === byUser.length - 1 ? 'text-right' : undefined}>
                   <p className="text-muted-foreground text-sm">
                     <PersonName person={person} />
