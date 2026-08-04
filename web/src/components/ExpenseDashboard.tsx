@@ -14,6 +14,7 @@ import { findParticipant, PersonName } from '@/components/PersonName'
 import { useAdminSlotContainer, useSubHeaderContainer } from '@/components/subheader'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { todayIso } from '@/lib/date'
+import { isCommon } from '@/lib/expenses'
 import {
   EMPTY_FILTERS,
   filterExpenses,
@@ -119,6 +120,8 @@ export function ExpenseDashboard({
     monthFilter && !filters.from && !filters.to ? expenses.filter((e) => e.date.slice(0, 7) === thisMonth) : expenses
   const scoped = filterExpenses(monthScoped, filters)
   const total = scoped.reduce((sum, e) => sum + e.amount, 0)
+  const commonTotal = scoped.filter(isCommon).reduce((sum, e) => sum + e.amount, 0)
+  const singleUserTotal = total - commonTotal
   // Debt is a whole-picture concept — always computed unfiltered (this month, or
   // every expense for a trip), never scoped to the category/payer/date-range
   // filters, since "who owes whom" only makes sense across the full picture.
@@ -174,6 +177,12 @@ export function ExpenseDashboard({
                   <div>
                     <p className="text-muted-foreground text-sm">{t('home.total')}</p>
                     <p className="text-xl font-medium">{formatAmount(total)}</p>
+                    {total > 0 && (
+                      <p className="text-muted-foreground text-xs">
+                        {t('home.common')} {formatAmount(commonTotal)} · {t('home.singleUser')}{' '}
+                        {formatAmount(singleUserTotal)}
+                      </p>
+                    )}
                   </div>
                   <div className="text-right">
                     {balance ? (

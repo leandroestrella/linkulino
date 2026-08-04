@@ -26,6 +26,8 @@
   "home": {
     "thisMonth": "questo mese",
     "total": "totale",
+    "common": "comuni",
+    "singleUser": "individuali",
     "addExpense": "aggiungi spesa",
     "loading": "caricamento",
     "empty": "nessuna spesa ancora — aggiungi la prima.",

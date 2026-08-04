@@ -9,6 +9,7 @@ import { InfoTooltip } from '@/components/InfoTooltip'
 import { findParticipant, PersonName } from '@/components/PersonName'
 import { VacationsOverallCard } from '@/components/VacationsOverallCard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { isCommon } from '@/lib/expenses'
 import { filtersToSearch } from '@/lib/filters'
 import { formatAmount } from '@/lib/format'
 import { vacationsSummary } from '@/lib/vacations'
@@ -34,11 +35,6 @@ function totalsByParticipant(expenses: Expense[], participants: Participant[]): 
     }
   }
   return [...totals.entries()]
-}
-
-/** An expense is "common" when more than one participant has a nonzero share, else "single-user". */
-function isCommon(expense: Expense): boolean {
-  return Object.values(expense.splits).filter((pct) => pct > 0).length > 1
 }
 
 function sum(expenses: Expense[]): number {

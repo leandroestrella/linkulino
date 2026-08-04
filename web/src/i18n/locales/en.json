@@ -26,6 +26,8 @@
   "home": {
     "thisMonth": "this month",
     "total": "total",
+    "common": "common",
+    "singleUser": "single-user",
     "addExpense": "add expense",
     "loading": "loading",
     "empty": "no expenses yet — add the first one.",
