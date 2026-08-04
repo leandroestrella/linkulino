@@ -53,7 +53,12 @@ export function ExpenseFilters({
         {activeCount > 0 && ` (${activeCount})`}
       </Button>
 
-      <div className={`flex-wrap items-center gap-2 sm:flex-nowrap sm:gap-1 ${expanded ? 'flex' : 'hidden'} sm:flex`}>
+      {/* flex-wrap (not nowrap) at every breakpoint — with 7 controls in this row
+          now (timeframe, from, to, split, overhead, category, the payer+clear
+          pair), a fixed single row would either overflow or force every
+          control down to an unreadable width; wrapping lets it flow onto as
+          many rows as the available width actually needs. */}
+      <div className={`flex-wrap items-center gap-2 sm:gap-1 ${expanded ? 'flex' : 'hidden'} sm:flex`}>
         <Select
           value={timeframeKey ?? ALL}
           onValueChange={(v) => {
@@ -106,6 +111,20 @@ export function ExpenseFilters({
         </Select>
 
         <Select
+          value={filters.overhead}
+          onValueChange={(v) => onChange({ ...filters, overhead: v as ExpenseFilterValues['overhead'] })}
+        >
+          <SelectTrigger size="sm" className="w-full sm:w-auto sm:shrink-0 sm:px-1.5 sm:text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t('filters.all')}</SelectItem>
+            <SelectItem value="overhead">{t('filters.fourWalls')}</SelectItem>
+            <SelectItem value="discretionary">{t('filters.discretionary')}</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select
           value={filters.category || ALL}
           onValueChange={(v) => onChange({ ...filters, category: v === ALL ? '' : v })}
         >
@@ -122,9 +141,8 @@ export function ExpenseFilters({
           </SelectContent>
         </Select>
 
-        {/* Grouped so they wrap together as a pair on mobile (where the
-            submenu can still wrap) — on sm+ the row is nowrap so this is
-            just a shrink-0 unit at the end. */}
+        {/* Grouped so payer and the clear button always wrap together as a pair,
+            rather than the clear button ever landing alone on its own row. */}
         <div className="flex w-full shrink-0 items-center gap-2 sm:w-auto sm:gap-1">
           <Select value={filters.payer || ALL} onValueChange={(v) => onChange({ ...filters, payer: v === ALL ? '' : v })}>
             <SelectTrigger size="sm" className="w-full sm:w-auto sm:max-w-24 sm:shrink-0 sm:px-1.5 sm:text-sm">

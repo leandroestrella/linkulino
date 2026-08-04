@@ -63,7 +63,9 @@
     "splitTotalWarning": "le quote attualmente sommano a {{total}}%.",
     "newCategory": "aggiungi categoria",
     "newCategoryPlaceholder": "nome nuova categoria",
-    "newCategoryAdd": "aggiungi"
+    "newCategoryAdd": "aggiungi",
+    "newCategoryOverhead": "spesa fissa (\"quattro mura\")",
+    "newCategoryOverheadInfo": "spese essenziali — spesa alimentare, affitto, utenze, trasporti. Mostrata come sezione a parte nella pagina di riepilogo."
   },
   "trips": {
     "title": "viaggi",
@@ -89,6 +91,11 @@
   },
   "overview": {
     "title": "riepilogo",
+    "fourWalls": "le quattro mura",
+    "fourWallsInfo": "categorie contrassegnate come spesa fissa — di solito l'essenziale (spesa alimentare, affitto, utenze, trasporti) per andare avanti. contrassegna una categoria come spesa fissa quando la aggiungi.",
+    "discretionary": "spese voluttuarie",
+    "discretionaryInfo": "tutto ciò che non è contrassegnato come spesa fissa — spese oltre l'essenziale.",
+    "fourWallsAvgByMonthInfo": "media mensile — totale spesa fissa (da sempre) ÷ numero di mesi con almeno una spesa.",
     "byTimeframe": "per periodo",
     "byMonth": "per mese",
     "byYear": "per anno",
@@ -140,6 +147,8 @@
     "all": "tutti",
     "common": "comuni",
     "singleUser": "individuali",
+    "fourWalls": "quattro mura",
+    "discretionary": "voluttuarie",
     "clear": "cancella",
     "title": "filtri",
     "timeframe": "periodo",

@@ -506,7 +506,7 @@ function deleteTrip_(id) {
  * Appends a new category to the Categorie tab. Requires the tab to already
  * exist (see docs/sheet-setup.md) — it's not auto-created, since its column
  * order/header is meant to be set up once by hand.
- * @param {{name: string, icon: string}} input
+ * @param {{name: string, icon: string, overhead: boolean}} input
  * @return {Object} the created category
  */
 function addCategory_(input) {
@@ -514,7 +514,7 @@ function addCategory_(input) {
   var tab = getSpreadsheet_().getSheetByName(CATEGORIES_TAB)
   if (!tab) throw new Error('Missing sheet tab: ' + CATEGORIES_TAB)
 
-  var category = { name: cellToString(input.name), icon: cellToString(input.icon) }
+  var category = { name: cellToString(input.name), icon: cellToString(input.icon), overhead: !!input.overhead }
   tab.appendRow(buildCategoryRowValues(category))
   return category
 }

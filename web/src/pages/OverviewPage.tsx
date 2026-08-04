@@ -9,7 +9,8 @@ import { InfoTooltip } from '@/components/InfoTooltip'
 import { findParticipant, PersonName } from '@/components/PersonName'
 import { VacationsOverallCard } from '@/components/VacationsOverallCard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { isCommon } from '@/lib/expenses'
+import { todayIso } from '@/lib/date'
+import { isCommon, isOverheadExpense } from '@/lib/expenses'
 import { filtersToSearch } from '@/lib/filters'
 import { formatAmount } from '@/lib/format'
 import { vacationsSummary } from '@/lib/vacations'
@@ -80,7 +81,11 @@ function TimeBucketEntry({
   categories: Category[]
   range: { from: string; to: string }
 }) {
+  const { t } = useTranslation()
   const [key, expenses] = bucket
+  const total = sum(expenses)
+  const fourWalls = sum(expenses.filter((e) => isOverheadExpense(e, categories)))
+  const discretionary = total - fourWalls
   return (
     // flex-1 so this fills its grid cell's full stretched height (the cell
     // itself is just a plain div — nothing stretches this root to match
@@ -98,8 +103,11 @@ function TimeBucketEntry({
         <CategoryPieChart expenses={expenses} categories={categories} linkFilters={{ ...range, split: 'all' }} />
       </div>
       <FilterLink search={filtersToSearch({ ...range, split: 'all' })}>
-        <span className="font-medium block pt-1">{formatAmount(sum(expenses))}</span>
+        <span className="font-medium block pt-1">{formatAmount(total)}</span>
       </FilterLink>
+      <span className="text-muted-foreground block text-xs">
+        {t('overview.fourWalls')} {formatAmount(fourWalls)} · {t('overview.discretionary')} {formatAmount(discretionary)}
+      </span>
     </div>
   )
 }
@@ -149,11 +157,18 @@ export function OverviewPage() {
     )
   }, [])
 
+  const thisMonthKey = todayIso().slice(0, 7)
+  const thisMonthExpenses = household.filter((e) => e.date.slice(0, 7) === thisMonthKey)
+  const fourWallsTotal = sum(thisMonthExpenses.filter((e) => isOverheadExpense(e, categories)))
+  const discretionaryTotal = sum(thisMonthExpenses) - fourWallsTotal
+
   const byMonth = groupBy(household, (e) => e.date.slice(0, 7))
   const byYear = groupBy(household, (e) => e.date.slice(0, 4))
   const householdTotal = sum(household)
   const avgByMonth = byMonth.length > 0 ? householdTotal / byMonth.length : 0
   const avgByYear = byYear.length > 0 ? householdTotal / byYear.length : 0
+  const fourWallsAllTime = sum(household.filter((e) => isOverheadExpense(e, categories)))
+  const fourWallsAvgByMonth = byMonth.length > 0 ? fourWallsAllTime / byMonth.length : 0
   const vacationsStats = vacationsSummary(trips, vacations, participants.length)
   const byUser = totalsByParticipant(household, participants)
   const common = household.filter(isCommon)
@@ -171,6 +186,27 @@ export function OverviewPage() {
   return (
     <div className="flex flex-col gap-6">
       <h2 className="text-xl font-semibold">{t('overview.title')}</h2>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('overview.fourWalls')}</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-1">
+          <p className="text-muted-foreground text-sm">{t('home.thisMonth')}</p>
+          <p className="flex items-center gap-1.5 text-xl font-medium">
+            {formatAmount(fourWallsTotal)}
+            <InfoTooltip>{t('overview.fourWallsInfo')}</InfoTooltip>
+          </p>
+          <p className="text-muted-foreground flex items-center gap-1.5 text-sm">
+            {t('overview.discretionary')} {formatAmount(discretionaryTotal)}
+            <InfoTooltip>{t('overview.discretionaryInfo')}</InfoTooltip>
+          </p>
+          <p className="text-muted-foreground flex items-center gap-1.5 text-sm">
+            {t('overview.avgByMonth', { amount: formatAmount(fourWallsAvgByMonth) })}
+            <InfoTooltip>{t('overview.fourWallsAvgByMonthInfo')}</InfoTooltip>
+          </p>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

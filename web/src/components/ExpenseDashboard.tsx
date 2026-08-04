@@ -119,7 +119,7 @@ export function ExpenseDashboard({
   const thisMonth = todayIso().slice(0, 7)
   const monthScoped =
     monthFilter && !filters.from && !filters.to ? expenses.filter((e) => e.date.slice(0, 7) === thisMonth) : expenses
-  const scoped = filterExpenses(monthScoped, filters)
+  const scoped = filterExpenses(monthScoped, filters, categories)
   const total = scoped.reduce((sum, e) => sum + e.amount, 0)
   const commonTotal = scoped.filter(isCommon).reduce((sum, e) => sum + e.amount, 0)
   const singleUserTotal = total - commonTotal

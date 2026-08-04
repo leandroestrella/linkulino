@@ -73,18 +73,29 @@ Icon is any emoji, shown next to the participant's name throughout the app.
 
 One row per expense category:
 
-| Categoria | Emoji |
-| --- | --- |
-| Groceries | 🛒 |
-| Rent | 🏠 |
+| Categoria | Emoji | Overhead |
+| --- | --- | --- |
+| Groceries | 🛒 | `TRUE` |
+| Rent | 🏠 | `TRUE` |
+| Dining out | 🍽️ | |
 
-Fixed column positions (A = name, B = emoji) — no header-name resolution here,
-unlike Users. This is the source of truth for the category picker in the app;
-authorized users can also add a category from within the app (which appends a
-row here). It does **not** drive the household/trip tabs' own Categoria
-column dropdown (that's a separate data-validation list on each tab) — the
-two are independent, so add a category in both places if you want it
-available both in the app and as a native Sheets dropdown option.
+Fixed column positions (A = name, B = emoji, C = overhead) — no header-name
+resolution here, unlike Users. This is the source of truth for the category
+picker in the app; authorized users can also add a category from within the
+app (which appends a row here, including its overhead flag). It does **not**
+drive the household/trip tabs' own Categoria column dropdown (that's a
+separate data-validation list on each tab) — the two are independent, so add
+a category in both places if you want it available both in the app and as a
+native Sheets dropdown option.
+
+**Overhead (`TRUE`/`FALSE`, optional)** flags a category as an essential —
+the "four walls" budgeting term (groceries, rent, utilities, transport…):
+what it costs to keep going before any discretionary spending. The Overview
+page shows a monthly breakdown of overhead vs. everything else. Optional and
+backward-compatible — a blank cell, or the column missing entirely (rows
+written before it existed), reads as `false`. Toggling an *existing*
+category's flag is a direct sheet edit — the app can only set it when
+creating a new one.
 
 ## History
 

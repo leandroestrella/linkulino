@@ -63,7 +63,9 @@
     "splitTotalWarning": "el reparto actualmente suma {{total}}%.",
     "newCategory": "añadir categoría",
     "newCategoryPlaceholder": "nombre de la nueva categoría",
-    "newCategoryAdd": "añadir"
+    "newCategoryAdd": "añadir",
+    "newCategoryOverhead": "gasto fijo (\"cuatro paredes\")",
+    "newCategoryOverheadInfo": "gastos esenciales — compra, alquiler, suministros, transporte. Se muestra como su propio apartado en la página de resumen."
   },
   "trips": {
     "title": "viajes",
@@ -89,6 +91,11 @@
   },
   "overview": {
     "title": "resumen",
+    "fourWalls": "las cuatro paredes",
+    "fourWallsInfo": "categorías marcadas como gasto fijo — normalmente lo esencial (compra, alquiler, suministros, transporte) para salir adelante. marca una categoría como gasto fijo al añadirla.",
+    "discretionary": "gastos discrecionales",
+    "discretionaryInfo": "todo lo que no está marcado como gasto fijo — gastos más allá de lo esencial.",
+    "fourWallsAvgByMonthInfo": "media mensual — total de gasto fijo (histórico) ÷ número de meses con al menos un gasto.",
     "byTimeframe": "por periodo",
     "byMonth": "por mes",
     "byYear": "por año",
@@ -140,6 +147,8 @@
     "all": "todos",
     "common": "comunes",
     "singleUser": "individuales",
+    "fourWalls": "cuatro paredes",
+    "discretionary": "discrecionales",
     "clear": "borrar",
     "title": "filtros",
     "timeframe": "periodo",

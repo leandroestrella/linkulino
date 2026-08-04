@@ -52,6 +52,9 @@ var COL = {
 var CATEGORY_COL = {
   name: 0,
   icon: 1,
+  // Optional — a blank/missing cell (e.g. rows written before this column
+  // existed) reads as false, same as Ricorrente on the expense tabs.
+  overhead: 2,
 }
 
 // ---------------------------------------------------------------------------
@@ -230,26 +233,30 @@ function parseParticipants(values) {
 // ---------------------------------------------------------------------------
 
 /**
- * Parses the Categorie tab (fixed columns: A name, B icon).
+ * Parses the Categorie tab (fixed columns: A name, B icon, C overhead).
  * @param {Array<Array<*>>} values
- * @return {Array<{name: string, icon: string}>}
+ * @return {Array<{name: string, icon: string, overhead: boolean}>}
  */
 function parseCategories(values) {
   var categories = []
   for (var r = 1; r < values.length; r++) {
     var name = cellToString(values[r][CATEGORY_COL.name])
     if (!name) continue
-    categories.push({ name: name, icon: cellToString(values[r][CATEGORY_COL.icon]) })
+    categories.push({
+      name: name,
+      icon: cellToString(values[r][CATEGORY_COL.icon]),
+      overhead: cellToBool(values[r][CATEGORY_COL.overhead]),
+    })
   }
   return categories
 }
 
 /**
- * @param {{name: string, icon: string}} category
+ * @param {{name: string, icon: string, overhead: boolean}} category
  * @return {Array<*>} the row to append to the Categorie tab
  */
 function buildCategoryRowValues(category) {
-  return [cellToString(category.name), cellToString(category.icon)]
+  return [cellToString(category.name), cellToString(category.icon), !!category.overhead]
 }
 
 // ---------------------------------------------------------------------------

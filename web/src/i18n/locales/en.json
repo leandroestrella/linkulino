@@ -63,7 +63,9 @@
     "splitTotalWarning": "splits currently add up to {{total}}%.",
     "newCategory": "add category",
     "newCategoryPlaceholder": "new category name",
-    "newCategoryAdd": "add"
+    "newCategoryAdd": "add",
+    "newCategoryOverhead": "overhead (\"four walls\")",
+    "newCategoryOverheadInfo": "essential spending — groceries, rent, utilities, transport. Shown as its own breakdown on the overview page."
   },
   "trips": {
     "title": "vacations",
@@ -89,6 +91,11 @@
   },
   "overview": {
     "title": "overview",
+    "fourWalls": "four walls",
+    "fourWallsInfo": "categories flagged as overhead — typically the essentials (groceries, rent, utilities, transport) you need to get by. flag a category as overhead when adding it.",
+    "discretionary": "discretionary",
+    "discretionaryInfo": "everything not flagged as overhead — spending beyond the essentials.",
+    "fourWallsAvgByMonthInfo": "average per month — total overhead spent (all time) ÷ number of months with at least one expense.",
     "byTimeframe": "by timeframe",
     "byMonth": "by month",
     "byYear": "by year",
@@ -140,6 +147,8 @@
     "all": "all",
     "common": "common",
     "singleUser": "single-user",
+    "fourWalls": "four walls",
+    "discretionary": "discretionary",
     "clear": "clear",
     "title": "filters",
     "timeframe": "timeframe",

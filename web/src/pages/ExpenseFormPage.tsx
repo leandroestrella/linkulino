@@ -14,6 +14,7 @@ import {
 import type { Category, Participant } from '@/api/types'
 import { useAuth } from '@/auth/AuthProvider'
 import { BackLink } from '@/components/BackLink'
+import { InfoTooltip } from '@/components/InfoTooltip'
 import { LoadingAvatar } from '@/components/LoadingAvatar'
 import { PersonIcon } from '@/components/PersonName'
 import { useAdminAction } from '@/hooks/useAdminAction'
@@ -85,6 +86,7 @@ export function ExpenseFormPage({ mode }: { mode: 'add' | 'edit' }) {
   const [addingCategory, setAddingCategory] = useState(false)
   const [newCategoryName, setNewCategoryName] = useState('')
   const [newCategoryIcon, setNewCategoryIcon] = useState('')
+  const [newCategoryOverhead, setNewCategoryOverhead] = useState(false)
 
   useEffect(() => {
     void Promise.all([
@@ -152,12 +154,13 @@ export function ExpenseFormPage({ mode }: { mode: 'add' | 'edit' }) {
   async function handleAddCategory() {
     if (!newCategoryName.trim()) return
     await run(
-      () => addCategory({ name: newCategoryName.trim(), icon: newCategoryIcon.trim() }),
+      () => addCategory({ name: newCategoryName.trim(), icon: newCategoryIcon.trim(), overhead: newCategoryOverhead }),
       (created) => {
         setCategories((c) => [...c, created])
         setCategory(created.name)
         setNewCategoryName('')
         setNewCategoryIcon('')
+        setNewCategoryOverhead(false)
         setAddingCategory(false)
       },
     )
@@ -233,23 +236,36 @@ export function ExpenseFormPage({ mode }: { mode: 'add' | 'edit' }) {
                 </SelectContent>
               </Select>
               {addingCategory && (
-                <div className="bg-muted flex items-center gap-2 rounded-md p-2">
-                  <Input
-                    value={newCategoryIcon}
-                    onChange={(e) => setNewCategoryIcon(e.target.value)}
-                    placeholder="🏷️"
-                    className="w-14 text-center"
-                    maxLength={2}
-                  />
-                  <Input
-                    value={newCategoryName}
-                    onChange={(e) => setNewCategoryName(e.target.value)}
-                    placeholder={t('form.newCategoryPlaceholder')}
-                    className="flex-1"
-                  />
-                  <Button type="button" size="sm" disabled={busy} onClick={() => void handleAddCategory()}>
-                    {t('form.newCategoryAdd')}
-                  </Button>
+                <div className="bg-muted flex flex-col gap-2 rounded-md p-2">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={newCategoryIcon}
+                      onChange={(e) => setNewCategoryIcon(e.target.value)}
+                      placeholder="🏷️"
+                      className="w-14 text-center"
+                      maxLength={2}
+                    />
+                    <Input
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      placeholder={t('form.newCategoryPlaceholder')}
+                      className="flex-1"
+                    />
+                    <Button type="button" size="sm" disabled={busy} onClick={() => void handleAddCategory()}>
+                      {t('form.newCategoryAdd')}
+                    </Button>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Checkbox
+                      id="newCategoryOverhead"
+                      checked={newCategoryOverhead}
+                      onCheckedChange={(checked) => setNewCategoryOverhead(checked === true)}
+                    />
+                    <Label htmlFor="newCategoryOverhead" className="text-sm font-normal">
+                      {t('form.newCategoryOverhead')}
+                    </Label>
+                    <InfoTooltip>{t('form.newCategoryOverheadInfo')}</InfoTooltip>
+                  </div>
                 </div>
               )}
             </div>

@@ -27,7 +27,7 @@ flowchart LR
 - ➕ quick-add and edit for expenses — date, description, category, payer and total, split however you like (defaults to 50/50); only signed-in, allowlisted partners can write
 - 🧮 auto-computed share per person — quota %, quota in your currency, and a single "who owes whom" line rather than showing the same balance twice
 - 🎨 emoji everywhere — each partner and each category gets an icon (set on the sheet, editable there or added from the app); categories can be created on the fly by authorized users
-- 📊 a monthly dashboard plus a full overview page — totals and monthly/yearly averages by timeframe, vacations combined, by person, and common vs. single-user expenses, with a hover tooltip on every calculated figure explaining how it's derived
+- 📊 a monthly dashboard plus a full overview page — totals and monthly/yearly averages by timeframe, vacations combined, by person, common vs. single-user expenses, and a "four walls" breakdown of essential vs. discretionary spending, with a hover tooltip on every calculated figure explaining how it's derived
 - 🔁 recurring expenses — flag a bill (rent, internet…) once and it's recreated automatically every month
 - 🧳 a vacations tab — spin up a new trip in one step (the backend builds its tab from scratch, formulas included) or edit its name, icon and dates later, see it grouped as current / upcoming / past, with current and upcoming trips surfaced right on the home page
 - 🔍 filter the dashboard by category, payer, or date range — including one-click shortcuts for common timeframes (this/last month, last 7/30/90 days, this/last year…) — and jump straight into a filtered view by clicking any value on the overview page

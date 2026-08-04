@@ -42,12 +42,12 @@ export const MOCK_PARTICIPANTS: Participant[] = [
 ]
 
 export const MOCK_CATEGORIES: Category[] = [
-  { name: 'groceries', icon: '🛒' },
-  { name: 'rent', icon: '🏠' },
-  { name: 'utilities', icon: '💡' },
-  { name: 'dining out', icon: '🍽️' },
-  { name: 'transport', icon: '🚌' },
-  { name: 'other', icon: '❔' },
+  { name: 'groceries', icon: '🛒', overhead: true },
+  { name: 'rent', icon: '🏠', overhead: true },
+  { name: 'utilities', icon: '💡', overhead: true },
+  { name: 'dining out', icon: '🍽️', overhead: false },
+  { name: 'transport', icon: '🚌', overhead: false },
+  { name: 'other', icon: '❔', overhead: false },
 ]
 
 export const MOCK_TRIPS: Trip[] = [
@@ -105,6 +105,26 @@ export const MOCK_EXPENSES: Expense[] = [
     payer: 'mara',
     amount: 24,
     splits: { momra: 0, mara: 100 },
+    recurring: false,
+  },
+  {
+    id: 'exp-4c',
+    date: ymd(0, 8),
+    description: 'date night dinner',
+    category: 'dining out',
+    payer: 'mara',
+    amount: 58,
+    splits: { momra: 50, mara: 50 },
+    recurring: false,
+  },
+  {
+    id: 'exp-4d',
+    date: ymd(0, 20),
+    description: 'train tickets',
+    category: 'transport',
+    payer: 'momra',
+    amount: 32,
+    splits: { momra: 50, mara: 50 },
     recurring: false,
   },
   {

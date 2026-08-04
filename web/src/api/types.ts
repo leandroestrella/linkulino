@@ -16,6 +16,8 @@ export interface Participant {
 export interface Category {
   name: string
   icon: string
+  /** Flags an essential/"four walls" category (groceries, rent, utilities, transport…) for the Overview page's breakdown. */
+  overhead: boolean
 }
 
 /** Fields accepted when creating a category. */

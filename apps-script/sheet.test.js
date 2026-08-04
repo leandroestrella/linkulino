@@ -93,21 +93,40 @@ test('parseParticipants tolerates a missing or headerless tab', () => {
   assert.deepEqual(sheet.parseParticipants([['no name column here']]), { a: null, b: null })
 })
 
-test('parseCategories reads name/icon pairs, skipping the header and blank rows', () => {
+test('parseCategories reads name/icon/overhead, skipping the header and blank rows', () => {
   const values = [
-    ['Categoria', 'Emoji'],
-    ['Groceries', '🛒'],
-    ['', ''],
-    ['Rent', '🏠'],
+    ['Categoria', 'Emoji', 'Overhead'],
+    ['Groceries', '🛒', true],
+    ['', '', ''],
+    ['Rent', '🏠', 'TRUE'],
+    ['Dining out', '🍽️', ''],
   ]
   assert.deepEqual(sheet.parseCategories(values), [
-    { name: 'Groceries', icon: '🛒' },
-    { name: 'Rent', icon: '🏠' },
+    { name: 'Groceries', icon: '🛒', overhead: true },
+    { name: 'Rent', icon: '🏠', overhead: true },
+    { name: 'Dining out', icon: '🍽️', overhead: false },
   ])
 })
 
+test('parseCategories defaults overhead to false when the column is missing entirely', () => {
+  const values = [
+    ['Categoria', 'Emoji'],
+    ['Groceries', '🛒'],
+  ]
+  assert.deepEqual(sheet.parseCategories(values), [{ name: 'Groceries', icon: '🛒', overhead: false }])
+})
+
 test('buildCategoryRowValues builds the row to append', () => {
-  assert.deepEqual(sheet.buildCategoryRowValues({ name: 'Groceries', icon: '🛒' }), ['Groceries', '🛒'])
+  assert.deepEqual(sheet.buildCategoryRowValues({ name: 'Groceries', icon: '🛒', overhead: true }), [
+    'Groceries',
+    '🛒',
+    true,
+  ])
+  assert.deepEqual(sheet.buildCategoryRowValues({ name: 'Dining out', icon: '🍽️', overhead: false }), [
+    'Dining out',
+    '🍽️',
+    false,
+  ])
 })
 
 test('cellToIsoDate handles Date objects and DD/MM/YYYY strings', () => {
