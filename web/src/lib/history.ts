@@ -25,6 +25,9 @@ export function diffExpense(before: Expense | null, after: ExpenseLike): string 
   if (before.payer !== after.payer) parts.push(`payer: ${before.payer} → ${after.payer}`)
   if (before.amount !== after.amount) parts.push(`amount: ${before.amount} → ${after.amount}`)
   if (!!before.recurring !== !!after.recurring) parts.push(`recurring: ${!!before.recurring} → ${!!after.recurring}`)
+  if ((before.notes || '') !== (after.notes || '')) {
+    parts.push(`notes: ${before.notes || '(none)'} → ${after.notes || '(none)'}`)
+  }
 
   const names = new Set([...Object.keys(before.splits || {}), ...Object.keys(after.splits || {})])
   for (const name of names) {

@@ -343,14 +343,15 @@ function deleteExpense_(id, sheetId) {
 }
 
 /**
- * Writes an expense's A–E cells, its two Quota % cells (wherever
- * resolveExpenseColumns found them), and its recurring flag (only when
- * `includeRecurring` AND the tab has a Ricorrente column) to a specific row.
+ * Writes an expense's A–E cells, its two Quota % cells, its recurring flag
+ * (only when `includeRecurring` AND the tab has a Ricorrente column), and its
+ * notes (whenever the tab has a Note column) — wherever resolveExpenseColumns
+ * found each — to a specific row.
  * @param {GoogleAppsScript.Spreadsheet.Sheet} tab
  * @param {number} rowNumber 1-based
  * @param {Object} input
  * @param {{a: {name: string}|null, b: {name: string}|null}} participants
- * @param {{splitA: number, splitB: number, recurring: number}} cols see resolveExpenseColumns
+ * @param {{splitA: number, splitB: number, recurring: number, notes: number}} cols see resolveExpenseColumns
  * @param {boolean} includeRecurring
  */
 function writeExpenseRow_(tab, rowNumber, input, participants, cols, includeRecurring) {
@@ -363,6 +364,10 @@ function writeExpenseRow_(tab, rowNumber, input, participants, cols, includeRecu
 
   if (includeRecurring && cols.recurring !== -1) {
     tab.getRange(rowNumber, cols.recurring + 1).setValue(!!input.recurring)
+  }
+
+  if (cols.notes !== -1) {
+    tab.getRange(rowNumber, cols.notes + 1).setValue(cellToString(input.notes))
   }
 }
 

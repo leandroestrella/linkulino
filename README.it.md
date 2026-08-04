@@ -24,13 +24,13 @@ flowchart LR
 
 ## funzionalità
 
-- ➕ aggiunta e modifica rapida delle spese — data, descrizione, categoria, chi ha pagato e totale, diviso come preferisci (50/50 di default); solo i partner autenticati e autorizzati possono scrivere
+- ➕ aggiunta e modifica rapida delle spese — data, descrizione, categoria, chi ha pagato e totale, diviso come preferisci (50/50 di default), più una nota libera facoltativa; solo i partner autenticati e autorizzati possono scrivere
 - 🧮 quota per persona calcolata automaticamente — quota %, quota nella tua valuta, e un'unica riga "chi deve cosa a chi" invece di mostrare due volte lo stesso saldo
 - 🎨 emoji ovunque — ogni partner e ogni categoria ha un'icona (impostata sul foglio, modificabile lì o aggiunta dall'app); le categorie possono essere create al volo dagli utenti autorizzati
 - 📊 una dashboard mensile più una pagina di riepilogo completa — totali e medie mensili/annuali per periodo, vacanze combinate, per persona, spese comuni vs. individuali, e una ripartizione "le quattro mura" tra spese essenziali e voluttuarie, con un tooltip al passaggio del mouse su ogni valore calcolato che ne spiega il calcolo
 - 🔁 spese ricorrenti — segna una bolletta (affitto, internet…) una volta sola e viene ricreata automaticamente ogni mese
 - 🧳 una scheda vacanze — crea un nuovo viaggio in un passaggio (il backend costruisce la sua scheda da zero, formule incluse) oppure modifica nome, icona e date in seguito, vedendolo raggruppato come in corso / futuro / passato, con i viaggi in corso e futuri mostrati direttamente nella home
-- 🔍 filtra la dashboard per categoria, chi ha pagato, o intervallo di date — comprese scorciatoie con un clic per i periodi comuni (questo/scorso mese, ultimi 7/30/90 giorni, quest'anno/l'anno scorso…) — e passa direttamente a una vista filtrata cliccando su qualsiasi valore nella pagina di riepilogo
+- 🔍 filtra la dashboard per categoria, chi ha pagato, intervallo di date, comuni vs. individuali, o quattro mura vs. voluttuarie — comprese scorciatoie con un clic per i periodi comuni (questo/scorso mese, ultimi 7/30/90 giorni, quest'anno/l'anno scorso…) — e passa direttamente a una vista filtrata cliccando su qualsiasi valore nella pagina di riepilogo
 - 🔒 privato per impostazione predefinita — il foglio non è mai condiviso tramite link, e il backend verifica un google id token contro la lista `Users` a **ogni** chiamata, così un visitatore anonimo non vede un solo byte del tuo registro
 - 🎭 una demo integrata — chi non ha effettuato l'accesso entra in un'app pienamente funzionante con dati di esempio (naviga, filtra, aggiunge e modifica), così puoi mostrare a qualcuno come funziona senza dargli i tuoi numeri; accedendo, la stessa interfaccia passa al tuo foglio reale
 - 🕘 un registro attività — ogni aggiunta, modifica o eliminazione (spesa, viaggio o categoria) viene registrata con chi, quando, e cosa è cambiato esattamente, consultabile nella sua pagina

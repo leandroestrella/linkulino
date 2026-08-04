@@ -49,6 +49,8 @@
     "splitPercent": "split %",
     "splitEven": "even split",
     "splitCustom": "custom",
+    "notes": "notes",
+    "notesPlaceholder": "anything worth remembering about this expense",
     "recurring": "repeats every month",
     "save": "save",
     "saving": "saving",

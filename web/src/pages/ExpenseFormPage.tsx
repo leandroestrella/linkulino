@@ -30,6 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { todayIso as today } from '@/lib/date'
 
@@ -80,6 +81,7 @@ export function ExpenseFormPage({ mode }: { mode: 'add' | 'edit' }) {
   const [splits, setSplits] = useState<Record<string, number>>({})
   const [splitMode, setSplitMode] = useState('even')
   const [recurring, setRecurring] = useState(false)
+  const [notes, setNotes] = useState('')
   const { run, busy, error, setError } = useAdminAction()
   const [loaded, setLoaded] = useState(false)
 
@@ -106,6 +108,7 @@ export function ExpenseFormPage({ mode }: { mode: 'add' | 'edit' }) {
         setSplits(existing.splits)
         setSplitMode(matchSplitMode(existing.splits, p))
         setRecurring(existing.recurring)
+        setNotes(existing.notes)
       } else {
         setSplits(evenSplit(p))
         setSplitMode('even')
@@ -127,7 +130,7 @@ export function ExpenseFormPage({ mode }: { mode: 'add' | 'edit' }) {
     if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) return setError(t('form.errorAmountInvalid'))
     if (Math.round(splitTotal) !== 100) return setError(t('form.errorSplitTotal'))
 
-    const payload = { date, description, category, payer, amount: parsedAmount, splits, recurring }
+    const payload = { date, description, category, payer, amount: parsedAmount, splits, recurring, notes: notes.trim() }
     await run(
       () => (mode === 'edit' && id ? updateExpense(id, payload, tripId) : addExpense(payload, tripId)),
       () => navigate(tripId ? `/trips/${tripId}` : '/'),
@@ -357,6 +360,17 @@ export function ExpenseFormPage({ mode }: { mode: 'add' | 'edit' }) {
                   {t('form.splitTotalWarning', { total: splitTotal })}
                 </p>
               )}
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="notes">{t('form.notes')}</Label>
+              <Textarea
+                id="notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder={t('form.notesPlaceholder')}
+                rows={2}
+              />
             </div>
 
             {/* Recurring only applies to the household budget — trips are time-boxed. */}

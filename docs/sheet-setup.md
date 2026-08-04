@@ -155,6 +155,7 @@ neither is assumed:
 | header (matched case-insensitively) | contents |
 | --- | --- |
 | starts with "Ricorrente" | **household tab only** — `TRUE`/`FALSE`, flags an expense (e.g. rent, internet) that repeats every month. Optional; simply omit the column on tabs where it doesn't apply |
+| starts with "Note" | free-text note on the expense (e.g. "landlord: mr. keys"). Optional, works on both household and trip tabs; a recreated recurring expense carries its template's note forward |
 | starts with "Quota %" (1st occurrence) | Persona A's split %, defaults to 50 |
 | starts with "Quota %" (2nd occurrence) | Persona B's split %, defaults to 50 |
 | Quota € / Saldo columns | **formulas**, e.g. `= E * F / 100` — never written to, and don't need a specific header text since the backend never looks for them |

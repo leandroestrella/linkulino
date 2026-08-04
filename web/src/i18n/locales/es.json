@@ -49,6 +49,8 @@
     "splitPercent": "reparto %",
     "splitEven": "reparto equitativo",
     "splitCustom": "personalizado",
+    "notes": "notas",
+    "notesPlaceholder": "algo que merezca la pena recordar sobre este gasto",
     "recurring": "se repite cada mes",
     "save": "guardar",
     "saving": "guardando",

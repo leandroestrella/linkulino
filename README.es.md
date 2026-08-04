@@ -24,13 +24,13 @@ flowchart LR
 
 ## funcionalidades
 
-- ➕ alta y edición rápida de gastos — fecha, descripción, categoría, quién pagó y total, repartido como prefieras (50/50 por defecto); solo los miembros autenticados y autorizados pueden escribir
+- ➕ alta y edición rápida de gastos — fecha, descripción, categoría, quién pagó y total, repartido como prefieras (50/50 por defecto), más una nota libre opcional; solo los miembros autenticados y autorizados pueden escribir
 - 🧮 cuota por persona calculada automáticamente — cuota %, cuota en tu moneda, y una única línea de "quién le debe a quién" en lugar de mostrar el mismo saldo dos veces
 - 🎨 emojis por todas partes — cada persona y cada categoría tiene un icono (configurado en la hoja, editable ahí o añadido desde la app); las categorías pueden crearse al vuelo por usuarios autorizados
 - 📊 un panel mensual más una página de resumen completa — totales y medias mensuales/anuales por periodo, vacaciones combinadas, por persona, gastos comunes vs. individuales, y un desglose "las cuatro paredes" entre gastos esenciales y discrecionales, con un tooltip al pasar el ratón sobre cada valor calculado que explica cómo se obtiene
 - 🔁 gastos recurrentes — marca una factura (alquiler, internet…) una sola vez y se recrea automáticamente cada mes
 - 🧳 una pestaña de vacaciones — crea un viaje nuevo en un paso (el backend construye su pestaña desde cero, fórmulas incluidas) o edita su nombre, icono y fechas más tarde, viéndolo agrupado como en curso / próximo / pasado, con los viajes en curso y próximos mostrados directamente en la página de inicio
-- 🔍 filtra el panel por categoría, quién pagó, o rango de fechas — incluyendo atajos de un clic para periodos habituales (este/el mes pasado, últimos 7/30/90 días, este/el año pasado…) — y salta directamente a una vista filtrada haciendo clic en cualquier valor de la página de resumen
+- 🔍 filtra el panel por categoría, quién pagó, rango de fechas, comunes vs. individuales, o cuatro paredes vs. discrecionales — incluyendo atajos de un clic para periodos habituales (este/el mes pasado, últimos 7/30/90 días, este/el año pasado…) — y salta directamente a una vista filtrada haciendo clic en cualquier valor de la página de resumen
 - 🔒 privado por defecto — la hoja nunca se comparte por enlace, y el backend verifica un google id token contra la lista `Users` en **cada** llamada, así que un visitante anónimo no ve ni un byte de tu registro
 - 🎭 una demo integrada — quien no ha iniciado sesión entra en una app plenamente funcional con datos de ejemplo (navega, filtra, añade y edita), así puedes enseñar cómo funciona sin dar tus números; al iniciar sesión, la misma interfaz pasa a tu hoja real
 - 🕘 un registro de actividad — cada alta, edición o eliminación (gasto, viaje o categoría) queda registrada con quién, cuándo, y qué cambió exactamente, consultable en su propia página

@@ -66,6 +66,7 @@ export const MOCK_EXPENSES: Expense[] = [
     amount: 1200,
     splits: { momra: 50, mara: 50 },
     recurring: true,
+    notes: 'landlord: mr. keys, bank transfer on the 1st',
   },
   {
     id: 'exp-2',
@@ -76,6 +77,7 @@ export const MOCK_EXPENSES: Expense[] = [
     amount: 84.5,
     splits: { momra: 50, mara: 50 },
     recurring: false,
+    notes: '',
   },
   {
     id: 'exp-3',
@@ -86,6 +88,7 @@ export const MOCK_EXPENSES: Expense[] = [
     amount: 63.2,
     splits: { momra: 50, mara: 50 },
     recurring: false,
+    notes: '',
   },
   {
     id: 'exp-4',
@@ -96,6 +99,7 @@ export const MOCK_EXPENSES: Expense[] = [
     amount: 89,
     splits: { momra: 100, mara: 0 },
     recurring: false,
+    notes: '',
   },
   {
     id: 'exp-4b',
@@ -106,6 +110,7 @@ export const MOCK_EXPENSES: Expense[] = [
     amount: 24,
     splits: { momra: 0, mara: 100 },
     recurring: false,
+    notes: '',
   },
   {
     id: 'exp-4c',
@@ -116,6 +121,7 @@ export const MOCK_EXPENSES: Expense[] = [
     amount: 58,
     splits: { momra: 50, mara: 50 },
     recurring: false,
+    notes: 'anniversary dinner at bella vista',
   },
   {
     id: 'exp-4d',
@@ -126,6 +132,7 @@ export const MOCK_EXPENSES: Expense[] = [
     amount: 32,
     splits: { momra: 50, mara: 50 },
     recurring: false,
+    notes: '',
   },
   {
     id: 'exp-5',
@@ -136,6 +143,7 @@ export const MOCK_EXPENSES: Expense[] = [
     amount: 1200,
     splits: { momra: 50, mara: 50 },
     recurring: true,
+    notes: '',
   },
   {
     id: 'exp-6',
@@ -149,6 +157,7 @@ export const MOCK_EXPENSES: Expense[] = [
     amount: 76.3,
     splits: { momra: 50, mara: 50 },
     recurring: false,
+    notes: '',
   },
   {
     id: 'exp-7',
@@ -159,6 +168,7 @@ export const MOCK_EXPENSES: Expense[] = [
     amount: 210,
     splits: { momra: 50, mara: 50 },
     recurring: false,
+    notes: '',
   },
 ]
 
@@ -173,6 +183,7 @@ export const MOCK_TRIP_EXPENSES: Record<string, Expense[]> = {
       amount: 640,
       splits: { momra: 50, mara: 50 },
       recurring: false,
+    notes: '',
     },
   ],
   '🏖️ seaside': [
@@ -185,6 +196,7 @@ export const MOCK_TRIP_EXPENSES: Record<string, Expense[]> = {
       amount: 480,
       splits: { momra: 50, mara: 50 },
       recurring: false,
+    notes: '',
     },
   ],
 }

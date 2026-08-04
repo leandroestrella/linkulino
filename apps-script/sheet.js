@@ -279,20 +279,22 @@ function findHeaderRowIndex(values) {
 
 /**
  * Locates the two Quota % columns (in order — first found is Persona A's) and
- * the optional Ricorrente column, by header text, searching only past the
- * fixed A–E columns. This is what lets the household tab have Ricorrente
+ * the optional Ricorrente/Note columns, by header text, searching only past
+ * the fixed A–E columns. This is what lets the household tab have Ricorrente
  * inserted BEFORE the quotas while trip tabs have no Ricorrente column at all
  * — both layouts resolve correctly instead of assuming one fixed position.
  * @param {Array<*>} headerRow the header row (see findHeaderRowIndex)
- * @return {{splitA: number, splitB: number, recurring: number}} 0-based indexes, -1 if absent
+ * @return {{splitA: number, splitB: number, recurring: number, notes: number}} 0-based indexes, -1 if absent
  */
 function resolveExpenseColumns(headerRow) {
-  var cols = { splitA: -1, splitB: -1, recurring: -1 }
+  var cols = { splitA: -1, splitB: -1, recurring: -1, notes: -1 }
   var splitsSeen = 0
   for (var i = COL.amount + 1; i < headerRow.length; i++) {
     var label = cellToString(headerRow[i]).toLowerCase()
     if (label.indexOf('ricorrente') === 0) {
       cols.recurring = i
+    } else if (label.indexOf('note') === 0) {
+      cols.notes = i
     } else if (label.indexOf('quota %') === 0) {
       if (splitsSeen === 0) cols.splitA = i
       else if (splitsSeen === 1) cols.splitB = i
@@ -307,7 +309,7 @@ function resolveExpenseColumns(headerRow) {
  * @param {Array<*>} row
  * @param {number} rowNumber 1-based sheet row number (becomes the expense id)
  * @param {{a: {name: string}|null, b: {name: string}|null}} participants
- * @param {{splitA: number, splitB: number, recurring: number}} cols see resolveExpenseColumns
+ * @param {{splitA: number, splitB: number, recurring: number, notes: number}} cols see resolveExpenseColumns
  * @return {Object|null}
  */
 function rowToExpense(row, rowNumber, participants, cols) {
@@ -328,6 +330,7 @@ function rowToExpense(row, rowNumber, participants, cols) {
     amount: cellToNumber(row[COL.amount]),
     splits: splits,
     recurring: cols.recurring !== -1 ? cellToBool(row[cols.recurring]) : false,
+    notes: cols.notes !== -1 ? cellToString(row[cols.notes]) : '',
   }
 }
 
@@ -452,6 +455,9 @@ function diffExpense(before, after) {
   if (before.amount !== after.amount) parts.push('amount: ' + before.amount + ' → ' + after.amount)
   if (!!before.recurring !== !!after.recurring) {
     parts.push('recurring: ' + !!before.recurring + ' → ' + !!after.recurring)
+  }
+  if ((before.notes || '') !== (after.notes || '')) {
+    parts.push('notes: ' + (before.notes || '(none)') + ' → ' + (after.notes || '(none)'))
   }
   var names = {}
   var beforeSplits = before.splits || {}
@@ -590,6 +596,7 @@ function expensesToRecreateThisMonth(expenses, todayIso) {
       amount: template.amount,
       splits: template.splits,
       recurring: true,
+      notes: template.notes,
     })
   }
   return toCreate

@@ -37,6 +37,8 @@ export interface Expense {
   splits: Record<string, number>
   /** True for expenses that repeat every month (e.g. rent, internet). */
   recurring: boolean
+  /** Optional free-text note — e.g. "split with the neighbors too". */
+  notes: string
 }
 
 /** Fields accepted when creating or editing an expense. The backend assigns `id`. */

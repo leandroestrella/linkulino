@@ -49,6 +49,8 @@
     "splitPercent": "quota %",
     "splitEven": "quota paritaria",
     "splitCustom": "personalizzata",
+    "notes": "note",
+    "notesPlaceholder": "qualcosa da ricordare su questa spesa",
     "recurring": "si ripete ogni mese",
     "save": "salva",
     "saving": "salvataggio",

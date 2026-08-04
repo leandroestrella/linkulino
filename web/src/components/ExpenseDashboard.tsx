@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { RepeatIcon, PencilIcon } from 'lucide-react'
+import { RepeatIcon, PencilIcon, StickyNoteIcon } from 'lucide-react'
 import { getCategories, getExpenses, getParticipants } from '@/api/client'
 import type { Category, Expense, Participant } from '@/api/types'
 import { useAuth } from '@/auth/AuthProvider'
@@ -239,6 +239,17 @@ export function ExpenseDashboard({
                           />
                         </TooltipTrigger>
                         <TooltipContent>{t('form.recurring')}</TooltipContent>
+                      </Tooltip>
+                    )}
+                    {expense.notes && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <StickyNoteIcon
+                            className="text-muted-foreground size-3.5 shrink-0"
+                            aria-label={t('form.notes')}
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-56">{expense.notes}</TooltipContent>
                       </Tooltip>
                     )}
                   </p>

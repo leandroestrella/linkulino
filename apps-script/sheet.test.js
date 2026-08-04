@@ -213,12 +213,29 @@ test('findHeaderRowIndex locates the "Data" row', () => {
 
 test('resolveExpenseColumns finds Ricorrente before the quotas (household layout)', () => {
   const { values } = householdFixture()
-  assert.deepEqual(sheet.resolveExpenseColumns(values[3]), { splitA: 6, splitB: 7, recurring: 5 })
+  assert.deepEqual(sheet.resolveExpenseColumns(values[3]), { splitA: 6, splitB: 7, recurring: 5, notes: -1 })
 })
 
 test('resolveExpenseColumns finds no Ricorrente column on a trip tab', () => {
   const { values } = tripFixture()
-  assert.deepEqual(sheet.resolveExpenseColumns(values[3]), { splitA: 5, splitB: 6, recurring: -1 })
+  assert.deepEqual(sheet.resolveExpenseColumns(values[3]), { splitA: 5, splitB: 6, recurring: -1, notes: -1 })
+})
+
+test('resolveExpenseColumns finds a Note column after the quotas', () => {
+  const header = [
+    'Data',
+    'Descrizione',
+    'Categoria',
+    'Pagato da',
+    'Importo (€)',
+    'Quota % Alex',
+    'Quota % Sam',
+    'Quota Alex (€)',
+    'Quota Sam (€)',
+    'Saldo',
+    'Note',
+  ]
+  assert.deepEqual(sheet.resolveExpenseColumns(header), { splitA: 5, splitB: 6, recurring: -1, notes: 10 })
 })
 
 test('parseExpenses maps filled rows and skips blank slots (household layout)', () => {
@@ -234,6 +251,7 @@ test('parseExpenses maps filled rows and skips blank slots (household layout)', 
     amount: 20.08,
     splits: { Alex: 50, Sam: 50 },
     recurring: true,
+    notes: '',
   })
 })
 
@@ -250,7 +268,21 @@ test('parseExpenses maps a trip tab with no Ricorrente column', () => {
     amount: 20.08,
     splits: { Alex: 50, Sam: 50 },
     recurring: false,
+    notes: '',
   })
+})
+
+test('parseExpenses reads a Note column when present', () => {
+  const participants = { a: { name: 'Alex', icon: '🧮' }, b: { name: 'Sam', icon: '🎯' } }
+  const values = [
+    ['casa', 'casa nostra', '', '', ''],
+    ['Totale speso', '€ 20.08'],
+    ['Saldo attuale', 'Sam deve a Alex: € 10.04'],
+    ['Data', 'Descrizione', 'Categoria', 'Pagato da', 'Importo (€)', 'Quota % Alex', 'Quota % Sam', 'Note'],
+    ['03/07/2026', 'groceries', 'Spesa', 'Alex', 20.08, 50, 50, 'bought at the farmers market'],
+  ]
+  const expenses = sheet.parseExpenses(values, participants)
+  assert.equal(expenses[0].notes, 'bought at the farmers market')
 })
 
 test('findBlankSlotRow finds the first fully-empty row after the header', () => {
@@ -292,7 +324,7 @@ test('buildSplitValues maps splits by participant name', () => {
   assert.deepEqual(row, [30, 70])
 })
 
-test('expensesToRecreateThisMonth recreates a recurring expense not yet logged this month', () => {
+test('expensesToRecreateThisMonth recreates a recurring expense not yet logged this month, carrying its notes', () => {
   const expenses = [
     {
       id: '1',
@@ -303,6 +335,7 @@ test('expensesToRecreateThisMonth recreates a recurring expense not yet logged t
       amount: 22.9,
       splits: { Alex: 50, Sam: 50 },
       recurring: true,
+      notes: 'autopay from the joint account',
     },
   ]
   const toCreate = sheet.expensesToRecreateThisMonth(expenses, '2026-07-01')
@@ -315,6 +348,7 @@ test('expensesToRecreateThisMonth recreates a recurring expense not yet logged t
       amount: 22.9,
       splits: { Alex: 50, Sam: 50 },
       recurring: true,
+      notes: 'autopay from the joint account',
     },
   ])
 })
@@ -428,6 +462,12 @@ test('diffExpense reports a changed split per participant', () => {
   const before = { date: '', description: '', category: '', payer: '', amount: 1, splits: { alex: 50, sam: 50 }, recurring: false }
   const after = { ...before, splits: { alex: 70, sam: 30 } }
   assert.equal(sheet.diffExpense(before, after), 'split alex: 50% → 70%; split sam: 50% → 30%')
+})
+
+test('diffExpense reports a changed note', () => {
+  const before = { date: '', description: '', category: '', payer: '', amount: 1, splits: {}, recurring: false, notes: '' }
+  const after = { ...before, notes: 'split with the neighbors too' }
+  assert.equal(sheet.diffExpense(before, after), 'notes: (none) → split with the neighbors too')
 })
 
 test('diffExpense returns empty when nothing changed', () => {
