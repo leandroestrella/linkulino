@@ -9,6 +9,7 @@ import { useAuth } from '@/auth/AuthProvider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ExpenseFilters } from '@/components/ExpenseFilters'
+import { InfoTooltip } from '@/components/InfoTooltip'
 import { LoadingAvatar } from '@/components/LoadingAvatar'
 import { findParticipant, PersonName } from '@/components/PersonName'
 import { useAdminSlotContainer, useSubHeaderContainer } from '@/components/subheader'
@@ -178,10 +179,16 @@ export function ExpenseDashboard({
                     <p className="text-muted-foreground text-sm">{t('home.total')}</p>
                     <p className="text-xl font-medium">{formatAmount(total)}</p>
                     {total > 0 && (
-                      <p className="text-muted-foreground text-xs">
-                        {t('home.common')} {formatAmount(commonTotal)} · {t('home.singleUser')}{' '}
-                        {formatAmount(singleUserTotal)}
-                      </p>
+                      <div className="mt-1 flex flex-col gap-0.5">
+                        <p className="text-muted-foreground flex items-center gap-1 text-xs">
+                          {t('home.common')} {formatAmount(commonTotal)}
+                          <InfoTooltip>{t('home.commonInfo')}</InfoTooltip>
+                        </p>
+                        <p className="text-muted-foreground flex items-center gap-1 text-xs">
+                          {t('home.singleUser')} {formatAmount(singleUserTotal)}
+                          <InfoTooltip>{t('home.singleUserInfo')}</InfoTooltip>
+                        </p>
+                      </div>
                     )}
                   </div>
                   <div className="text-right">
