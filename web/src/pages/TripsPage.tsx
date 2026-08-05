@@ -36,14 +36,18 @@ export function TripsPage() {
   const [endDate, setEndDate] = useState(todayIso())
   const { run, busy, error, setError } = useAdminAction()
 
-  async function load() {
-    setLoading(true)
+  // `showLoading` is false when reloading after a write — the admin action's
+  // own overlay (see useAdminAction) is already covering the screen then, so
+  // flipping this page's own loading state too would stack a second spinner
+  // on top of it.
+  async function load(showLoading = true) {
+    if (showLoading) setLoading(true)
     const [tripList, participantList] = await Promise.all([getTrips(), getParticipants()])
     const perTrip = await Promise.all(tripList.map((trip) => getExpenses(trip.id)))
     setTrips(tripList)
     setParticipants(participantList)
     setVacations(perTrip.flat())
-    setLoading(false)
+    if (showLoading) setLoading(false)
   }
 
   useEffect(() => {
@@ -61,7 +65,7 @@ export function TripsPage() {
       async () => {
         setName('')
         setShowForm(false)
-        await load()
+        await load(false)
       },
     )
   }
