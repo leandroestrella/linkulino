@@ -41,7 +41,7 @@ test('buildTripRow1Values builds the row-1 metadata for a new trip tab', () => {
   assert.deepEqual(row1, ['viaggio', 'lisbon', '24/08/2026', '🐚', '30/08/2026'])
 })
 
-test('buildTripHeaderRow builds A-E labels plus each participant\'s Quota columns', () => {
+test('buildTripHeaderRow builds A-E labels plus each participant\'s Quota columns and a Note column', () => {
   const header = sheet.buildTripHeaderRow({ a: { name: 'Alex' }, b: { name: 'Sam' } })
   assert.deepEqual(header, [
     'Data',
@@ -54,6 +54,7 @@ test('buildTripHeaderRow builds A-E labels plus each participant\'s Quota column
     'Quota Alex (€)',
     'Quota Sam (€)',
     'Saldo (+ = deve a Alex)',
+    'Note',
   ])
 })
 

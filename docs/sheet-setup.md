@@ -150,7 +150,9 @@ after E, and the backend finds them by reading row 4's text (see
 `resolveExpenseColumns` in `apps-script/sheet.js`). This matters in practice:
 the household tab has `Ricorrente` inserted *before* the quotas, while trip
 tabs have no `Ricorrente` column at all — both layouts work correctly because
-neither is assumed:
+neither is assumed. New trip tabs are created with a `Note` column after
+Saldo automatically; the household tab (set up manually, not by the app)
+needs one added by hand if it doesn't have it yet:
 
 | header (matched case-insensitively) | contents |
 | --- | --- |

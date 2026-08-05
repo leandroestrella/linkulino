@@ -192,6 +192,7 @@ function buildTripHeaderRow(participants) {
     'Quota ' + aName + ' (€)',
     'Quota ' + bName + ' (€)',
     'Saldo (+ = deve a ' + aName + ')',
+    'Note',
   ]
 }
 
