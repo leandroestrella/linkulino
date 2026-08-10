@@ -123,11 +123,10 @@ export function ExpenseDashboard({
   const total = scoped.reduce((sum, e) => sum + e.amount, 0)
   const commonTotal = scoped.filter(isCommon).reduce((sum, e) => sum + e.amount, 0)
   const singleUserTotal = total - commonTotal
-  // Debt is a whole-picture concept — always computed unfiltered (this month, or
-  // every expense for a trip), never scoped to the category/payer/date-range
-  // filters, since "who owes whom" only makes sense across the full picture.
-  const unfiltered = monthFilter ? expenses.filter((e) => e.date.slice(0, 7) === thisMonth) : expenses
-  const balance = singleBalance(unfiltered, participants)
+  const balance = singleBalance(scoped, participants)
+  // Only meaningful where there's a filter bar to diverge from — on a trip
+  // page (no filters, no monthFilter) `scoped` already equals `expenses`.
+  const allTimeBalance = showFilters ? singleBalance(expenses, participants) : null
   const sorted = [...scoped].sort((a, b) => b.date.localeCompare(a.date))
   const categoryIcon = (name: string) => categories.find((c) => c.name === name)?.icon ?? '💸'
 
@@ -202,6 +201,23 @@ export function ExpenseDashboard({
                       </>
                     ) : (
                       <p className="text-muted-foreground text-sm">{t('home.settledUp')}</p>
+                    )}
+                    {showFilters && (
+                      <div className="mt-1 flex flex-col items-end gap-0.5">
+                        <p className="text-muted-foreground flex items-center justify-end gap-1 text-xs">
+                          {t('home.allTime')}:
+                          <InfoTooltip>{t('home.allTimeBalanceInfo')}</InfoTooltip>
+                        </p>
+                        {allTimeBalance ? (
+                          <p className="text-muted-foreground text-xs">
+                            <PersonName person={allTimeBalance.debtor} /> {t('home.owesConnector')}{' '}
+                            <PersonName person={allTimeBalance.creditor} />{' '}
+                            <span className="font-semibold">{formatAmount(allTimeBalance.amount)}</span>
+                          </p>
+                        ) : (
+                          <p className="text-muted-foreground text-xs">{t('home.settledUp')}</p>
+                        )}
+                      </div>
                     )}
                   </div>
                 </CardContent>

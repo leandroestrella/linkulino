@@ -35,7 +35,9 @@
     "empty": "nessuna spesa ancora — aggiungi la prima.",
     "paidByPrefix": "pagato da",
     "owesConnector": "deve a",
-    "settledUp": "tutto in pari!"
+    "settledUp": "tutto in pari!",
+    "allTime": "da sempre",
+    "allTimeBalanceInfo": "il tuo saldo su tutte le spese mai registrate qui — ignora ogni filtro o periodo qui sopra."
   },
   "form": {
     "title": "aggiungi spesa",

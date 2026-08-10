@@ -35,7 +35,9 @@
     "empty": "todavía no hay gastos — añade el primero.",
     "paidByPrefix": "pagado por",
     "owesConnector": "le debe a",
-    "settledUp": "¡todo saldado!"
+    "settledUp": "¡todo saldado!",
+    "allTime": "histórico",
+    "allTimeBalanceInfo": "tu saldo acumulado con todos los gastos registrados aquí — ignora cualquier filtro o periodo de arriba."
   },
   "form": {
     "title": "añadir gasto",
