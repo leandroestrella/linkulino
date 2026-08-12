@@ -48,6 +48,7 @@ export interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 const GSI_SRC = 'https://accounts.google.com/gsi/client'
+const TOKEN_STORAGE_KEY = 'linkulino.idToken'
 
 /** Decodes the payload of a JWT (no verification — display only). */
 function decodeJwt(token: string): Record<string, unknown> {
@@ -99,6 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const handleCredential = useCallback(async (credential: string) => {
     tokenRef.current = credential
+    localStorage.setItem(TOKEN_STORAGE_KEY, credential)
     // Leave the demo BEFORE asking the backend who we are: fetchMe answers
     // from the fixtures while demo is on, and its canned reply says
     // "authorized" — which would wrongly admit a real, non-allowlisted user.
@@ -134,6 +136,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!hasBackend || !configured) return
     let cancelled = false
+
+    // Restore a still-valid session from a previous tab/visit, so a refresh
+    // or a fresh tab doesn't drop back to signed-out.
+    const stored = localStorage.getItem(TOKEN_STORAGE_KEY)
+    if (stored) {
+      try {
+        const exp = Number(decodeJwt(stored).exp ?? 0)
+        if (exp * 1000 > Date.now()) {
+          void handleCredential(stored)
+        } else {
+          localStorage.removeItem(TOKEN_STORAGE_KEY)
+        }
+      } catch {
+        localStorage.removeItem(TOKEN_STORAGE_KEY)
+      }
+    }
+
     loadGsi()
       .then(() => {
         if (cancelled || !window.google) return
@@ -144,7 +163,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           cancel_on_tap_outside: true,
         })
         setGoogleReady(true)
-        setStatus('anonymous')
+        // Only fall back to anonymous if a restored session isn't already
+        // signing in — handleCredential above will move it to 'signed-in'.
+        setStatus((s) => (s === 'loading' ? 'anonymous' : s))
       })
       .catch((err) => {
         setError(String(err))
@@ -173,6 +194,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(() => {
     tokenRef.current = null
+    localStorage.removeItem(TOKEN_STORAGE_KEY)
     clearReadCache()
     window.google?.accounts.id.disableAutoSelect()
     setUser(null)

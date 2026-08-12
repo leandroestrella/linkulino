@@ -376,6 +376,11 @@ export async function deleteTrip(id: string): Promise<void> {
 // HTTP transport (backend mode)
 // ---------------------------------------------------------------------------
 
+// Apps Script can hang (cold start, quota throttling) well past any sane UI
+// wait; without a bound, callers awaiting this — e.g. the auth restore flow
+// on every page load — can get stuck indefinitely instead of failing loud.
+const FETCH_TIMEOUT_MS = 10_000
+
 async function get<T>(action: string): Promise<T> {
   // Reads are gated the same as writes (see apps-script/Code.js) — GET has no
   // body, so the token rides along as a query param instead.
@@ -383,7 +388,7 @@ async function get<T>(action: string): Promise<T> {
   const url = `${config.apiUrl}?action=${action}${token ? `&idToken=${encodeURIComponent(token)}` : ''}`
   let res: Response
   try {
-    res = await fetch(url, { method: 'GET' })
+    res = await fetch(url, { method: 'GET', signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) })
   } catch (err) {
     throw new ApiError(`Network error contacting the backend: ${String(err)}`)
   }
@@ -400,6 +405,7 @@ async function post<T>(body: Record<string, unknown>): Promise<T> {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     })
   } catch (err) {
     throw new ApiError(`Network error contacting the backend: ${String(err)}`)
