@@ -63,6 +63,20 @@ function decodeJwt(token: string): Record<string, unknown> {
   return JSON.parse(json)
 }
 
+/**
+ * Whether a stored token is unusable. Treats "expires in the next minute" as
+ * already expired, so we don't restore a session only for the very next
+ * request to be rejected mid-flight.
+ */
+function tokenUnusable(token: string): boolean {
+  try {
+    const exp = Number(decodeJwt(token).exp ?? 0)
+    return !exp || exp * 1000 <= Date.now() + 60_000
+  } catch {
+    return true
+  }
+}
+
 /** Loads the GIS client script once; resolves when `window.google` is ready. */
 function loadGsi(): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -92,15 +106,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [googleReady, setGoogleReady] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const tokenRef = useRef<string | null>(null)
+  /** True while a stored token is being re-validated, to keep GIS from racing it. */
+  const restoringRef = useRef(false)
 
   // Writes carry the current ID token; register the provider once.
   useEffect(() => {
     setIdTokenProvider(() => tokenRef.current)
   }, [])
 
-  const handleCredential = useCallback(async (credential: string) => {
+  /**
+   * Drop to the signed-out demo, flipping the API client to the fixtures in the
+   * same breath. The `demo` effect below can't be relied on to do that part:
+   * child effects run before parent ones, so the page mounted by this very
+   * status change fires its first fetch first — and with the demo off and no
+   * token, that request hits the real backend unauthenticated and fails.
+   */
+  const enterDemo = useCallback(() => {
+    setDemoMode(true)
+    setStatus('anonymous')
+  }, [])
+
+  /**
+   * `restored` marks a token replayed from a previous visit rather than one the
+   * user just consented to. The distinction only matters when re-validation
+   * fails: an interactive sign-in that fails deserves a visible error, while a
+   * stale stored token should quietly drop back to the demo.
+   */
+  const handleCredential = useCallback(async (credential: string, restored = false) => {
     tokenRef.current = credential
-    localStorage.setItem(TOKEN_STORAGE_KEY, credential)
     // Leave the demo BEFORE asking the backend who we are: fetchMe answers
     // from the fixtures while demo is on, and its canned reply says
     // "authorized" — which would wrongly admit a real, non-allowlisted user.
@@ -117,11 +150,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setParticipantName(me.name)
       setStatus('signed-in')
       setError(me.authorized ? null : `Signed in, but not on the allowlist (${me.reason}).`)
+      // Only worth replaying a token the backend actually accepted.
+      if (me.authorized) localStorage.setItem(TOKEN_STORAGE_KEY, credential)
+      else localStorage.removeItem(TOKEN_STORAGE_KEY)
     } catch (err) {
-      setError(String(err))
-      setStatus('signed-in')
+      if (restored) {
+        // Revoked, expired server-side, or the backend is unreachable. Showing
+        // a locked door here would be wrong — the visitor never asked to sign
+        // in on this load. Bin the token and fall through to the demo.
+        tokenRef.current = null
+        localStorage.removeItem(TOKEN_STORAGE_KEY)
+        setUser(null)
+        setError(null)
+        enterDemo()
+      } else {
+        setError(String(err))
+        setStatus('signed-in')
+      }
+    } finally {
+      restoringRef.current = false
     }
-  }, [])
+  }, [enterDemo])
 
   // Offline mock mode: no sign-in, treat the local dev as authorized.
   useEffect(() => {
@@ -140,17 +189,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Restore a still-valid session from a previous tab/visit, so a refresh
     // or a fresh tab doesn't drop back to signed-out.
     const stored = localStorage.getItem(TOKEN_STORAGE_KEY)
-    if (stored) {
-      try {
-        const exp = Number(decodeJwt(stored).exp ?? 0)
-        if (exp * 1000 > Date.now()) {
-          void handleCredential(stored)
-        } else {
-          localStorage.removeItem(TOKEN_STORAGE_KEY)
-        }
-      } catch {
-        localStorage.removeItem(TOKEN_STORAGE_KEY)
-      }
+    if (stored && !tokenUnusable(stored)) {
+      restoringRef.current = true
+      void handleCredential(stored, true)
+    } else if (stored) {
+      localStorage.removeItem(TOKEN_STORAGE_KEY)
     }
 
     loadGsi()
@@ -163,22 +206,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           cancel_on_tap_outside: true,
         })
         setGoogleReady(true)
-        // Only fall back to anonymous if a restored session isn't already
-        // signing in — handleCredential above will move it to 'signed-in'.
-        setStatus((s) => (s === 'loading' ? 'anonymous' : s))
+        // GIS is ready long before a restore round-trips. Flipping to anonymous
+        // here would flash the demo AND switch the API client over to the
+        // fixtures while the real fetchMe is still in flight, so leave a
+        // pending restore to settle the status itself.
+        // A restore that already landed leaves a token behind; don't undo it.
+        if (!restoringRef.current && !tokenRef.current) enterDemo()
       })
       .catch((err) => {
         setError(String(err))
-        setStatus('anonymous')
+        // Same reasoning as above: a failed GIS load doesn't invalidate a
+        // session we're already restoring.
+        // A restore that already landed leaves a token behind; don't undo it.
+        if (!restoringRef.current && !tokenRef.current) enterDemo()
       })
     return () => {
       cancelled = true
     }
-  }, [configured, handleCredential])
+  }, [configured, handleCredential, enterDemo])
 
   // Nobody signed in (but a real backend exists) → show the sample data rather
   // than a locked door. `!hasBackend` is deliberately excluded: that's already
   // mock mode for local dev, and badging it "demo" would just be noise.
+  // Backstop. `status` gates the entire app behind a spinner (see ReadGate), so
+  // any path that leaves it on 'loading' takes the whole UI down with it. The
+  // individual causes are bounded now, but this guarantees the outcome rather
+  // than relying on having found every one of them. Must sit above the API
+  // client's own timeout, or it fires while a legitimate slow fetchMe is still
+  // in flight and yanks a real session into the demo.
+  useEffect(() => {
+    if (status !== 'loading') return
+    const id = setTimeout(() => {
+      restoringRef.current = false
+      enterDemo()
+    }, 50_000)
+    return () => clearTimeout(id)
+  }, [status, enterDemo])
+
   const demo = hasBackend && status === 'anonymous'
   const canWrite = demo || !configured || (status === 'signed-in' && authorized)
 
@@ -201,8 +265,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAuthorized(false)
     setParticipantName('')
     setError(null)
-    setStatus('anonymous')
-  }, [])
+    enterDemo()
+  }, [enterDemo])
 
   const renderButton = useCallback((el: HTMLElement | null) => {
     if (el && window.google) {

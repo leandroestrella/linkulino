@@ -31,7 +31,7 @@ flowchart LR
 - 🔁 recurring expenses — flag a bill (rent, internet…) once and it's recreated automatically every month
 - 🧳 a vacations tab — spin up a new trip in one step (the backend builds its tab from scratch, formulas included) or edit its name, icon and dates later, see it grouped as current / upcoming / past, with current and upcoming trips surfaced right on the home page
 - 🔍 filter the dashboard by category, payer, date range, common vs. single-user, or four walls vs. discretionary — including one-click shortcuts for common timeframes (this/last month, last 7/30/90 days, this/last year…) — and jump straight into a filtered view by clicking any value on the overview page
-- 🔒 private by default — the sheet is never link-shared, and the backend verifies a google id token against the `Users` allowlist on **every** call, so an anonymous visitor never sees a byte of your ledger
+- 🔒 private by default — the sheet is never link-shared, and the backend verifies a google id token against the `Users` allowlist on **every** call, so an anonymous visitor never sees a byte of your ledger — signing in survives a refresh or a second tab, until google's token expires about an hour later
 - 🎭 a built-in demo — signed-out visitors land in a fully working app running on sample data (browse, filter, even add and edit), so you can show someone what it does without giving them your numbers; signing in swaps the same UI onto your real sheet
 - 🕘 an activity log — every add, edit, or delete (expense, trip, or category) is recorded with who, when, and exactly what changed, browsable on its own page
 - ⚙️ a `Users` tab doing double duty as the participant roster and the read/write allowlist, configured once, used everywhere

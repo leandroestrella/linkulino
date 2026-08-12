@@ -376,41 +376,45 @@ export async function deleteTrip(id: string): Promise<void> {
 // HTTP transport (backend mode)
 // ---------------------------------------------------------------------------
 
-// Apps Script can hang (cold start, quota throttling) well past any sane UI
-// wait; without a bound, callers awaiting this — e.g. the auth restore flow
-// on every page load — can get stuck indefinitely instead of failing loud.
-const FETCH_TIMEOUT_MS = 10_000
+// A bound so a genuinely hung request can't wedge the UI forever — NOT a
+// latency target. Measured against the live deployment, a cold start can take
+// 25s just to return an auth rejection, so anything tighter aborts healthy
+// requests and surfaces them as "couldn't reach the backend". Keep this well
+// clear of the worst observed round-trip.
+const FETCH_TIMEOUT_MS = 45_000
 
 async function get<T>(action: string): Promise<T> {
   // Reads are gated the same as writes (see apps-script/Code.js) — GET has no
   // body, so the token rides along as a query param instead.
   const token = getIdToken()
   const url = `${config.apiUrl}?action=${action}${token ? `&idToken=${encodeURIComponent(token)}` : ''}`
-  let res: Response
   try {
-    res = await fetch(url, { method: 'GET', signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) })
+    const res = await fetch(url, { method: 'GET', signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) })
+    // Inside the try: aborting mid-response rejects the body read too, and a
+    // half-streamed body is just as much a network failure as a dead socket.
+    return unwrap<T>(await res.json())
   } catch (err) {
+    if (err instanceof ApiError) throw err
     throw new ApiError(`Network error contacting the backend: ${String(err)}`)
   }
-  return unwrap<T>(await res.json())
 }
 
 async function post<T>(body: Record<string, unknown>): Promise<T> {
   const token = getIdToken()
   const payload = token ? { ...body, idToken: token } : body
-  let res: Response
   try {
     // text/plain avoids a CORS preflight, which Apps Script web apps can't answer.
-    res = await fetch(config.apiUrl, {
+    const res = await fetch(config.apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify(payload),
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     })
+    return unwrap<T>(await res.json())
   } catch (err) {
+    if (err instanceof ApiError) throw err
     throw new ApiError(`Network error contacting the backend: ${String(err)}`)
   }
-  return unwrap<T>(await res.json())
 }
 
 function unwrap<T>(envelope: ApiEnvelope<T>): T {
