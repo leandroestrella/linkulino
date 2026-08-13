@@ -60,8 +60,8 @@ doesn't matter):
 
 | Email | Name | Icon | Enable Runway | Savings |
 | --- | --- | --- | --- | --- |
-| alex@example.com | Alex | 🧮 | `TRUE` | 12000 |
-| sam@example.com | Sam | 🎯 | | |
+| momra@example.com | momra | 🐠 | `TRUE` | 12000 |
+| mara@example.com | mara | ⚽ | | |
 
 This tab does double duty:
 - **write allowlist** — only these emails can add/edit expenses or create trips (see `auth.js`)
