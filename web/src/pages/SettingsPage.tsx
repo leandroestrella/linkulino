@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { updateRunwaySettings } from '@/api/client'
+import { getExpenses, getParticipants, getTrips, updateRunwaySettings } from '@/api/client'
 import { useAuth } from '@/auth/AuthProvider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -10,6 +10,19 @@ import { Input } from '@/components/ui/input'
 import { InfoTooltip } from '@/components/InfoTooltip'
 import { Label } from '@/components/ui/label'
 import { useAdminAction } from '@/hooks/useAdminAction'
+import { todayIso } from '@/lib/date'
+import { expensesToCsv, type ExportableExpense } from '@/lib/csv'
+
+/** Triggers a browser download of `content` as a file — the one DOM-touching step, kept out of the pure csv.ts builder. */
+function downloadFile(filename: string, content: string, type: string): void {
+  const blob = new Blob([content], { type })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
 
 /**
  * Self-service settings for the signed-in participant only — currently just
@@ -24,6 +37,7 @@ export function SettingsPage() {
   const [enabled, setEnabled] = useState(runwayEnabled)
   const [amount, setAmount] = useState(String(savings))
   const { run, busy, error, setError } = useAdminAction()
+  const exportAction = useAdminAction()
 
   // Sync local form state once the provider's real values land — they start
   // at defaults before the initial `me` fetch resolves.
@@ -44,6 +58,19 @@ export function SettingsPage() {
         navigate('/')
       },
     )
+  }
+
+  async function handleExport() {
+    exportAction.setError(null)
+    await exportAction.run(async () => {
+      const [household, trips, participants] = await Promise.all([getExpenses(), getTrips(), getParticipants()])
+      const tripExpenseLists = await Promise.all(trips.map((trip) => getExpenses(trip.id)))
+      const all: ExportableExpense[] = [
+        ...household.map((e) => ({ ...e, sheet: 'household' })),
+        ...trips.flatMap((trip, i) => tripExpenseLists[i].map((e) => ({ ...e, sheet: trip.name }))),
+      ]
+      downloadFile(`linkulino-${todayIso()}.csv`, expensesToCsv(all, participants), 'text/csv;charset=utf-8;')
+    })
   }
 
   const ready = canWrite
@@ -93,6 +120,20 @@ export function SettingsPage() {
           )}
         </CardContent>
       </Card>
+      {ready && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('settings.exportTitle')}</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <p className="text-muted-foreground text-sm">{t('settings.exportInfo')}</p>
+            {exportAction.error && <p className="text-destructive text-sm">{exportAction.error}</p>}
+            <Button type="button" variant="outline" disabled={exportAction.busy} onClick={() => void handleExport()}>
+              {exportAction.busy ? t('form.saving') : t('settings.exportCsv')}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

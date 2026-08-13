@@ -178,6 +178,9 @@
     "savings": "your savings",
     "savingsInfo": "your current savings/cash buffer — used to estimate your runway. Private, never shown to your partner.",
     "save": "save",
-    "errorInvalidAmount": "enter a valid amount."
+    "errorInvalidAmount": "enter a valid amount.",
+    "exportTitle": "export your data",
+    "exportInfo": "download every expense you've ever added — household and every trip — as a CSV file.",
+    "exportCsv": "download CSV"
   }
 }

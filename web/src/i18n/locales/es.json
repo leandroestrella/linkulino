@@ -178,6 +178,9 @@
     "savings": "tus ahorros",
     "savingsInfo": "tu colchón de ahorros actual — se usa para estimar tu autonomía. Privado, nunca se muestra a tu pareja.",
     "save": "guardar",
-    "errorInvalidAmount": "introduce una cantidad válida."
+    "errorInvalidAmount": "introduce una cantidad válida.",
+    "exportTitle": "exporta tus datos",
+    "exportInfo": "descarga cada gasto que hayas añadido — casa y cada viaje — como archivo CSV.",
+    "exportCsv": "descargar CSV"
   }
 }
