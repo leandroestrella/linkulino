@@ -40,6 +40,14 @@ import {
 /** Attributed to every mock/demo-mode action — there's no real sign-in to name an actor after (see fetchMe). */
 const MOCK_ACTOR = 'dev'
 
+/**
+ * The mock/demo "signed-in" identity is attributed to this participant
+ * (rather than a name like "dev" that matches nobody in MOCK_PARTICIPANTS)
+ * so participant-scoped features — the runway estimate, "paid by" defaults —
+ * compute against real mock data instead of always landing on zero.
+ */
+export const MOCK_PARTICIPANT_NAME = MOCK_PARTICIPANTS[0].name
+
 /** Shape of every backend JSON response. */
 type ApiEnvelope<T> = ({ ok: true } & T) | { ok: false; error: string }
 
@@ -64,10 +72,11 @@ function freshMockStore() {
     categories: clone(MOCK_CATEGORIES),
     trips: clone(MOCK_TRIPS),
     history: clone(MOCK_HISTORY),
-    // Off by default — matches a freshly seeded Users row with no runway
-    // columns filled in yet. Keyed by MOCK_ACTOR since mock mode has no real
-    // per-participant sign-in.
-    runway: { enableRunway: false, savings: 0 } as RunwaySettings,
+    // On by default with a sample savings figure, so the demo shows the
+    // feature actually working rather than a toggle that does nothing —
+    // fetchMe's mock branch attributes it to MOCK_PARTICIPANTS[0] ('momra'),
+    // who has real spend in MOCK_EXPENSES, so the estimate is a real date.
+    runway: { enableRunway: true, savings: 8000 } as RunwaySettings,
   }
 }
 
@@ -224,7 +233,7 @@ export interface Me {
  */
 export async function fetchMe(): Promise<Me> {
   if (servingMock()) {
-    return { authorized: true, email: 'dev@local', name: 'dev', reason: 'mock mode', ...mock.runway }
+    return { authorized: true, email: 'dev@local', name: MOCK_PARTICIPANT_NAME, reason: 'mock mode', ...mock.runway }
   }
   return post<Me>({ action: 'me' })
 }

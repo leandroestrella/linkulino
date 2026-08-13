@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { config, hasBackend } from '@/config'
-import { clearReadCache, fetchMe, setDemoMode, setIdTokenProvider } from '@/api/client'
+import { clearReadCache, fetchMe, MOCK_PARTICIPANT_NAME, setDemoMode, setIdTokenProvider } from '@/api/client'
 
 /** The signed-in person's public profile (decoded from the Google ID token). */
 export interface AuthUser {
@@ -131,6 +131,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const enterDemo = useCallback(() => {
     setDemoMode(true)
     setStatus('anonymous')
+    // Demo mode never goes through handleCredential (there's no real sign-in
+    // to decode), so nothing else populates participantName/runway — without
+    // this, anything scoped to "the current participant" (e.g. the homepage
+    // runway line) would silently stay off. servingMock() is already true by
+    // this point, so this resolves from the in-memory fixtures, no network.
+    void fetchMe().then((me) => {
+      setParticipantName(me.name)
+      setRunwayEnabled(me.enableRunway)
+      setSavings(me.savings)
+    })
   }, [])
 
   /**
@@ -184,11 +194,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Offline mock mode: no sign-in, treat the local dev as authorized.
   useEffect(() => {
     if (hasBackend) return
-    setUser({ email: 'dev@local', name: 'dev', picture: '' })
+    setUser({ email: 'dev@local', name: MOCK_PARTICIPANT_NAME, picture: '' })
     setAuthorized(true)
-    setParticipantName('dev')
-    setRunwayEnabled(false)
-    setSavings(0)
+    setParticipantName(MOCK_PARTICIPANT_NAME)
+    // Matches freshMockStore's sample runway default, so local dev (no
+    // backend at all) shows the same working demo as the live site's demo mode.
+    setRunwayEnabled(true)
+    setSavings(8000)
     setStatus('signed-in')
   }, [])
 
