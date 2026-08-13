@@ -306,6 +306,16 @@ test('findTotaleRow returns -1 when there is no TOTALE row', () => {
   assert.equal(sheet.findTotaleRow(values), -1)
 })
 
+test('findTotaleRow locates a TOTALE row pinned above the header', () => {
+  const values = [
+    ['viaggio', 'cala gonone', '01/07/2026', '🐚', '10/07/2026'],
+    ['TOTALE', '', '', '', 20.08, '', '', '', 10.04, 10.04, -10.04],
+    ['Data', 'Descrizione', 'Categoria', 'Pagato da', 'Importo (€)', 'Quota % Alex', 'Quota % Sam', 'Note'],
+    ['03/07/2026', 'groceries', 'Spesa', 'Alex', 20.08, 50, 50, ''],
+  ]
+  assert.equal(sheet.findTotaleRow(values), 2)
+})
+
 test('buildExpenseRowValues formats the date (A-E only, no splits)', () => {
   const row = sheet.buildExpenseRowValues({
     date: '2026-07-03',

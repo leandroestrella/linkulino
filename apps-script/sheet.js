@@ -379,17 +379,18 @@ function findBlankSlotRow(values) {
 }
 
 /**
- * Finds the 1-based row number of the tab's closing "TOTALE" summary row,
- * which marks the end of the pre-filled formula rows — this is where a fresh
- * blank slot row is inserted when findBlankSlotRow runs out (see
- * ensureBlankSlotRow_ in Code.js). Returns -1 if no such row is found.
+ * Finds the 1-based row number of the tab's "TOTALE" summary row. Searches
+ * the whole tab rather than assuming a fixed position relative to the header
+ * — most tabs still close their data rows with it at the bottom (see
+ * ensureBlankSlotRow_ in Code.js, which inserts new rows just above it there
+ * so its SUM/Saldo ranges auto-expand), but a tab can also pin it above the
+ * header instead, in which case data rows just grow to the bottom of the
+ * sheet. Returns -1 if no such row is found.
  * @param {Array<Array<*>>} values
  * @return {number}
  */
 function findTotaleRow(values) {
-  var headerRowIndex = findHeaderRowIndex(values)
-  if (headerRowIndex === -1) return -1
-  for (var r = headerRowIndex + 1; r < values.length; r++) {
+  for (var r = 0; r < values.length; r++) {
     if (cellToString(values[r][COL.date]).toUpperCase() === 'TOTALE') return r + 1
   }
   return -1

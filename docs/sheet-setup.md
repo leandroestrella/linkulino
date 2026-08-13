@@ -169,15 +169,28 @@ cells, and Ricorrente (if present) on the first fully-blank row (blank by
 A–E), not appending a new row** — appending past the pre-filled range would
 leave a row with no formulas.
 
-The last row (`TOTALE`) sums the amount/quota/saldo columns and is also a
-formula — leave it alone. **Never delete rows to "make room"** — deleting the
-row right above `TOTALE` (or any pre-filled row) breaks the Saldo column,
-since each row's running balance formula references the row above it; once
-that reference is gone, every row below recalculates against a hole. If a tab
-ever runs out of blank rows, the backend now extends it automatically: adding
-an expense with none left inserts a fresh row just above `TOTALE`, copies the
-formulas down from the row above (same as a manual drag-fill), and clears it
-to a blank slot — no manual sheet surgery needed.
+The `TOTALE` row sums the amount/quota/saldo columns and is also a formula —
+leave it alone. **Never delete rows to "make room"** — deleting the row right
+above `TOTALE` (or any pre-filled row) breaks the Saldo column, since each
+row's running balance formula references the row above it; once that
+reference is gone, every row below recalculates against a hole. If a tab ever
+runs out of blank rows, the backend now extends it automatically (see
+`findTotaleRow`/`ensureBlankSlotRow_` in `apps-script/sheet.js`/`Code.js`),
+in one of two ways depending on where `TOTALE` sits:
+
+- **`TOTALE` closes the data rows at the bottom (the default)** — a fresh row
+  is inserted just above it, copying the formulas down from the row above
+  (same as a manual drag-fill); Sheets auto-expands `TOTALE`'s SUM/Saldo
+  ranges to include it, so nothing else needs adjusting.
+- **`TOTALE` is pinned above the header instead** (e.g. dragged up next to the
+  row 2/3 summary so it's visible without scrolling) — nothing bounds the
+  data rows from below, so a new row is simply appended after the last one,
+  copying its formulas down the same way. In this layout `TOTALE`'s own
+  SUM/Saldo ranges are **not** auto-extended by the backend — widen them by
+  hand to whatever headroom you expect the tab to need.
+
+No manual sheet surgery is needed for either layout beyond keeping `TOTALE`'s
+ranges wide enough in the second one.
 
 ## trips
 

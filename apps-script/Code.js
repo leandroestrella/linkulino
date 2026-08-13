@@ -204,13 +204,21 @@ function readExpenseTab_(tab) {
 /**
  * Finds the next blank slot row to write an expense into, extending the
  * pre-filled formula rows by one if every existing slot is already used (see
- * findBlankSlotRow in sheet.js) — inserts a row just above the tab's TOTALE
- * row, copies the formulas from the row above it (the Quota €/Saldo columns
- * adjust their relative references automatically, same as a manual drag-fill),
- * then clears the cells this app writes to (A–E, Quota %, Ricorrente) so the
- * new row is a genuine blank slot.
+ * findBlankSlotRow in sheet.js). Two tab layouts are supported (see
+ * findTotaleRow in sheet.js):
+ *  - TOTALE closes the data rows at the bottom (the default layout) — a row
+ *    is inserted just above it, copying the formulas from the row above (the
+ *    Quota €/Saldo columns adjust their relative references automatically,
+ *    same as a manual drag-fill); Sheets auto-expands TOTALE's SUM/Saldo
+ *    ranges to include the new row since the insert lands inside them.
+ *  - TOTALE is pinned above the header instead — nothing bounds the data
+ *    rows from below, so a row is simply appended after the last one,
+ *    copying its formulas down the same way. TOTALE's own ranges are the
+ *    sheet owner's responsibility to keep wide enough in this layout.
+ * Either way, the cells this app writes to (A–E, Quota %, Ricorrente) are
+ * cleared afterwards so the new row is a genuine blank slot.
  * @param {GoogleAppsScript.Spreadsheet.Sheet} tab
- * @param {{values: Array<Array<*>>, cols: {splitA: number, splitB: number, recurring: number}}} read
+ * @param {{values: Array<Array<*>>, headerRowIndex: number, cols: {splitA: number, splitB: number, recurring: number}}} read
  * @return {number} 1-based row number
  */
 function ensureBlankSlotRow_(tab, read) {
@@ -218,21 +226,30 @@ function ensureBlankSlotRow_(tab, read) {
   if (rowNumber !== -1) return rowNumber
 
   var totaleRow = findTotaleRow(read.values)
-  if (totaleRow === -1) {
-    throw new Error('No blank row left on this tab, and no TOTALE row found to extend before — add a blank formula row manually.')
+  var lastCol = tab.getLastColumn()
+  var newRow
+
+  if (totaleRow !== -1 && totaleRow > read.headerRowIndex + 1) {
+    var sourceRow = totaleRow - 1
+    tab.insertRowBefore(totaleRow)
+    tab.getRange(sourceRow, 1, 1, lastCol).copyTo(tab.getRange(totaleRow, 1, 1, lastCol))
+    newRow = totaleRow
+  } else {
+    var lastRow = tab.getLastRow()
+    if (lastRow <= read.headerRowIndex + 1) {
+      throw new Error('No data row found on this tab to copy formulas from — add a blank formula row manually.')
+    }
+    tab.insertRowAfter(lastRow)
+    tab.getRange(lastRow, 1, 1, lastCol).copyTo(tab.getRange(lastRow + 1, 1, 1, lastCol))
+    newRow = lastRow + 1
   }
 
-  var sourceRow = totaleRow - 1
-  var lastCol = tab.getLastColumn()
-  tab.insertRowBefore(totaleRow)
-  tab.getRange(sourceRow, 1, 1, lastCol).copyTo(tab.getRange(totaleRow, 1, 1, lastCol))
+  tab.getRange(newRow, COL.date + 1, 1, COL.amount - COL.date + 1).clearContent()
+  if (read.cols.splitA !== -1) tab.getRange(newRow, read.cols.splitA + 1).clearContent()
+  if (read.cols.splitB !== -1) tab.getRange(newRow, read.cols.splitB + 1).clearContent()
+  if (read.cols.recurring !== -1) tab.getRange(newRow, read.cols.recurring + 1).clearContent()
 
-  tab.getRange(totaleRow, COL.date + 1, 1, COL.amount - COL.date + 1).clearContent()
-  if (read.cols.splitA !== -1) tab.getRange(totaleRow, read.cols.splitA + 1).clearContent()
-  if (read.cols.splitB !== -1) tab.getRange(totaleRow, read.cols.splitB + 1).clearContent()
-  if (read.cols.recurring !== -1) tab.getRange(totaleRow, read.cols.recurring + 1).clearContent()
-
-  return totaleRow
+  return newRow
 }
 
 /**
@@ -704,17 +721,38 @@ function authorize_(body) {
 /**
  * Validates a Google ID token via the public tokeninfo endpoint (checks the
  * signature and expiry server-side) and returns its claims, or null if invalid.
+ *
+ * The SPA fires several reads in parallel on every page load (participants,
+ * categories, trips, expenses, one more per trip, …), each landing in its own
+ * doGet execution but carrying the *same* token — without a cache, every one
+ * of them independently round-trips to Google's tokeninfo endpoint, which
+ * multiplies both latency and concurrent Apps Script executions on every
+ * navigation and is the likely cause of the slow/occasionally-stuck loads.
+ * Caching the verified claims for a couple of minutes (far shorter than an ID
+ * token's ~1h lifetime) collapses those N calls down to one.
  * @param {string} idToken
  * @return {Object|null}
  */
 function verifyIdToken_(idToken) {
+  var cache = CacheService.getScriptCache()
+  var key = 'tokeninfo:' + Utilities.base64EncodeWebSafe(
+    Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, idToken),
+  )
+  var cached = cache.get(key)
+  if (cached !== null) return cached === 'invalid' ? null : JSON.parse(cached)
+
   try {
     var res = UrlFetchApp.fetch(
       'https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(idToken),
       { muteHttpExceptions: true },
     )
-    if (res.getResponseCode() !== 200) return null
-    return JSON.parse(res.getContentText())
+    if (res.getResponseCode() !== 200) {
+      cache.put(key, 'invalid', 60)
+      return null
+    }
+    var claims = JSON.parse(res.getContentText())
+    cache.put(key, JSON.stringify(claims), 120)
+    return claims
   } catch (err) {
     return null
   }
