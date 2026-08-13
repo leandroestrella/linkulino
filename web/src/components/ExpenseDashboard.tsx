@@ -24,6 +24,7 @@ import {
   matchingTimeframeKey,
 } from '@/lib/filters'
 import { formatAmount } from '@/lib/format'
+import { runwayDepletionDate, type RunwayResult } from '@/lib/runway'
 
 /** Each participant's balance: total paid minus their share of every expense. Positive = owed money. */
 function balances(expenses: Expense[], participants: Participant[]): Record<string, number> {
@@ -46,6 +47,13 @@ function isEvenSplit(expense: Expense, participants: Participant[]): boolean {
   if (participants.length < 2) return true
   const even = 100 / participants.length
   return participants.every((p) => Math.abs((expense.splits[p.name] ?? 0) - even) < 0.5)
+}
+
+/** Renders a RunwayResult as the text following the "runway:" label. */
+function runwayText(runway: RunwayResult, t: (key: string) => string): string {
+  if (runway.kind === 'date') return runway.date
+  if (runway.kind === 'depleted') return t('home.runwayDepleted')
+  return t('home.runwayIndefinite')
 }
 
 /** Who owes whom, as a single amount — avoids showing the same number twice for two people. */
@@ -82,7 +90,7 @@ export function ExpenseDashboard({
   showFilters?: boolean
 }) {
   const { t } = useTranslation()
-  const { canWrite } = useAuth()
+  const { canWrite, participantName, runwayEnabled, savings } = useAuth()
   const subHeader = useSubHeaderContainer()
   const adminSlot = useAdminSlotContainer()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -90,6 +98,7 @@ export function ExpenseDashboard({
   const [participants, setParticipants] = useState<Participant[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   // Which expense's split tooltip is open — tapping the ⚖️ icon toggles this on
   // touch devices, which have no hover state to reveal a plain Tooltip.
   const [openSplitId, setOpenSplitId] = useState<string | null>(null)
@@ -107,12 +116,15 @@ export function ExpenseDashboard({
 
   useEffect(() => {
     setLoading(true)
-    void Promise.all([getExpenses(sheetId), getParticipants(), getCategories()]).then(([e, p, c]) => {
-      setExpenses(e)
-      setParticipants(p)
-      setCategories(c)
-      setLoading(false)
-    })
+    setError(false)
+    void Promise.all([getExpenses(sheetId), getParticipants(), getCategories()])
+      .then(([e, p, c]) => {
+        setExpenses(e)
+        setParticipants(p)
+        setCategories(c)
+      })
+      .catch(() => setError(true))
+      .finally(() => setLoading(false))
   }, [sheetId])
 
   const filters = showFilters ? filtersFromSearchParams(searchParams) : EMPTY_FILTERS
@@ -127,6 +139,12 @@ export function ExpenseDashboard({
   // Only meaningful where there's a filter bar to diverge from — on a trip
   // page (no filters, no monthFilter) `scoped` already equals `expenses`.
   const allTimeBalance = showFilters ? singleBalance(expenses, participants) : null
+  // Household only, and only the signed-in viewer's own runway — never a
+  // partner's, even though this card is shared (see lib/runway.ts). Uses the
+  // full unfiltered `expenses` (all-time), not `scoped`, since runway is an
+  // all-time average independent of the active month/filter view.
+  const runway =
+    !sheetId && runwayEnabled ? runwayDepletionDate(expenses, participantName, savings, todayIso()) : null
   const sorted = [...scoped].sort((a, b) => b.date.localeCompare(a.date))
   const categoryIcon = (name: string) => categories.find((c) => c.name === name)?.icon ?? '💸'
 
@@ -189,6 +207,12 @@ export function ExpenseDashboard({
                         </p>
                       </div>
                     )}
+                    {runway && (
+                      <p className="text-muted-foreground mt-1 flex items-center gap-1 text-xs">
+                        {t('home.runway')} {runwayText(runway, t)}
+                        <InfoTooltip>{t('home.runwayInfo')}</InfoTooltip>
+                      </p>
+                    )}
                   </div>
                   <div className="text-right">
                     {balance ? (
@@ -229,7 +253,8 @@ export function ExpenseDashboard({
 
       <section className="flex flex-col gap-2">
         {loading && <LoadingAvatar />}
-        {!loading && sorted.length === 0 && <p className="text-muted-foreground">{t('home.empty')}</p>}
+        {!loading && error && <p className="text-destructive">{t('app.loadError')}</p>}
+        {!loading && !error && sorted.length === 0 && <p className="text-muted-foreground">{t('home.empty')}</p>}
         {sorted.map((expense) => (
           <Card key={expense.id}>
             <CardContent className="flex items-center gap-3 py-3">

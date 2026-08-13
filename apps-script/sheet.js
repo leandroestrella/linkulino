@@ -229,6 +229,72 @@ function parseParticipants(values) {
   return { a: people[0] || null, b: people[1] || null }
 }
 
+/**
+ * Resolves the per-participant runway settings from the Users tab (columns
+ * "enable runway"/"savings", by header name — see parseParticipants). Keyed
+ * by lowercased EMAIL rather than name, so Code.js can look up "my own"
+ * settings from the caller's authenticated email (never a client-supplied
+ * identifier) without an extra name-lookup step.
+ * @param {Array<Array<*>>} values full Users sheet values incl. header row
+ * @return {Object<string, {enableRunway: boolean, savings: number}>}
+ */
+function parseUsersRunway(values) {
+  if (!values || values.length < 2) return {}
+  var header = values[0]
+  var iEmail = -1
+  var iEnableRunway = -1
+  var iSavings = -1
+  for (var i = 0; i < header.length; i++) {
+    var label = cellToString(header[i]).toLowerCase()
+    if (label === 'email') iEmail = i
+    else if (label === 'enable runway') iEnableRunway = i
+    else if (label === 'savings') iSavings = i
+  }
+  if (iEmail === -1) return {}
+
+  var byEmail = {}
+  for (var r = 1; r < values.length; r++) {
+    var email = cellToString(values[r][iEmail]).toLowerCase()
+    if (!email) continue
+    byEmail[email] = {
+      enableRunway: iEnableRunway === -1 ? false : cellToBool(values[r][iEnableRunway]),
+      savings: iSavings === -1 ? 0 : cellToNumber(values[r][iSavings]),
+    }
+  }
+  return byEmail
+}
+
+/**
+ * Finds a Users-tab row by email (case-insensitive), plus the resolved
+ * column indexes for Email/"enable runway"/Savings — the pure half of the
+ * row-lookup-and-update pattern (Code.js does the actual getRange/setValue).
+ * @param {Array<Array<*>>} values
+ * @param {string} email
+ * @return {{rowNumber: number, cols: {email: number, enableRunway: number, savings: number}}|null}
+ */
+function findUserRowByEmail(values, email) {
+  if (!values || values.length < 2) return null
+  var header = values[0]
+  var iEmail = -1
+  var iEnableRunway = -1
+  var iSavings = -1
+  for (var i = 0; i < header.length; i++) {
+    var label = cellToString(header[i]).toLowerCase()
+    if (label === 'email') iEmail = i
+    else if (label === 'enable runway') iEnableRunway = i
+    else if (label === 'savings') iSavings = i
+  }
+  if (iEmail === -1) return null
+
+  var target = cellToString(email).toLowerCase()
+  for (var r = 1; r < values.length; r++) {
+    if (cellToString(values[r][iEmail]).toLowerCase() === target) {
+      return { rowNumber: r + 1, cols: { email: iEmail, enableRunway: iEnableRunway, savings: iSavings } }
+    }
+  }
+  return null
+}
+
 // ---------------------------------------------------------------------------
 // Categories (Categorie tab)
 // ---------------------------------------------------------------------------
@@ -629,6 +695,8 @@ if (typeof module !== 'undefined' && module.exports) {
     buildTripRow1Values: buildTripRow1Values,
     buildTripHeaderRow: buildTripHeaderRow,
     parseParticipants: parseParticipants,
+    parseUsersRunway: parseUsersRunway,
+    findUserRowByEmail: findUserRowByEmail,
     parseCategories: parseCategories,
     buildCategoryRowValues: buildCategoryRowValues,
     findHeaderRowIndex: findHeaderRowIndex,

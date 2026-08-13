@@ -19,6 +19,11 @@ export interface AuthContextValue {
   authorized: boolean
   /** The allowlisted name mapped from this participant's email (e.g. `Alex`). */
   participantName: string
+  /** This participant's OWN runway settings — never their partner's (see lib/runway.ts). */
+  runwayEnabled: boolean
+  savings: number
+  /** Re-fetches the caller's own runway settings (e.g. after saving them in Settings) without a full sign-in round-trip. */
+  refreshRunway: () => Promise<void>
   /** Whether Google sign-in is configured (a client ID is present). */
   configured: boolean
   /**
@@ -103,6 +108,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [authorized, setAuthorized] = useState(false)
   const [participantName, setParticipantName] = useState('')
+  const [runwayEnabled, setRunwayEnabled] = useState(false)
+  const [savings, setSavings] = useState(0)
   const [googleReady, setGoogleReady] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const tokenRef = useRef<string | null>(null)
@@ -148,6 +155,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const me = await fetchMe()
       setAuthorized(me.authorized)
       setParticipantName(me.name)
+      setRunwayEnabled(me.enableRunway)
+      setSavings(me.savings)
       setStatus('signed-in')
       setError(me.authorized ? null : `Signed in, but not on the allowlist (${me.reason}).`)
       // Only worth replaying a token the backend actually accepted.
@@ -178,6 +187,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser({ email: 'dev@local', name: 'dev', picture: '' })
     setAuthorized(true)
     setParticipantName('dev')
+    setRunwayEnabled(false)
+    setSavings(0)
     setStatus('signed-in')
   }, [])
 
@@ -264,9 +275,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
     setAuthorized(false)
     setParticipantName('')
+    setRunwayEnabled(false)
+    setSavings(0)
     setError(null)
     enterDemo()
   }, [enterDemo])
+
+  /** Re-fetches the caller's own runway settings without a full sign-in round-trip (see fetchMe). */
+  const refreshRunway = useCallback(async () => {
+    const me = await fetchMe()
+    setRunwayEnabled(me.enableRunway)
+    setSavings(me.savings)
+  }, [])
 
   const renderButton = useCallback((el: HTMLElement | null) => {
     if (el && window.google) {
@@ -281,6 +301,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       authorized,
       participantName,
+      runwayEnabled,
+      savings,
+      refreshRunway,
       configured,
       demo,
       canWrite,
@@ -290,7 +313,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signOut,
       renderButton,
     }),
-    [status, user, authorized, participantName, configured, demo, canWrite, googleReady, error, signIn, signOut, renderButton],
+    [
+      status,
+      user,
+      authorized,
+      participantName,
+      runwayEnabled,
+      savings,
+      refreshRunway,
+      configured,
+      demo,
+      canWrite,
+      googleReady,
+      error,
+      signIn,
+      signOut,
+      renderButton,
+    ],
   )
 
   return <AuthContext value={value}>{children}</AuthContext>

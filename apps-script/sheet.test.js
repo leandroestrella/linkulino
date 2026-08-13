@@ -94,6 +94,65 @@ test('parseParticipants tolerates a missing or headerless tab', () => {
   assert.deepEqual(sheet.parseParticipants([['no name column here']]), { a: null, b: null })
 })
 
+test('parseUsersRunway reads enable runway + savings by header name, order-independent', () => {
+  const values = [
+    ['Savings', 'Email', 'Enable Runway', 'Name'],
+    [12000, 'alex@example.com', true, 'Alex'],
+    [0, 'sam@example.com', false, 'Sam'],
+  ]
+  assert.deepEqual(sheet.parseUsersRunway(values), {
+    'alex@example.com': { enableRunway: true, savings: 12000 },
+    'sam@example.com': { enableRunway: false, savings: 0 },
+  })
+})
+
+test('parseUsersRunway defaults missing/blank cells to false/0', () => {
+  const values = [
+    ['Email', 'Enable Runway', 'Savings'],
+    ['alex@example.com', '', ''],
+  ]
+  assert.deepEqual(sheet.parseUsersRunway(values), {
+    'alex@example.com': { enableRunway: false, savings: 0 },
+  })
+})
+
+test('parseUsersRunway keys by lowercased email, skips rows without an email', () => {
+  const values = [
+    ['Email', 'Enable Runway', 'Savings'],
+    ['Alex@Example.com', true, 500],
+    ['', true, 999],
+  ]
+  assert.deepEqual(sheet.parseUsersRunway(values), {
+    'alex@example.com': { enableRunway: true, savings: 500 },
+  })
+})
+
+test('parseUsersRunway returns {} when there is no email column or no data rows', () => {
+  assert.deepEqual(sheet.parseUsersRunway([]), {})
+  assert.deepEqual(sheet.parseUsersRunway([['Name', 'Enable Runway', 'Savings']]), {})
+})
+
+test('findUserRowByEmail finds the right row case-insensitively', () => {
+  const values = [
+    ['Name', 'Email', 'Enable Runway', 'Savings'],
+    ['Alex', 'alex@example.com', true, 500],
+    ['Sam', 'sam@example.com', false, 0],
+  ]
+  assert.deepEqual(sheet.findUserRowByEmail(values, 'Sam@Example.com'), {
+    rowNumber: 3,
+    cols: { email: 1, enableRunway: 2, savings: 3 },
+  })
+})
+
+test('findUserRowByEmail returns null for an unknown email or missing email column', () => {
+  const values = [
+    ['Name', 'Email', 'Enable Runway', 'Savings'],
+    ['Alex', 'alex@example.com', true, 500],
+  ]
+  assert.equal(sheet.findUserRowByEmail(values, 'nobody@example.com'), null)
+  assert.equal(sheet.findUserRowByEmail([['Name']], 'alex@example.com'), null)
+})
+
 test('parseCategories reads name/icon/overhead, skipping the header and blank rows', () => {
   const values = [
     ['Categoria', 'Emoji', 'Overhead'],

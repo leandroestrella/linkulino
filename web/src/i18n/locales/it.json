@@ -1,6 +1,7 @@
 {
   "app": {
-    "tagline": "spese condivise, divise in modo equo, sempre in sincro."
+    "tagline": "spese condivise, divise in modo equo, sempre in sincro.",
+    "loadError": "impossibile contattare il backend — controlla la connessione e riprova."
   },
   "nav": {
     "about": "informazioni su linkulino",
@@ -11,7 +12,8 @@
     "overview": "riepilogo",
     "history": "attività",
     "backToTrip": "torna a {{trip}}",
-    "backToTrips": "torna ai viaggi"
+    "backToTrips": "torna ai viaggi",
+    "settings": "impostazioni"
   },
   "auth": {
     "signOut": "esci",
@@ -30,6 +32,10 @@
     "commonInfo": "spese divise tra più di una persona.",
     "singleUser": "individuali",
     "singleUserInfo": "spese a carico di una sola persona — quota 100%.",
+    "runway": "autonomia",
+    "runwayInfo": "una data approssimativa in cui i tuoi risparmi finirebbero al tuo ritmo di spesa mensile medio — visibile solo a te. Configurala nella pagina impostazioni.",
+    "runwayDepleted": "già esaurita",
+    "runwayIndefinite": "indefinita — nessuna spesa in corso",
     "addExpense": "aggiungi spesa",
     "loading": "caricamento",
     "empty": "nessuna spesa ancora — aggiungi la prima.",
@@ -165,5 +171,13 @@
     "last6Months": "ultimi 6 mesi",
     "thisYear": "quest'anno",
     "lastYear": "anno scorso"
+  },
+  "settings": {
+    "title": "impostazioni",
+    "enableRunway": "mostra la mia autonomia nella home",
+    "savings": "i tuoi risparmi",
+    "savingsInfo": "il tuo attuale cuscinetto di risparmi — usato per stimare la tua autonomia. Privato, non viene mai mostrato al tuo partner.",
+    "save": "salva",
+    "errorInvalidAmount": "inserisci un importo valido."
   }
 }

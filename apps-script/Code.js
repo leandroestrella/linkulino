@@ -5,7 +5,7 @@
  * exposes a small JSON API:
  *   - doGet  → reads   (?action=health, participants, categories, expenses[&sheet=], trips, history)
  *   - doPost → writes  (addExpense, updateExpense, deleteExpense, createTrip,
- *              updateTrip, deleteTrip, addCategory)
+ *              updateTrip, deleteTrip, addCategory, updateRunway)
  *
  * All pure logic (tab discovery, row↔object mapping, blank-slot finding) lives
  * in sheet.js and is unit-tested in Node. This file is just the glue: read
@@ -150,6 +150,11 @@ function doPost(e) {
         // No entityId: there's no per-category page to link to.
         logHistory_({ actor: user.name, action: 'add', entity: 'category', label: formatCategorySummary(addedCategory) })
         return json({ ok: true, category: addedCategory })
+      }
+      case 'updateRunway': {
+        var updatedRunway = updateRunway_(user.email, body.runway)
+        // Deliberately NOT logged to History — see updateRunway_'s doc comment.
+        return json({ ok: true, runway: updatedRunway })
       }
       default:
         return json({ ok: false, error: 'unknown action: ' + body.action })
@@ -691,7 +696,61 @@ function todayIso_() {
  */
 function whoAmI_(body) {
   var r = authorize_(body)
-  return { ok: true, authorized: r.authorized, email: r.email, name: r.name, reason: r.reason }
+  var runway = r.authorized ? getOwnRunway_(r.email) : { enableRunway: false, savings: 0 }
+  return {
+    ok: true,
+    authorized: r.authorized,
+    email: r.email,
+    name: r.name,
+    reason: r.reason,
+    enableRunway: runway.enableRunway,
+    savings: runway.savings,
+  }
+}
+
+/**
+ * Looks up ONE participant's own runway settings by email — never returns
+ * another participant's row, since the caller only ever passes their own
+ * authenticated email (from authorize_/requireUser_, never client input).
+ * @param {string} email lowercased
+ * @return {{enableRunway: boolean, savings: number}}
+ */
+function getOwnRunway_(email) {
+  var all = parseUsersRunway(readValuesOptional_(USERS_TAB))
+  return all[email] || { enableRunway: false, savings: 0 }
+}
+
+/**
+ * Updates the CALLER'S OWN runway settings in the Users tab — keyed by their
+ * authenticated email (from requireUser_), never a client-supplied row id or
+ * name, so a user can never edit their partner's row even if the client sent
+ * one (self-service enforcement lives here, server-side).
+ *
+ * Deliberately NOT logged to the History tab: History is visible to both
+ * participants (see getHistory_/HistoryPage), and runway settings are
+ * explicitly private per-participant data — logging a change there would
+ * leak exactly what self-service access is meant to keep private.
+ * @param {string} email the caller's own authenticated email (lowercased)
+ * @param {{enableRunway: boolean, savings: number}} input
+ * @return {{enableRunway: boolean, savings: number}}
+ * @throws if the Users tab has no matching row for this email, or is missing
+ *   the "enable runway"/"savings" columns.
+ */
+function updateRunway_(email, input) {
+  if (!input) throw new Error('Missing runway settings')
+  var tab = getSpreadsheet_().getSheetByName(USERS_TAB)
+  if (!tab) throw new Error('Missing sheet tab: ' + USERS_TAB)
+  var values = tab.getDataRange().getValues()
+  var found = findUserRowByEmail(values, email)
+  if (!found) throw new Error('No Users row found for this account')
+  if (found.cols.enableRunway === -1 || found.cols.savings === -1) {
+    throw new Error('Users tab is missing "enable runway"/"savings" columns (see docs/sheet-setup.md)')
+  }
+  var enableRunway = !!input.enableRunway
+  var savings = Number(input.savings) || 0
+  tab.getRange(found.rowNumber, found.cols.enableRunway + 1).setValue(enableRunway)
+  tab.getRange(found.rowNumber, found.cols.savings + 1).setValue(savings)
+  return { enableRunway: enableRunway, savings: savings }
 }
 
 /**

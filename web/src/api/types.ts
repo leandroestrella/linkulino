@@ -12,6 +12,12 @@ export interface Participant {
   icon: string
 }
 
+/** A participant's own private runway settings (see lib/runway.ts). */
+export interface RunwaySettings {
+  enableRunway: boolean
+  savings: number
+}
+
 /** An expense category, with the emoji shown next to it. */
 export interface Category {
   name: string

@@ -1,6 +1,7 @@
 {
   "app": {
-    "tagline": "gastos compartidos, repartidos de forma justa, siempre sincronizados."
+    "tagline": "gastos compartidos, repartidos de forma justa, siempre sincronizados.",
+    "loadError": "no se pudo conectar con el backend — comprueba tu conexión e inténtalo de nuevo."
   },
   "nav": {
     "about": "acerca de linkulino",
@@ -11,7 +12,8 @@
     "overview": "resumen",
     "history": "actividad",
     "backToTrip": "volver a {{trip}}",
-    "backToTrips": "volver a los viajes"
+    "backToTrips": "volver a los viajes",
+    "settings": "ajustes"
   },
   "auth": {
     "signOut": "cerrar sesión",
@@ -30,6 +32,10 @@
     "commonInfo": "gastos repartidos entre más de una persona.",
     "singleUser": "individuales",
     "singleUserInfo": "gastos a cargo de una sola persona — un reparto del 100%.",
+    "runway": "autonomía",
+    "runwayInfo": "una fecha aproximada en la que se agotarían tus ahorros a tu ritmo de gasto medio mensual — solo la ves tú. Configúralo en la página de ajustes.",
+    "runwayDepleted": "ya agotada",
+    "runwayIndefinite": "indefinida — sin gasto continuado",
     "addExpense": "añadir gasto",
     "loading": "cargando",
     "empty": "todavía no hay gastos — añade el primero.",
@@ -165,5 +171,13 @@
     "last6Months": "últimos 6 meses",
     "thisYear": "este año",
     "lastYear": "año pasado"
+  },
+  "settings": {
+    "title": "ajustes",
+    "enableRunway": "mostrar mi autonomía en la página de inicio",
+    "savings": "tus ahorros",
+    "savingsInfo": "tu colchón de ahorros actual — se usa para estimar tu autonomía. Privado, nunca se muestra a tu pareja.",
+    "save": "guardar",
+    "errorInvalidAmount": "introduce una cantidad válida."
   }
 }

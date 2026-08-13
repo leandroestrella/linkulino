@@ -25,6 +25,7 @@ import type {
   NewCategory,
   NewTrip,
   Participant,
+  RunwaySettings,
   Trip,
 } from './types'
 import {
@@ -63,6 +64,10 @@ function freshMockStore() {
     categories: clone(MOCK_CATEGORIES),
     trips: clone(MOCK_TRIPS),
     history: clone(MOCK_HISTORY),
+    // Off by default — matches a freshly seeded Users row with no runway
+    // columns filled in yet. Keyed by MOCK_ACTOR since mock mode has no real
+    // per-participant sign-in.
+    runway: { enableRunway: false, savings: 0 } as RunwaySettings,
   }
 }
 
@@ -207,6 +212,9 @@ export interface Me {
   email: string
   name: string
   reason: string
+  /** The caller's own runway settings (see RunwaySettings) — never a partner's. */
+  enableRunway: boolean
+  savings: number
 }
 
 /**
@@ -215,8 +223,22 @@ export interface Me {
  * authorization to keep the write UI reachable against the in-memory store.
  */
 export async function fetchMe(): Promise<Me> {
-  if (servingMock()) return { authorized: true, email: 'dev@local', name: 'dev', reason: 'mock mode' }
+  if (servingMock()) {
+    return { authorized: true, email: 'dev@local', name: 'dev', reason: 'mock mode', ...mock.runway }
+  }
   return post<Me>({ action: 'me' })
+}
+
+/** Updates the CALLER'S OWN runway settings (enable flag + savings amount). */
+export async function updateRunwaySettings(settings: RunwaySettings): Promise<RunwaySettings> {
+  if (servingMock()) {
+    mock.runway = settings
+    // No history entry — see updateRunway_ in Code.js for why runway changes
+    // are never logged (they're private, unlike every other write here).
+    return settings
+  }
+  const data = await post<{ runway: RunwaySettings }>({ action: 'updateRunway', runway: settings })
+  return data.runway
 }
 
 // ---------------------------------------------------------------------------

@@ -1,6 +1,7 @@
 {
   "app": {
-    "tagline": "shared expenses, split fairly, kept in sync."
+    "tagline": "shared expenses, split fairly, kept in sync.",
+    "loadError": "couldn't reach the backend — check your connection and try again."
   },
   "nav": {
     "about": "about linkulino",
@@ -11,7 +12,8 @@
     "overview": "overview",
     "history": "activity",
     "backToTrip": "back to {{trip}}",
-    "backToTrips": "back to vacations"
+    "backToTrips": "back to vacations",
+    "settings": "settings"
   },
   "auth": {
     "signOut": "sign out",
@@ -30,6 +32,10 @@
     "commonInfo": "expenses split between more than one person.",
     "singleUser": "single-user",
     "singleUserInfo": "expenses covering only one person — a 100% split.",
+    "runway": "runway",
+    "runwayInfo": "an approximate date your savings would run out at your average monthly spend — visible only to you. Set it up on the settings page.",
+    "runwayDepleted": "already depleted",
+    "runwayIndefinite": "indefinite — no ongoing spend",
     "addExpense": "add expense",
     "loading": "loading",
     "empty": "no expenses yet — add the first one.",
@@ -165,5 +171,13 @@
     "last6Months": "last 6 months",
     "thisYear": "this year",
     "lastYear": "last year"
+  },
+  "settings": {
+    "title": "settings",
+    "enableRunway": "show my runway on the home page",
+    "savings": "your savings",
+    "savingsInfo": "your current savings/cash buffer — used to estimate your runway. Private, never shown to your partner.",
+    "save": "save",
+    "errorInvalidAmount": "enter a valid amount."
   }
 }

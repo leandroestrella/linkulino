@@ -58,16 +58,27 @@ B–E cells are informational only.)
 One row per participant, columns resolved by header name (so their order
 doesn't matter):
 
-| Email | Name | Icon |
-| --- | --- | --- |
-| alex@example.com | Alex | 🧮 |
-| sam@example.com | Sam | 🎯 |
+| Email | Name | Icon | Enable Runway | Savings |
+| --- | --- | --- | --- | --- |
+| alex@example.com | Alex | 🧮 | `TRUE` | 12000 |
+| sam@example.com | Sam | 🎯 | | |
 
 This tab does double duty:
 - **write allowlist** — only these emails can add/edit expenses or create trips (see `auth.js`)
 - **participant roster** — the **first two rows with a name** become Persona A and B, in that order. That order is what the household/trip tabs' Quota % columns follow (Quota % \<Persona A\>, Quota % \<Persona B\>), so don't reorder these rows once you have expense data — the columns won't relabel themselves.
 
 Icon is any emoji, shown next to the participant's name throughout the app.
+
+**Enable Runway (`TRUE`/`FALSE`, optional)** and **Savings (a number, optional)**
+back the homepage's personal runway estimate (an approximate date a
+participant's savings would run out at their average monthly spend). Each is
+that participant's own value, editable only by themselves from the app's
+Settings page — never the other participant's, and never shown to them
+either, since this is private financial data. Like every other Users column
+they're resolved by header name, so they can go anywhere in the row; a blank
+cell (or the columns missing entirely) just means runway is off for that
+participant, same fail-safe default as Ricorrente/Overhead elsewhere in this
+doc.
 
 ## Categorie
 
