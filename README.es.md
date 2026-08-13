@@ -34,6 +34,7 @@ flowchart LR
 - 🔒 privado por defecto — la hoja nunca se comparte por enlace, y el backend verifica un google id token contra la lista `Users` en **cada** llamada, así que un visitante anónimo no ve ni un byte de tu registro — la sesión sobrevive a una recarga o a una segunda pestaña, hasta que el token de google caduca alrededor de una hora después
 - 🎭 una demo integrada — quien no ha iniciado sesión entra en una app plenamente funcional con datos de ejemplo (navega, filtra, añade y edita), así puedes enseñar cómo funciona sin dar tus números; al iniciar sesión, la misma interfaz pasa a tu hoja real
 - 🕘 un registro de actividad — cada alta, edición o eliminación (gasto, viaje o categoría) queda registrada con quién, cuándo, y qué cambió exactamente, consultable en su propia página
+- 💰 una estimación opcional de tu propia autonomía financiera — anota tus ahorros en la página de ajustes y ve una fecha aproximada en la que se agotarían a tu ritmo de gasto medio mensual; es privada y de autogestión, así que tu pareja nunca la ve aunque la tarjeta de inicio sea compartida
 - ⚙️ una pestaña `Users` que hace doble función como lista de participantes y lista de acceso de lectura/escritura, configurada una vez, usada en todas partes
 - 🌍 interfaz en english, italiano y español
 

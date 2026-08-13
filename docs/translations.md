@@ -27,7 +27,7 @@ Anything unrecognised falls back to `en`.
 
 Edit the value in each locale file. Keys are nested one level deep and grouped
 by area — `app`, `nav`, `auth`, `demo`, `home`, `form`, `trips`, `overview`,
-`history`, `filters` — and referenced in components as `t('trips.edit')`.
+`history`, `filters`, `settings` — and referenced in components as `t('trips.edit')`.
 
 The UI is deliberately lowercase throughout; keep translations lowercase too
 unless the language requires otherwise (German nouns, proper names).

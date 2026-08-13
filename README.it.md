@@ -34,6 +34,7 @@ flowchart LR
 - 🔒 privato per impostazione predefinita — il foglio non è mai condiviso tramite link, e il backend verifica un google id token contro la lista `Users` a **ogni** chiamata, così un visitatore anonimo non vede un solo byte del tuo registro — l'accesso sopravvive a un aggiornamento o a una seconda scheda, finché il token di google non scade circa un'ora dopo
 - 🎭 una demo integrata — chi non ha effettuato l'accesso entra in un'app pienamente funzionante con dati di esempio (naviga, filtra, aggiunge e modifica), così puoi mostrare a qualcuno come funziona senza dargli i tuoi numeri; accedendo, la stessa interfaccia passa al tuo foglio reale
 - 🕘 un registro attività — ogni aggiunta, modifica o eliminazione (spesa, viaggio o categoria) viene registrata con chi, quando, e cosa è cambiato esattamente, consultabile nella sua pagina
+- 💰 una stima facoltativa della propria autonomia finanziaria — registra i tuoi risparmi nella pagina impostazioni e vedi una data approssimativa in cui finirebbero al tuo ritmo di spesa medio mensile; è privata e a autogestione, quindi il tuo partner non la vede mai anche se la scheda della home è condivisa
 - ⚙️ una scheda `Users` che funge sia da elenco partecipanti sia da lista di accesso in lettura/scrittura, configurata una volta, usata ovunque
 - 🌍 interfaccia in english, italiano ed español
 

@@ -34,6 +34,7 @@ flowchart LR
 - 🔒 private by default — the sheet is never link-shared, and the backend verifies a google id token against the `Users` allowlist on **every** call, so an anonymous visitor never sees a byte of your ledger — signing in survives a refresh or a second tab, until google's token expires about an hour later
 - 🎭 a built-in demo — signed-out visitors land in a fully working app running on sample data (browse, filter, even add and edit), so you can show someone what it does without giving them your numbers; signing in swaps the same UI onto your real sheet
 - 🕘 an activity log — every add, edit, or delete (expense, trip, or category) is recorded with who, when, and exactly what changed, browsable on its own page
+- 💰 an optional personal runway estimate — record your own savings on the settings page and see an approximate date they'd run out at your average monthly spend; self-service and private, so your partner never sees it even though the homepage card is shared
 - ⚙️ a `Users` tab doing double duty as the participant roster and the read/write allowlist, configured once, used everywhere
 - 🌍 interface in english, italiano and español
 
