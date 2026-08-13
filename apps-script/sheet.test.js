@@ -134,13 +134,13 @@ test('parseUsersRunway returns {} when there is no email column or no data rows'
 
 test('findUserRowByEmail finds the right row case-insensitively', () => {
   const values = [
-    ['Name', 'Email', 'Enable Runway', 'Savings'],
-    ['Alex', 'alex@example.com', true, 500],
-    ['Sam', 'sam@example.com', false, 0],
+    ['Name', 'Email', 'Enable Runway', 'Savings', 'Language'],
+    ['Alex', 'alex@example.com', true, 500, 'en'],
+    ['Sam', 'sam@example.com', false, 0, 'it'],
   ]
   assert.deepEqual(sheet.findUserRowByEmail(values, 'Sam@Example.com'), {
     rowNumber: 3,
-    cols: { email: 1, enableRunway: 2, savings: 3 },
+    cols: { email: 1, enableRunway: 2, savings: 3, language: 4 },
   })
 })
 
@@ -151,6 +151,39 @@ test('findUserRowByEmail returns null for an unknown email or missing email colu
   ]
   assert.equal(sheet.findUserRowByEmail(values, 'nobody@example.com'), null)
   assert.equal(sheet.findUserRowByEmail([['Name']], 'alex@example.com'), null)
+})
+
+test('findUserRowByEmail resolves language as -1 when the column is absent', () => {
+  const values = [
+    ['Name', 'Email', 'Enable Runway', 'Savings'],
+    ['Alex', 'alex@example.com', true, 500],
+  ]
+  assert.deepEqual(sheet.findUserRowByEmail(values, 'alex@example.com'), {
+    rowNumber: 2,
+    cols: { email: 1, enableRunway: 2, savings: 3, language: -1 },
+  })
+})
+
+test('parseUserLanguage reads the Language column by header name, keyed by lowercased email', () => {
+  const values = [
+    ['Language', 'Email', 'Name'],
+    ['EN', 'Alex@Example.com', 'Alex'],
+    ['', 'sam@example.com', 'Sam'],
+  ]
+  assert.deepEqual(sheet.parseUserLanguage(values), {
+    'alex@example.com': 'en',
+    'sam@example.com': '',
+  })
+})
+
+test('parseUserLanguage returns {} when there is no email column, and skips rows without an email', () => {
+  assert.deepEqual(sheet.parseUserLanguage([]), {})
+  assert.deepEqual(sheet.parseUserLanguage([['Name', 'Language']]), {})
+  const values = [
+    ['Email', 'Language'],
+    ['', 'en'],
+  ]
+  assert.deepEqual(sheet.parseUserLanguage(values), {})
 })
 
 test('parseCategories reads name/icon/overhead, skipping the header and blank rows', () => {

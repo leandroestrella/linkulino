@@ -23,6 +23,13 @@ Language is resolved in this order (see `detection` in `index.ts`):
 `load: 'languageOnly'` means `it-IT` and `it-CH` both resolve to `it`.
 Anything unrecognised falls back to `en`.
 
+For a signed-in participant, that `localStorage` choice is also mirrored to
+the `Users` tab's optional `Language` column (see
+[sheet-setup.md](sheet-setup.md#users)) — applied on sign-in (so it follows
+them to a new device) and updated whenever they switch languages from the
+flag menu. This is a background sync only; it never overrides an explicit
+`?lng=` link, and there's no UI beyond the existing flag dropdown.
+
 ## changing existing wording
 
 Edit the value in each locale file. Keys are nested one level deep and grouped

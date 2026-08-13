@@ -5,7 +5,7 @@
  * exposes a small JSON API:
  *   - doGet  → reads   (?action=health, participants, categories, expenses[&sheet=], trips, history)
  *   - doPost → writes  (addExpense, updateExpense, deleteExpense, createTrip,
- *              updateTrip, deleteTrip, addCategory, updateRunway)
+ *              updateTrip, deleteTrip, addCategory, updateRunway, updateLanguage)
  *
  * All pure logic (tab discovery, row↔object mapping, blank-slot finding) lives
  * in sheet.js and is unit-tested in Node. This file is just the glue: read
@@ -155,6 +155,11 @@ function doPost(e) {
         var updatedRunway = updateRunway_(user.email, body.runway)
         // Deliberately NOT logged to History — see updateRunway_'s doc comment.
         return json({ ok: true, runway: updatedRunway })
+      }
+      case 'updateLanguage': {
+        var updatedLanguage = updateLanguage_(user.email, body.language)
+        // Deliberately NOT logged to History — see updateLanguage_'s doc comment.
+        return json({ ok: true, language: updatedLanguage })
       }
       default:
         return json({ ok: false, error: 'unknown action: ' + body.action })
@@ -697,6 +702,7 @@ function todayIso_() {
 function whoAmI_(body) {
   var r = authorize_(body)
   var runway = r.authorized ? getOwnRunway_(r.email) : { enableRunway: false, savings: 0 }
+  var language = r.authorized ? getOwnLanguage_(r.email) : ''
   return {
     ok: true,
     authorized: r.authorized,
@@ -705,6 +711,7 @@ function whoAmI_(body) {
     reason: r.reason,
     enableRunway: runway.enableRunway,
     savings: runway.savings,
+    language: language,
   }
 }
 
@@ -751,6 +758,46 @@ function updateRunway_(email, input) {
   tab.getRange(found.rowNumber, found.cols.enableRunway + 1).setValue(enableRunway)
   tab.getRange(found.rowNumber, found.cols.savings + 1).setValue(savings)
   return { enableRunway: enableRunway, savings: savings }
+}
+
+/**
+ * Looks up ONE participant's own saved UI language by email — same
+ * own-email-only guarantee as getOwnRunway_. Returns '' (no preference
+ * saved, or no Language column) rather than throwing, so callers that don't
+ * care whether the feature is configured yet can just fall back quietly.
+ * @param {string} email lowercased
+ * @return {string} a language code (e.g. "en"), or ''
+ */
+function getOwnLanguage_(email) {
+  var all = parseUserLanguage(readValuesOptional_(USERS_TAB))
+  return all[email] || ''
+}
+
+/**
+ * Saves the CALLER'S OWN UI language preference to the Users tab — keyed by
+ * their authenticated email (from requireUser_), same self-service
+ * enforcement as updateRunway_. Not logged to History: a UI language choice
+ * isn't a household financial action either participant needs visibility
+ * into.
+ * @param {string} email the caller's own authenticated email (lowercased)
+ * @param {string} language a language code (e.g. "en")
+ * @return {string} the saved language
+ * @throws if the Users tab has no matching row for this email, or is
+ *   missing a "Language" column.
+ */
+function updateLanguage_(email, language) {
+  var lang = cellToString(language).toLowerCase()
+  if (!lang) throw new Error('Missing language')
+  var tab = getSpreadsheet_().getSheetByName(USERS_TAB)
+  if (!tab) throw new Error('Missing sheet tab: ' + USERS_TAB)
+  var values = tab.getDataRange().getValues()
+  var found = findUserRowByEmail(values, email)
+  if (!found) throw new Error('No Users row found for this account')
+  if (found.cols.language === -1) {
+    throw new Error('Users tab is missing a "Language" column (see docs/sheet-setup.md)')
+  }
+  tab.getRange(found.rowNumber, found.cols.language + 1).setValue(lang)
+  return lang
 }
 
 /**

@@ -58,10 +58,10 @@ B–E cells are informational only.)
 One row per participant, columns resolved by header name (so their order
 doesn't matter):
 
-| Email | Name | Icon | Enable Runway | Savings |
-| --- | --- | --- | --- | --- |
-| momra@example.com | momra | 🐠 | `TRUE` | 12000 |
-| mara@example.com | mara | ⚽ | | |
+| Email | Name | Icon | Enable Runway | Savings | Language |
+| --- | --- | --- | --- | --- | --- |
+| momra@example.com | momra | 🐠 | `TRUE` | 12000 | en |
+| mara@example.com | mara | ⚽ | | | it |
 
 This tab does double duty:
 - **write allowlist** — only these emails can add/edit expenses or create trips (see `auth.js`)
@@ -79,6 +79,14 @@ they're resolved by header name, so they can go anywhere in the row; a blank
 cell (or the columns missing entirely) just means runway is off for that
 participant, same fail-safe default as Ricorrente/Overhead elsewhere in this
 doc.
+
+**Language (optional)** saves a participant's UI language choice (one of the
+codes in `web/src/i18n/index.ts`'s `LANGUAGES`, e.g. `en`/`it`/`es`) so it
+follows them across devices instead of staying a per-device `localStorage`
+choice (see [translations](translations.md)) — applied on sign-in, and kept
+up to date whenever they switch languages from the flag menu. A blank cell
+(or the column missing entirely) just means nothing is saved yet; the app
+falls back to the browser/`localStorage` choice as before.
 
 ## Categorie
 

@@ -77,6 +77,10 @@ function freshMockStore() {
     // fetchMe's mock branch attributes it to MOCK_PARTICIPANTS[0] ('momra'),
     // who has real spend in MOCK_EXPENSES, so the estimate is a real date.
     runway: { enableRunway: true, savings: 8000 } as RunwaySettings,
+    // '' — mock mode has no saved preference; i18next's own detection
+    // (localStorage/browser) already covers it, same as a real account with
+    // no Language column filled in yet.
+    language: '',
   }
 }
 
@@ -224,6 +228,8 @@ export interface Me {
   /** The caller's own runway settings (see RunwaySettings) — never a partner's. */
   enableRunway: boolean
   savings: number
+  /** The caller's saved UI language (e.g. "en"), or '' if none saved yet — see updateLanguage. */
+  language: string
 }
 
 /**
@@ -233,7 +239,14 @@ export interface Me {
  */
 export async function fetchMe(): Promise<Me> {
   if (servingMock()) {
-    return { authorized: true, email: 'dev@local', name: MOCK_PARTICIPANT_NAME, reason: 'mock mode', ...mock.runway }
+    return {
+      authorized: true,
+      email: 'dev@local',
+      name: MOCK_PARTICIPANT_NAME,
+      reason: 'mock mode',
+      ...mock.runway,
+      language: mock.language,
+    }
   }
   return post<Me>({ action: 'me' })
 }
@@ -248,6 +261,20 @@ export async function updateRunwaySettings(settings: RunwaySettings): Promise<Ru
   }
   const data = await post<{ runway: RunwaySettings }>({ action: 'updateRunway', runway: settings })
   return data.runway
+}
+
+/**
+ * Persists the caller's own UI language choice — best-effort background
+ * sync, never awaited by the caller for its result: see LanguageSwitcher,
+ * which fires this alongside the immediate local i18next.changeLanguage.
+ */
+export async function updateLanguage(language: string): Promise<string> {
+  if (servingMock()) {
+    mock.language = language
+    return language
+  }
+  const data = await post<{ language: string }>({ action: 'updateLanguage', language })
+  return data.language
 }
 
 // ---------------------------------------------------------------------------

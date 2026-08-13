@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { updateLanguage } from '@/api/client'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -24,7 +25,14 @@ export function LanguageSwitcher() {
         {LANGUAGES.map((lang) => (
           <DropdownMenuItem
             key={lang.code}
-            onClick={() => void i18n.changeLanguage(lang.code)}
+            onClick={() => {
+              void i18n.changeLanguage(lang.code)
+              // Best-effort background sync to the account (see
+              // docs/translations.md) — swallow failures (anonymous/demo
+              // visitor, no Language column yet) since the language switch
+              // itself already succeeded locally regardless.
+              void updateLanguage(lang.code).catch(() => {})
+            }}
             className={lang.code === current.code ? 'font-semibold' : undefined}
           >
             <span className="mr-2">{lang.flag}</span>

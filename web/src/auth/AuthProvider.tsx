@@ -2,6 +2,21 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { ReactNode } from 'react'
 import { config, hasBackend } from '@/config'
 import { clearReadCache, fetchMe, MOCK_PARTICIPANT_NAME, setDemoMode, setIdTokenProvider } from '@/api/client'
+import i18n, { LANGUAGES } from '@/i18n'
+
+/**
+ * Applies a participant's saved language (from `Me.language`) to this
+ * device, so it follows them across devices instead of staying a per-device
+ * localStorage choice — but never overrides an explicit `?lng=` link (that's
+ * for sharing a page in a specific language regardless of anyone's saved
+ * preference — see docs/translations.md) or a value i18next doesn't
+ * recognize (a saved preference from before a language was added/removed).
+ */
+function applyServerLanguage(language: string): void {
+  if (!language || new URLSearchParams(window.location.search).has('lng')) return
+  if (!LANGUAGES.some((l) => l.code === language)) return
+  if (language !== i18n.resolvedLanguage) void i18n.changeLanguage(language)
+}
 
 /** The signed-in person's public profile (decoded from the Google ID token). */
 export interface AuthUser {
@@ -167,6 +182,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setParticipantName(me.name)
       setRunwayEnabled(me.enableRunway)
       setSavings(me.savings)
+      applyServerLanguage(me.language)
       setStatus('signed-in')
       setError(me.authorized ? null : `Signed in, but not on the allowlist (${me.reason}).`)
       // Only worth replaying a token the backend actually accepted.

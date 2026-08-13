@@ -265,12 +265,43 @@ function parseUsersRunway(values) {
 }
 
 /**
+ * Resolves each participant's saved language preference from the Users tab
+ * (column "Language", by header name — see parseParticipants), so a signed-in
+ * user's UI language follows them across devices instead of staying a
+ * per-device localStorage choice. Keyed by lowercased email, same as
+ * parseUsersRunway.
+ * @param {Array<Array<*>>} values full Users sheet values incl. header row
+ * @return {Object<string, string>} lowercased email → language code (e.g. "en"), '' if unset
+ */
+function parseUserLanguage(values) {
+  if (!values || values.length < 2) return {}
+  var header = values[0]
+  var iEmail = -1
+  var iLanguage = -1
+  for (var i = 0; i < header.length; i++) {
+    var label = cellToString(header[i]).toLowerCase()
+    if (label === 'email') iEmail = i
+    else if (label === 'language') iLanguage = i
+  }
+  if (iEmail === -1) return {}
+
+  var byEmail = {}
+  for (var r = 1; r < values.length; r++) {
+    var email = cellToString(values[r][iEmail]).toLowerCase()
+    if (!email) continue
+    byEmail[email] = iLanguage === -1 ? '' : cellToString(values[r][iLanguage]).toLowerCase()
+  }
+  return byEmail
+}
+
+/**
  * Finds a Users-tab row by email (case-insensitive), plus the resolved
- * column indexes for Email/"enable runway"/Savings — the pure half of the
- * row-lookup-and-update pattern (Code.js does the actual getRange/setValue).
+ * column indexes for Email/"enable runway"/Savings/Language — the pure half
+ * of the row-lookup-and-update pattern (Code.js does the actual
+ * getRange/setValue).
  * @param {Array<Array<*>>} values
  * @param {string} email
- * @return {{rowNumber: number, cols: {email: number, enableRunway: number, savings: number}}|null}
+ * @return {{rowNumber: number, cols: {email: number, enableRunway: number, savings: number, language: number}}|null}
  */
 function findUserRowByEmail(values, email) {
   if (!values || values.length < 2) return null
@@ -278,18 +309,23 @@ function findUserRowByEmail(values, email) {
   var iEmail = -1
   var iEnableRunway = -1
   var iSavings = -1
+  var iLanguage = -1
   for (var i = 0; i < header.length; i++) {
     var label = cellToString(header[i]).toLowerCase()
     if (label === 'email') iEmail = i
     else if (label === 'enable runway') iEnableRunway = i
     else if (label === 'savings') iSavings = i
+    else if (label === 'language') iLanguage = i
   }
   if (iEmail === -1) return null
 
   var target = cellToString(email).toLowerCase()
   for (var r = 1; r < values.length; r++) {
     if (cellToString(values[r][iEmail]).toLowerCase() === target) {
-      return { rowNumber: r + 1, cols: { email: iEmail, enableRunway: iEnableRunway, savings: iSavings } }
+      return {
+        rowNumber: r + 1,
+        cols: { email: iEmail, enableRunway: iEnableRunway, savings: iSavings, language: iLanguage },
+      }
     }
   }
   return null
@@ -696,6 +732,7 @@ if (typeof module !== 'undefined' && module.exports) {
     buildTripHeaderRow: buildTripHeaderRow,
     parseParticipants: parseParticipants,
     parseUsersRunway: parseUsersRunway,
+    parseUserLanguage: parseUserLanguage,
     findUserRowByEmail: findUserRowByEmail,
     parseCategories: parseCategories,
     buildCategoryRowValues: buildCategoryRowValues,
