@@ -23,7 +23,7 @@ import {
   filtersToSearch,
   matchingTimeframeKey,
 } from '@/lib/filters'
-import { formatAmount } from '@/lib/format'
+import { formatAmount, formatDate } from '@/lib/format'
 import { runwayDepletionDate, type RunwayResult } from '@/lib/runway'
 
 /** Each participant's balance: total paid minus their share of every expense. Positive = owed money. */
@@ -51,7 +51,7 @@ function isEvenSplit(expense: Expense, participants: Participant[]): boolean {
 
 /** Renders a RunwayResult as the text following the "runway:" label. */
 function runwayText(runway: RunwayResult, t: (key: string) => string): string {
-  if (runway.kind === 'date') return runway.date
+  if (runway.kind === 'date') return formatDate(runway.date)
   if (runway.kind === 'depleted') return t('home.runwayDepleted')
   return t('home.runwayIndefinite')
 }

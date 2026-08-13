@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { updateRunwaySettings } from '@/api/client'
 import { useAuth } from '@/auth/AuthProvider'
@@ -18,6 +19,7 @@ import { useAdminAction } from '@/hooks/useAdminAction'
  */
 export function SettingsPage() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const { status, authorized, canWrite, runwayEnabled, savings, refreshRunway } = useAuth()
   const [enabled, setEnabled] = useState(runwayEnabled)
   const [amount, setAmount] = useState(String(savings))
@@ -37,7 +39,10 @@ export function SettingsPage() {
     if (!Number.isFinite(parsed)) return setError(t('settings.errorInvalidAmount'))
     await run(
       () => updateRunwaySettings({ enableRunway: enabled, savings: parsed }),
-      () => refreshRunway(),
+      async () => {
+        await refreshRunway()
+        navigate('/')
+      },
     )
   }
 

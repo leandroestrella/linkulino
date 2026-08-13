@@ -20,3 +20,14 @@ const dateTime = new Intl.DateTimeFormat(undefined, {
 export function formatDateTime(isoTimestamp: string): string {
   return dateTime.format(new Date(isoTimestamp))
 }
+
+const dateOnly = new Intl.DateTimeFormat(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+
+/** Formats a plain ISO `YYYY-MM-DD` date (no time component) in the viewer's own locale, e.g. "15 Feb 2032". */
+export function formatDate(isoDate: string): string {
+  // Built from y/m/d rather than `new Date(isoDate)`: a date-only ISO string
+  // parses as UTC midnight, which rolls back a day in any timezone behind
+  // UTC — same pitfall localIsoDate's comment (lib/date.ts) warns about.
+  const [y, m, d] = isoDate.split('-').map(Number)
+  return dateOnly.format(new Date(y, m - 1, d))
+}
