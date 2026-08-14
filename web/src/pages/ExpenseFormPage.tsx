@@ -84,6 +84,7 @@ export function ExpenseFormPage({ mode }: { mode: 'add' | 'edit' }) {
   const [notes, setNotes] = useState('')
   const { run, busy, error, setError } = useAdminAction()
   const [loaded, setLoaded] = useState(false)
+  const [loadError, setLoadError] = useState(false)
 
   const [addingCategory, setAddingCategory] = useState(false)
   const [newCategoryName, setNewCategoryName] = useState('')
@@ -95,28 +96,30 @@ export function ExpenseFormPage({ mode }: { mode: 'add' | 'edit' }) {
       getParticipants(),
       getCategories(),
       mode === 'edit' && id ? getExpenses(tripId) : Promise.resolve(null),
-    ]).then(([p, c, expenses]) => {
-      setParticipants(p)
-      setCategories(c)
-      const existing = expenses?.find((e) => e.id === id)
-      if (existing) {
-        setDate(existing.date)
-        setDescription(existing.description)
-        setCategory(existing.category)
-        setPayer(existing.payer)
-        setAmount(String(existing.amount))
-        setSplits(existing.splits)
-        setSplitMode(matchSplitMode(existing.splits, p))
-        setRecurring(existing.recurring)
-        setNotes(existing.notes)
-      } else {
-        setSplits(evenSplit(p))
-        setSplitMode('even')
-        setPayer(p[0]?.name ?? '')
-        setCategory(c[0]?.name ?? '')
-      }
-      setLoaded(true)
-    })
+    ])
+      .then(([p, c, expenses]) => {
+        setParticipants(p)
+        setCategories(c)
+        const existing = expenses?.find((e) => e.id === id)
+        if (existing) {
+          setDate(existing.date)
+          setDescription(existing.description)
+          setCategory(existing.category)
+          setPayer(existing.payer)
+          setAmount(String(existing.amount))
+          setSplits(existing.splits)
+          setSplitMode(matchSplitMode(existing.splits, p))
+          setRecurring(existing.recurring)
+          setNotes(existing.notes)
+        } else {
+          setSplits(evenSplit(p))
+          setSplitMode('even')
+          setPayer(p[0]?.name ?? '')
+          setCategory(c[0]?.name ?? '')
+        }
+      })
+      .catch(() => setLoadError(true))
+      .finally(() => setLoaded(true))
   }, [mode, id, tripId])
 
   const splitTotal = Object.values(splits).reduce((sum, v) => sum + v, 0)
@@ -188,7 +191,8 @@ export function ExpenseFormPage({ mode }: { mode: 'add' | 'edit' }) {
             <p className="text-destructive">{t('form.notAllowlisted')}</p>
           )}
           {ready && !loaded && <LoadingAvatar />}
-          {ready && loaded && (
+          {ready && loaded && loadError && <p className="text-destructive">{t('app.loadError')}</p>}
+          {ready && loaded && !loadError && (
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="date">{t('form.date')}</Label>

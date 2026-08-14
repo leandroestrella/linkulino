@@ -23,18 +23,21 @@ export function TripEditPage() {
   const [endDate, setEndDate] = useState('')
   const { run, busy, error, setError } = useAdminAction()
   const [loaded, setLoaded] = useState(false)
+  const [loadError, setLoadError] = useState(false)
 
   useEffect(() => {
-    void getTrips().then((trips) => {
-      const existing = trips.find((trip) => trip.id === tripId)
-      if (existing) {
-        setName(existing.name)
-        setEmoji(existing.emoji)
-        setStartDate(existing.startDate)
-        setEndDate(existing.endDate)
-      }
-      setLoaded(true)
-    })
+    void getTrips()
+      .then((trips) => {
+        const existing = trips.find((trip) => trip.id === tripId)
+        if (existing) {
+          setName(existing.name)
+          setEmoji(existing.emoji)
+          setStartDate(existing.startDate)
+          setEndDate(existing.endDate)
+        }
+      })
+      .catch(() => setLoadError(true))
+      .finally(() => setLoaded(true))
   }, [tripId])
 
   async function handleSubmit(e: React.FormEvent) {
@@ -75,7 +78,8 @@ export function TripEditPage() {
             <p className="text-destructive">{t('form.notAllowlisted')}</p>
           )}
           {ready && !loaded && <LoadingAvatar />}
-          {ready && loaded && (
+          {ready && loaded && loadError && <p className="text-destructive">{t('app.loadError')}</p>}
+          {ready && loaded && !loadError && (
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div className="flex gap-3">
                 <div className="flex flex-col gap-1.5">

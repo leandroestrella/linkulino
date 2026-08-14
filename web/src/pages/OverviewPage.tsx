@@ -142,19 +142,20 @@ export function OverviewPage() {
   const [participants, setParticipants] = useState<Participant[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
 
   useEffect(() => {
-    void Promise.all([getExpenses(), getParticipants(), getCategories(), getTrips()]).then(
-      async ([h, p, c, tripList]) => {
+    void Promise.all([getExpenses(), getParticipants(), getCategories(), getTrips()])
+      .then(async ([h, p, c, tripList]) => {
         const perTrip = await Promise.all(tripList.map((trip) => getExpenses(trip.id)))
         setHousehold(h)
         setParticipants(p)
         setCategories(c)
         setTrips(tripList)
         setVacations(perTrip.flat())
-        setLoading(false)
-      },
-    )
+      })
+      .catch(() => setError(true))
+      .finally(() => setLoading(false))
   }, [])
 
   const thisMonthKey = todayIso().slice(0, 7)
@@ -181,6 +182,10 @@ export function OverviewPage() {
 
   if (loading) {
     return <LoadingAvatar />
+  }
+
+  if (error) {
+    return <p className="text-destructive">{t('app.loadError')}</p>
   }
 
   return (

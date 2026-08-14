@@ -11,12 +11,14 @@ export function HomePage() {
   const [trips, setTrips] = useState<Trip[]>([])
 
   useEffect(() => {
-    void getTrips().then((allTrips) => {
-      const relevant = allTrips
-        .filter((trip) => tripStatus(trip) !== 'past')
-        .sort((a, b) => a.startDate.localeCompare(b.startDate))
-      setTrips(relevant)
-    })
+    void getTrips()
+      .then((allTrips) => {
+        const relevant = allTrips
+          .filter((trip) => tripStatus(trip) !== 'past')
+          .sort((a, b) => a.startDate.localeCompare(b.startDate))
+        setTrips(relevant)
+      })
+      .catch(() => {})
   }, [])
 
   return (
