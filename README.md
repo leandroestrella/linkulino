@@ -35,8 +35,9 @@ flowchart LR
 - 🎭 a built-in demo — signed-out visitors land in a fully working app running on sample data (browse, filter, even add and edit), so you can show someone what it does without giving them your numbers; signing in swaps the same UI onto your real sheet
 - 🕘 an activity log — every add, edit, or delete (expense, trip, or category) is recorded with who, when, and exactly what changed, browsable on its own page
 - 💰 an optional personal runway estimate — record your own savings on the settings page and see an approximate date they'd run out at your average monthly spend; self-service and private, so your partner never sees it even though the homepage card is shared
+- 📤 export your own data as CSV — every expense you've ever added, household and every trip, one click from the settings page
 - ⚙️ a `Users` tab doing double duty as the participant roster and the read/write allowlist, configured once, used everywhere
-- 🌍 interface in english, italiano and español
+- 🌍 interface in english, italiano and español — your choice follows you across devices once signed in, not just this browser
 
 ## tech stack
 
