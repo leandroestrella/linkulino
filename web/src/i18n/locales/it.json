@@ -180,7 +180,8 @@
     "save": "salva",
     "errorInvalidAmount": "inserisci un importo valido.",
     "exportTitle": "esporta i tuoi dati",
-    "exportInfo": "scarica ogni spesa che hai mai aggiunto — casa e ogni viaggio — come file CSV.",
+    "exportInfo": "scarica ogni spesa che hai mai aggiunto — casa, e i viaggi se selezioni la casella qui sotto — come file CSV.",
+    "exportIncludeTrips": "includi i viaggi",
     "exportCsv": "scarica CSV"
   }
 }

@@ -36,6 +36,7 @@ export function SettingsPage() {
   const { status, authorized, canWrite, runwayEnabled, savings, refreshRunway } = useAuth()
   const [enabled, setEnabled] = useState(runwayEnabled)
   const [amount, setAmount] = useState(String(savings))
+  const [includeTrips, setIncludeTrips] = useState(false)
   const { run, busy, error, setError } = useAdminAction()
   const exportAction = useAdminAction()
 
@@ -63,12 +64,13 @@ export function SettingsPage() {
   async function handleExport() {
     exportAction.setError(null)
     await exportAction.run(async () => {
-      const [household, trips, participants] = await Promise.all([getExpenses(), getTrips(), getParticipants()])
-      const tripExpenseLists = await Promise.all(trips.map((trip) => getExpenses(trip.id)))
-      const all: ExportableExpense[] = [
-        ...household.map((e) => ({ ...e, sheet: 'household' })),
-        ...trips.flatMap((trip, i) => tripExpenseLists[i].map((e) => ({ ...e, sheet: trip.name }))),
-      ]
+      const [household, participants] = await Promise.all([getExpenses(), getParticipants()])
+      const all: ExportableExpense[] = household.map((e) => ({ ...e, sheet: 'household' }))
+      if (includeTrips) {
+        const trips = await getTrips()
+        const tripExpenseLists = await Promise.all(trips.map((trip) => getExpenses(trip.id)))
+        all.push(...trips.flatMap((trip, i) => tripExpenseLists[i].map((e) => ({ ...e, sheet: trip.name }))))
+      }
       downloadFile(`linkulino-${todayIso()}.csv`, expensesToCsv(all, participants), 'text/csv;charset=utf-8;')
     })
   }
@@ -127,6 +129,14 @@ export function SettingsPage() {
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <p className="text-muted-foreground text-sm">{t('settings.exportInfo')}</p>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="includeTrips"
+                checked={includeTrips}
+                onCheckedChange={(checked) => setIncludeTrips(checked === true)}
+              />
+              <Label htmlFor="includeTrips">{t('settings.exportIncludeTrips')}</Label>
+            </div>
             {exportAction.error && <p className="text-destructive text-sm">{exportAction.error}</p>}
             <Button type="button" variant="outline" disabled={exportAction.busy} onClick={() => void handleExport()}>
               {exportAction.busy ? t('form.saving') : t('settings.exportCsv')}

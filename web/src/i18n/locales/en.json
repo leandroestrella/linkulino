@@ -180,7 +180,8 @@
     "save": "save",
     "errorInvalidAmount": "enter a valid amount.",
     "exportTitle": "export your data",
-    "exportInfo": "download every expense you've ever added — household and every trip — as a CSV file.",
+    "exportInfo": "download every expense you've ever added — household, and trips if you check the box below — as a CSV file.",
+    "exportIncludeTrips": "include trips",
     "exportCsv": "download CSV"
   }
 }
