@@ -36,6 +36,7 @@ flowchart LR
 - 🕘 un registro de actividad — cada alta, edición o eliminación (gasto, viaje o categoría) queda registrada con quién, cuándo, y qué cambió exactamente, consultable en su propia página
 - 💰 una estimación opcional de tu propia autonomía financiera — anota tus ahorros en la página de ajustes y ve una fecha aproximada en la que se agotarían a tu ritmo de gasto medio mensual; es privada y de autogestión, así que tu pareja nunca la ve aunque la tarjeta de inicio sea compartida
 - 📤 exporta tus datos en CSV — una instantánea completa desde la página de ajustes (casa, más cada viaje si marcas la casilla), o una descarga con un clic desde cualquier panel de exactamente lo que se muestra en pantalla, respetando los filtros o el periodo activos
+- 🗄️ copias de seguridad diarias de toda la hoja, exportadas a XLSX y guardadas en cPanel fuera de la raíz web — la rotación mantiene las últimas 14 diarias más 6 mensuales (opcional, configuración autoalojada)
 - ⚙️ una pestaña `Users` que hace doble función como lista de participantes y lista de acceso de lectura/escritura, configurada una vez, usada en todas partes
 - 🌍 interfaz en english, italiano y español — tu elección te sigue entre dispositivos una vez que inicias sesión, no solo en este navegador
 

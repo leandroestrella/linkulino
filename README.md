@@ -36,6 +36,7 @@ flowchart LR
 - 🕘 an activity log — every add, edit, or delete (expense, trip, or category) is recorded with who, when, and exactly what changed, browsable on its own page
 - 💰 an optional personal runway estimate — record your own savings on the settings page and see an approximate date they'd run out at your average monthly spend; self-service and private, so your partner never sees it even though the homepage card is shared
 - 📤 export your data as CSV — an all-time snapshot from the settings page (household, plus every trip if you check the box), or a one-click download from any dashboard of exactly what's currently on screen, respecting whatever filters or timeframe are active
+- 🗄️ daily backups of the whole spreadsheet, exported to XLSX and stored on cPanel outside the web root — rotation keeps the last 14 daily plus 6 monthly snapshots (optional, self-hosted setup)
 - ⚙️ a `Users` tab doing double duty as the participant roster and the read/write allowlist, configured once, used everywhere
 - 🌍 interface in english, italiano and español — your choice follows you across devices once signed in, not just this browser
 

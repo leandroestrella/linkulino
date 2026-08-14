@@ -207,6 +207,64 @@ https://linkulino.leandroestrella.com
 
 Without this, the sign-in button silently fails to render on the live site.
 
+### 9. Spreadsheet backups (optional)
+
+The Google Sheet is the only copy of your expense data — no snapshotting
+otherwise. This exports it to XLSX daily and stores it on cPanel, in a
+directory outside the web docroot (so the backups themselves are never
+web-reachable — only the receiving endpoint below is), with rotation (last 14
+daily + 6 monthly, configurable).
+
+**9a.** On cPanel, via File Manager or SFTP (the deploy's FTP account is
+scoped to the subdomain's docroot itself and can't reach outside it), create
+a config file **one level above** that docroot — a sibling of the docroot
+folder, not inside it:
+
+```php
+<?php
+// /home/<cpanel-user>/linkulino-backup-config.php
+return [
+  'secret' => 'PASTE_A_RANDOM_SECRET_HERE',   // e.g. `openssl rand -hex 32`
+  'backupsDir' => '/home/<cpanel-user>/linkulino-backups', // created automatically if missing
+  'dailyKeep' => 14,
+  'monthlyKeep' => 6,
+];
+```
+
+Keep the secret out of git, same as every other credential in this project.
+
+**9b.** The receiving endpoint (`web/public/backup/receive.php`) ships with
+every frontend deploy automatically — Vite copies `web/public/` as-is into
+`web/dist/` — landing at `https://<subdomain>/backup/receive.php`. It reads
+the config file above via `dirname(__DIR__, 2)`, i.e. two levels above where
+it's deployed (`docroot/backup/receive.php` → one level above `docroot`),
+which is where step 9a's file needs to sit.
+
+> ✅ **Check:**
+> ```bash
+> curl -s -X POST -H "X-Backup-Secret: wrong" --data-binary "test" \
+>   https://<subdomain>/backup/receive.php
+> # {"ok":false,"error":"Invalid secret"} — confirms the endpoint is live and secret-checked
+> ```
+
+**9c.** Add the matching script properties in the Apps Script editor (dev
+and/or prod — same **⚙️ Project Settings → Script Properties** panel as step 3):
+
+| Property | Value |
+| --- | --- |
+| `BACKUP_ENDPOINT_URL` | `https://<subdomain>/backup/receive.php` |
+| `BACKUP_SECRET` | the same random secret as `linkulino-backup-config.php` |
+
+**9d.** Run `installBackupTrigger` once from the editor's Run menu, the same
+way as step 4/7 — this requests the `drive.readonly` scope
+(`apps-script/appsscript.json`, needed to export the sheet as XLSX), so expect
+a fresh consent screen.
+
+> ✅ **Check:** run `runScheduledBackup` manually from the editor once — the
+> Execution log should show `Backup uploaded: {"ok":true,...}`, and
+> `linkulino-backups/` on cPanel should have a new `backup-<timestamp>.xlsx`
+> file.
+
 ## shipping backend changes
 
 The workflow only deploys the frontend. Apps Script changes go out separately —

@@ -691,6 +691,70 @@ function installMonthlyRecurringTrigger() {
   return 'Monthly recurring-expense trigger installed (runs day 1 of each month, ~6am).'
 }
 
+// ---------------------------------------------------------------------------
+// Spreadsheet backups
+// ---------------------------------------------------------------------------
+
+/**
+ * Scheduled job: exports the whole spreadsheet as XLSX and POSTs it to the
+ * cPanel backup endpoint (BACKUP_ENDPOINT_URL/BACKUP_SECRET script
+ * properties — see docs/deployment.md's "spreadsheet backups" setup). The
+ * receiver keeps its own rotation (last N daily + M monthly); this function's
+ * only job is producing one snapshot and handing it off. Install the daily
+ * trigger once via installBackupTrigger.
+ * @return {string} a human-readable status.
+ */
+function runScheduledBackup() {
+  var props = PropertiesService.getScriptProperties()
+  var endpoint = props.getProperty('BACKUP_ENDPOINT_URL')
+  var secret = props.getProperty('BACKUP_SECRET')
+  if (!endpoint || !secret) {
+    throw new Error('BACKUP_ENDPOINT_URL/BACKUP_SECRET script properties are not set — see docs/deployment.md.')
+  }
+
+  var exportUrl = 'https://docs.google.com/spreadsheets/d/' + getSpreadsheet_().getId() + '/export?format=xlsx'
+  var exportResponse = UrlFetchApp.fetch(exportUrl, {
+    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
+    muteHttpExceptions: true,
+  })
+  if (exportResponse.getResponseCode() !== 200) {
+    throw new Error('Spreadsheet export failed: HTTP ' + exportResponse.getResponseCode())
+  }
+
+  var uploadResponse = UrlFetchApp.fetch(endpoint, {
+    method: 'post',
+    contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    payload: exportResponse.getBlob().getBytes(),
+    headers: { 'X-Backup-Secret': secret },
+    muteHttpExceptions: true,
+  })
+  if (uploadResponse.getResponseCode() !== 200) {
+    throw new Error(
+      'Backup upload failed: HTTP ' + uploadResponse.getResponseCode() + ' ' + uploadResponse.getContentText(),
+    )
+  }
+  return 'Backup uploaded: ' + uploadResponse.getContentText()
+}
+
+/**
+ * One-time setup: installs the daily trigger for runScheduledBackup (~3am in
+ * the script's timezone). Run once from the editor — after setting the
+ * BACKUP_ENDPOINT_URL/BACKUP_SECRET script properties — the same way as
+ * installMonthlyRecurringTrigger; safe to re-run (replaces any existing
+ * trigger for this function so re-running doesn't create duplicates).
+ * @return {string} a human-readable status.
+ */
+function installBackupTrigger() {
+  var triggers = ScriptApp.getProjectTriggers()
+  for (var i = 0; i < triggers.length; i++) {
+    if (triggers[i].getHandlerFunction() === 'runScheduledBackup') {
+      ScriptApp.deleteTrigger(triggers[i])
+    }
+  }
+  ScriptApp.newTrigger('runScheduledBackup').timeBased().everyDays(1).atHour(3).create()
+  return 'Daily backup trigger installed (runs ~3am).'
+}
+
 /** @return {string} today as ISO YYYY-MM-DD in the script's timezone. */
 function todayIso_() {
   return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd')
