@@ -400,12 +400,19 @@ function writeExpenseRow_(tab, rowNumber, input, participants, cols, includeRecu
 
 /**
  * Builds a fresh trip tab's structure: row-1 metadata, the "Totale
- * speso"/"Saldo attuale" summary cells, the header row, one pre-filled blank
- * data row with the Quota €/Saldo formulas, and the closing TOTALE row. No
- * template tab to duplicate — everything's generated directly, so deleting
- * (or never having) a template tab doesn't block trip creation. The one
- * blank data row exists so ensureBlankSlotRow_ has a formula row to copy
- * from the first time this trip runs out of slots (see Code.js).
+ * speso"/"Saldo attuale" summary cells, the TOTALE row pinned at row 4 (so
+ * it's always visible without scrolling, instead of trailing the data rows),
+ * the header row, and one pre-filled blank data row with the Quota €/Saldo
+ * formulas. No template tab to duplicate — everything's generated directly,
+ * so deleting (or never having) a template tab doesn't block trip creation.
+ * The one blank data row exists so ensureBlankSlotRow_ has a formula row to
+ * copy from the first time this trip runs out of slots (see Code.js).
+ * Because TOTALE sits above the header here, ensureBlankSlotRow_ appends new
+ * rows after the last one rather than inserting above TOTALE (see its
+ * layout comment) — so TOTALE's SUM ranges below are pre-widened to
+ * MAX_TRIP_DATA_ROW rather than the single starting data row, to already
+ * cover rows appended well into the future without needing to be widened by
+ * hand.
  * @param {GoogleAppsScript.Spreadsheet.Sheet} tab a freshly inserted, empty sheet
  * @param {{name: string, emoji: string, startDate: string, endDate: string}} trip
  * @param {{a: {name: string}|null, b: {name: string}|null}} participants
@@ -415,13 +422,14 @@ function buildTripTab_(tab, trip, participants) {
   tab.getRange(1, 1, 1, row1.length).setValues([row1])
 
   var header = buildTripHeaderRow(participants)
-  var headerRow = 4
+  var totaleRow = 4
+  var headerRow = totaleRow + 1
   tab.getRange(headerRow, 1, 1, header.length).setValues([header])
   tab.getRange(headerRow, 1, 1, header.length).setFontWeight('bold')
 
   var dataRow = headerRow + 1
-  var totaleRow = dataRow + 1
   var bName = participants && participants.b ? participants.b.name : 'Persona B'
+  var MAX_TRIP_DATA_ROW = 5000
 
   tab.getRange(dataRow, 6, 1, 2).setValues([[50, 50]]) // F/G: Quota % defaults
   tab.getRange(dataRow, 8).setFormula('=IF($E' + dataRow + '="","",$E' + dataRow + '*$F' + dataRow + '/100)')
@@ -431,10 +439,10 @@ function buildTripTab_(tab, trip, participants) {
     .setFormula('=IF($E' + dataRow + '="","",IF($D' + dataRow + '="' + bName + '",-$H' + dataRow + ',$I' + dataRow + '))')
 
   tab.getRange(totaleRow, 1).setValue('TOTALE')
-  tab.getRange(totaleRow, 5).setFormula('=SUM(E' + dataRow + ':E' + dataRow + ')')
-  tab.getRange(totaleRow, 8).setFormula('=SUM(H' + dataRow + ':H' + dataRow + ')')
-  tab.getRange(totaleRow, 9).setFormula('=SUM(I' + dataRow + ':I' + dataRow + ')')
-  tab.getRange(totaleRow, 10).setFormula('=SUM(J' + dataRow + ':J' + dataRow + ')')
+  tab.getRange(totaleRow, 5).setFormula('=SUM(E' + dataRow + ':E' + MAX_TRIP_DATA_ROW + ')')
+  tab.getRange(totaleRow, 8).setFormula('=SUM(H' + dataRow + ':H' + MAX_TRIP_DATA_ROW + ')')
+  tab.getRange(totaleRow, 9).setFormula('=SUM(I' + dataRow + ':I' + MAX_TRIP_DATA_ROW + ')')
+  tab.getRange(totaleRow, 10).setFormula('=SUM(J' + dataRow + ':J' + MAX_TRIP_DATA_ROW + ')')
   tab.getRange(totaleRow, 1, 1, header.length).setFontWeight('bold')
 
   // Cosmetic mirrors of the TOTALE row, for a human skimming the raw sheet —

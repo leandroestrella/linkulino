@@ -17,9 +17,9 @@ up your own instance.
 
 Trip tabs are created from the app (the vacations tab in the SPA) — `createTrip_`
 in `apps-script/Code.js` builds the whole tab from scratch (row 1 metadata,
-header row, one pre-filled blank data row with the Quota €/Saldo formulas,
-and the closing TOTALE row), so there's no template tab to keep around or
-duplicate. (Earlier versions duplicated a `Viaggio - Modello` template tab —
+the `TOTALE` row pinned at row 4, the header row, and one pre-filled blank
+data row with the Quota €/Saldo formulas), so there's no template tab to keep
+around or duplicate. (Earlier versions duplicated a `Viaggio - Modello` template tab —
 that constant still exists in `sheet.js` as a legacy exclusion in
 `classifyTab`, but nothing requires the tab to actually exist anymore.) The
 backend discovers trip tabs automatically once created — see below — so
@@ -144,7 +144,9 @@ across every tab in the file).
 
 ## expense tab layout
 
-Below the row-1 type marker:
+Below the row-1 type marker — this is the household tab's layout (set up by
+hand) and how older trip tabs look; new trip tabs pin `TOTALE` at row 4
+instead, see the callout below the column tables:
 
 | row | content |
 | --- | --- |
@@ -197,16 +199,19 @@ runs out of blank rows, the backend now extends it automatically (see
 `findTotaleRow`/`ensureBlankSlotRow_` in `apps-script/sheet.js`/`Code.js`),
 in one of two ways depending on where `TOTALE` sits:
 
-- **`TOTALE` closes the data rows at the bottom (the default)** — a fresh row
-  is inserted just above it, copying the formulas down from the row above
-  (same as a manual drag-fill); Sheets auto-expands `TOTALE`'s SUM/Saldo
-  ranges to include it, so nothing else needs adjusting.
-- **`TOTALE` is pinned above the header instead** (e.g. dragged up next to the
-  row 2/3 summary so it's visible without scrolling) — nothing bounds the
-  data rows from below, so a new row is simply appended after the last one,
-  copying its formulas down the same way. In this layout `TOTALE`'s own
-  SUM/Saldo ranges are **not** auto-extended by the backend — widen them by
-  hand to whatever headroom you expect the tab to need.
+- **`TOTALE` closes the data rows at the bottom** (the household tab's
+  layout) — a fresh row is inserted just above it, copying the formulas down
+  from the row above (same as a manual drag-fill); Sheets auto-expands
+  `TOTALE`'s SUM/Saldo ranges to include it, so nothing else needs adjusting.
+- **`TOTALE` is pinned above the header instead, at row 4** (the layout new
+  trip tabs are created with — `Totale speso`/`Saldo attuale` at rows 2–3,
+  `TOTALE` at row 4, header at row 5, data from row 6 on — so the total is
+  visible without scrolling) — nothing bounds the data rows from below, so a
+  new row is simply appended after the last one, copying its formulas down
+  the same way. In this layout `TOTALE`'s own SUM/Saldo ranges are **not**
+  auto-extended by the backend, so `buildTripTab_` pre-widens them to row
+  5000 up front rather than the single starting data row — if a trip somehow
+  outgrows that, widen the ranges by hand.
 
 No manual sheet surgery is needed for either layout beyond keeping `TOTALE`'s
 ranges wide enough in the second one.
