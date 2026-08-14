@@ -43,7 +43,8 @@
     "owesConnector": "owes",
     "settledUp": "all settled up!",
     "allTime": "all-time",
-    "allTimeBalanceInfo": "your running balance across every expense ever recorded here — ignores every filter and timeframe above."
+    "allTimeBalanceInfo": "your running balance across every expense ever recorded here — ignores every filter and timeframe above.",
+    "exportCsv": "download CSV of what's shown"
   },
   "form": {
     "title": "add expense",

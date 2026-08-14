@@ -5,6 +5,17 @@ export interface ExportableExpense extends Expense {
   sheet: string
 }
 
+/** Triggers a browser download of `content` as a file — the one DOM-touching step, kept out of the pure csv builders below. */
+export function downloadFile(filename: string, content: string, type: string): void {
+  const blob = new Blob([content], { type })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 /** Escapes one CSV field: quoted (with doubled internal quotes) whenever it contains a comma, quote, or newline. */
 function csvField(value: string | number | boolean): string {
   const s = String(value)

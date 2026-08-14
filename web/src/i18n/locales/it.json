@@ -43,7 +43,8 @@
     "owesConnector": "deve a",
     "settledUp": "tutto in pari!",
     "allTime": "da sempre",
-    "allTimeBalanceInfo": "il tuo saldo su tutte le spese mai registrate qui — ignora ogni filtro o periodo qui sopra."
+    "allTimeBalanceInfo": "il tuo saldo su tutte le spese mai registrate qui — ignora ogni filtro o periodo qui sopra.",
+    "exportCsv": "scarica CSV di quanto mostrato"
   },
   "form": {
     "title": "aggiungi spesa",

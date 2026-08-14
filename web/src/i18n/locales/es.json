@@ -43,7 +43,8 @@
     "owesConnector": "le debe a",
     "settledUp": "¡todo saldado!",
     "allTime": "histórico",
-    "allTimeBalanceInfo": "tu saldo acumulado con todos los gastos registrados aquí — ignora cualquier filtro o periodo de arriba."
+    "allTimeBalanceInfo": "tu saldo acumulado con todos los gastos registrados aquí — ignora cualquier filtro o periodo de arriba.",
+    "exportCsv": "descargar CSV de lo mostrado"
   },
   "form": {
     "title": "añadir gasto",

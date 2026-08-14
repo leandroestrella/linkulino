@@ -2,18 +2,19 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { RepeatIcon, PencilIcon, StickyNoteIcon } from 'lucide-react'
+import { DownloadIcon, RepeatIcon, PencilIcon, StickyNoteIcon } from 'lucide-react'
 import { getCategories, getExpenses, getParticipants } from '@/api/client'
 import type { Category, Expense, Participant } from '@/api/types'
 import { useAuth } from '@/auth/AuthProvider'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ExpenseFilters } from '@/components/ExpenseFilters'
 import { InfoTooltip } from '@/components/InfoTooltip'
 import { LoadingAvatar } from '@/components/LoadingAvatar'
 import { findParticipant, PersonName } from '@/components/PersonName'
 import { useAdminSlotContainer, useSubHeaderContainer } from '@/components/subheader'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { downloadFile, expensesToCsv, type ExportableExpense } from '@/lib/csv'
 import { todayIso } from '@/lib/date'
 import { isCommon } from '@/lib/expenses'
 import {
@@ -148,6 +149,12 @@ export function ExpenseDashboard({
   const sorted = [...scoped].sort((a, b) => b.date.localeCompare(a.date))
   const categoryIcon = (name: string) => categories.find((c) => c.name === name)?.icon ?? '💸'
 
+  function handleExport() {
+    const sheet = sheetId ?? 'household'
+    const exportable: ExportableExpense[] = scoped.map((e) => ({ ...e, sheet }))
+    downloadFile(`linkulino-${sheet}-${todayIso()}.csv`, expensesToCsv(exportable, participants), 'text/csv;charset=utf-8;')
+  }
+
   // For the filterable (household budget) dashboard, the card title tracks the
   // active timeframe filter instead of always saying "this month" — falls back
   // to the given `title` when there's no filter bar (e.g. a trip's dashboard).
@@ -190,6 +197,22 @@ export function ExpenseDashboard({
               <Card>
                 <CardHeader>
                   <CardTitle>{cardTitle}</CardTitle>
+                  <CardAction>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={t('home.exportCsv')}
+                          onClick={handleExport}
+                        >
+                          <DownloadIcon className="size-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>{t('home.exportCsv')}</TooltipContent>
+                    </Tooltip>
+                  </CardAction>
                 </CardHeader>
                 <CardContent className="flex items-center justify-between gap-4">
                   <div>
