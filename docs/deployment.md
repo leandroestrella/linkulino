@@ -210,42 +210,74 @@ Without this, the sign-in button silently fails to render on the live site.
 ### 9. Spreadsheet backups (optional)
 
 The Google Sheet is the only copy of your expense data — no snapshotting
-otherwise. This exports it to XLSX daily and stores it on cPanel, inside the
-docroot at `private/` but blocked from ever being served — a `.htaccess`
-deny-all rule inside that folder, not its position, is what keeps it private
-— with rotation (last 14 daily + 6 monthly, configurable).
+otherwise. A cPanel **cron job** runs a PHP script daily that exports it to
+XLSX and stores it on cPanel, inside the docroot at `private/` but blocked
+from ever being served over HTTP — a `.htaccess` deny-all rule inside that
+folder, not its position, is what keeps it private — with rotation (last 14
+daily + 6 monthly, configurable).
 
-**Why inside the docroot, not outside it (the design's first draft):** the
-obvious-sounding alternative — write backups to a directory one or two levels
-*above* the docroot, so Apache structurally can't serve them regardless of
-any config — turned out to be the wrong default here, for two reasons:
-- The FTP account this repo's deploy workflow uses is scoped to the
-  subdomain's docroot itself; it can't write outside it. That's fine, since
-  step 9a is a one-time manual step done through File Manager/SFTP instead —
-  but it meant the "outside the docroot" path also required first figuring
-  out cPanel's actual directory nesting for this subdomain (is the docroot's
-  parent your account home, or is it `public_html/`, i.e. your *main site's*
-  own webroot?) before it was safe to use. That's an easy thing to get wrong
-  once, silently, on a real production server.
-- A `.htaccess` deny-all rule sidesteps the question entirely — it doesn't
-  matter what the docroot's parent directory is, or whether it's someone
-  else's webroot, because the backups are never served regardless of where
-  they physically live. It's also portable: this same `private/` layout
-  works on any host, whereas "N levels above the docroot" depends on a
-  specific, easy-to-misjudge cPanel folder structure.
+**Why a cron *pull* instead of Apps Script *pushing*, and why a service
+account instead of the app's own OAuth sign-in (two design pivots, in
+order):**
 
-The trade-off this surfaced: because `private/` now lives inside the docroot
-that the FTP deploy action manages, it had to be explicitly excluded from
-that deploy's sync (`.github/workflows/deployTocPanel.yml`) — otherwise the
-*next* frontend deploy would see `private/` as a folder that exists on the
-server but isn't part of the git-tracked build, and delete it (the action's
-own docs describe `exclude` as covering both the publish and the delete side
-of its sync). That exclusion is already in place; it's called out here so a
-future edit to that workflow step doesn't accidentally drop it.
+1. **First draft:** an Apps Script time trigger exported the sheet and
+   POSTed it to a receiving PHP endpoint here. That hit a wall: cPanel's
+   inbound security layer (a WAF — Imunify360 or similar) blocked every
+   request from Google's servers with a 403, regardless of payload encoding
+   or User-Agent — and this cPanel account's Security panel doesn't expose
+   the kind of WAF dashboard that would let you add an exception for it.
+   **Pulling instead of pushing sidesteps the whole problem**: this script
+   runs *on* cPanel and reaches out to Google — nothing from Google reaches
+   in, so there's no inbound request for a WAF to block. It also means no
+   public HTTP endpoint at all anymore — simpler and a smaller attack
+   surface than the push design had.
+2. **Auth, once pulling was the plan:** the obvious option was reusing the
+   app's existing OAuth flow (a refresh token, stored in the config file,
+   exchanged for a fresh access token each run). The problem: an OAuth app
+   left in Google Cloud's "Testing" publish status has refresh tokens that
+   silently expire after 7 days — exactly the kind of thing that works
+   perfectly in testing and then quietly stops a week later, with no
+   obvious error until you notice backups stopped landing. A **Google
+   service account** doesn't have that expiry — it's key-based auth, entirely
+   separate from the OAuth consent-screen system — which makes it the right
+   choice for something meant to run unattended indefinitely.
 
-**9a.** On cPanel, via File Manager or SFTP, create `private/` **inside** the
-subdomain's docroot (a sibling of `backup/`, which the deploy puts there) and
-add a deny-all `.htaccess` to it:
+Also still true from the previous design, and still why `private/` is
+structured the way it is: putting it *inside* the docroot rather than one or
+two directories above it (the naively "more secure"-sounding option) avoids
+depending on cPanel's specific directory nesting for this subdomain — a
+`.htaccess` deny-all works the same regardless of what's above the docroot,
+and is portable across hosts. The trade-off is that `private/` had to be
+explicitly excluded from the FTP deploy's sync
+(`.github/workflows/deployTocPanel.yml`'s `exclude` list) — since it now
+lives inside the docroot the deploy manages, and isn't part of the
+git-tracked build output, the next deploy would otherwise see it as removed
+and delete it. That exclusion is already in place.
+
+**9a. Create a Google service account.** In [Google Cloud
+Console](https://console.cloud.google.com/), in the same project as this
+app's OAuth client:
+1. **APIs & Services → Library** → search **Google Drive API** → **Enable**
+   (needed for a direct API export call; Apps Script's sign-in flow never
+   required this since it went through Apps Script's own execution grant).
+2. **IAM & Admin → Service Accounts → Create Service Account.** Name it
+   something like `linkulino-backup`. No project-level role needed — skip
+   that step; it only needs access to one file, granted next.
+3. Click into the new service account → **Keys** tab → **Add Key → Create
+   new key → JSON** → download it. It contains a `client_email` and a
+   `private_key` — both go into the config file below.
+
+**9b. Share the spreadsheet with it.** Open the spreadsheet (dev and/or
+prod) → **Share** → paste the service account's `client_email` (looks like
+`linkulino-backup@your-project.iam.gserviceaccount.com`) → **Viewer** is
+enough → **Share**.
+
+Get the spreadsheet's id from its URL:
+`https://docs.google.com/spreadsheets/d/`**`THIS_PART`**`/edit`.
+
+**9c.** On cPanel, via File Manager or SFTP, create `private/` **inside**
+the subdomain's docroot (a sibling of `backup/`, which the deploy puts
+there) and add a deny-all `.htaccess` to it:
 
 ```apache
 # private/.htaccess — blocks every request under this folder, whatever the
@@ -259,58 +291,68 @@ add a deny-all `.htaccess` to it:
 </IfModule>
 ```
 
-Then, still inside `private/`, add the config file:
+Then, still inside `private/`, add the config file — the `private_key`
+field from step 9a's downloaded JSON pastes in as-is (its `\n` sequences
+stay literal backslash-n inside a PHP double-quoted string, which PHP reads
+back as real newlines, same as the JSON did):
 
 ```php
 <?php
 // docroot/private/linkulino-backup-config.php
 return [
-  'secret' => 'PASTE_A_RANDOM_SECRET_HERE',   // e.g. `openssl rand -hex 32`
+  'spreadsheetId' => 'PASTE_THE_SPREADSHEET_ID_FROM_9B',
+  'serviceAccountEmail' => 'linkulino-backup@your-project.iam.gserviceaccount.com',
+  'serviceAccountPrivateKey' => "-----BEGIN PRIVATE KEY-----\nPASTE...\n-----END PRIVATE KEY-----\n",
   'backupsDir' => '/full/path/to/docroot/private/backups', // created automatically if missing; use the absolute path cPanel shows for this subdomain's docroot
   'dailyKeep' => 14,
   'monthlyKeep' => 6,
 ];
 ```
 
-Keep the secret out of git, same as every other credential in this project.
-`private/` is excluded from the FTP deploy's sync
-(`.github/workflows/deployTocPanel.yml`'s `exclude` list) specifically so a
-future frontend deploy never wipes this folder — it isn't part of the
-git-tracked build output, so without that exclusion the sync would otherwise
-see it as removed and delete it.
+Keep this file out of git, same as every other credential in this project —
+it holds a real private key, not just a shared secret this time.
 
-**9b.** The receiving endpoint (`web/public/backup/receive.php`) ships with
+**9d.** The cron script (`web/public/backup/run-backup.php`) ships with
 every frontend deploy automatically — Vite copies `web/public/` as-is into
-`web/dist/` — landing at `https://<subdomain>/backup/receive.php`. It reads
-the config file above via `dirname(__DIR__)`, i.e. the docroot itself
-(`docroot/backup/receive.php` → `docroot/`), then into `private/`.
+`web/dist/` — landing at `docroot/backup/run-backup.php`. It reads the
+config file above via `dirname(__DIR__)`, i.e. the docroot itself
+(`docroot/backup/run-backup.php` → `docroot/`), then into `private/`. It
+refuses to run at all over HTTP (only from the command line), so there's
+nothing to secret-check the way the old push design needed.
 
-> ✅ **Check, in order:**
+> ✅ **Check the config parses and the folder is locked down**, before
+> wiring up cron:
 > ```bash
 > curl -s https://<subdomain>/private/linkulino-backup-config.php
 > # should NOT return the file's contents — confirms .htaccess is blocking it
-> curl -s -X POST -H "X-Backup-Secret: wrong" --data-binary "test" \
->   https://<subdomain>/backup/receive.php
-> # {"ok":false,"error":"Invalid secret"} — confirms the endpoint is live and secret-checked
+> curl -s https://<subdomain>/backup/run-backup.php
+> # "This script only runs from cron, not the web." — confirms the CLI guard
 > ```
 
-**9c.** Add the matching script properties in the Apps Script editor (dev
-and/or prod — same **⚙️ Project Settings → Script Properties** panel as step 3):
+**9e. Add the cron job.** cPanel → **Cron Jobs** → **Add New Cron Job**:
 
-| Property | Value |
+| field | value |
 | --- | --- |
-| `BACKUP_ENDPOINT_URL` | `https://<subdomain>/backup/receive.php` |
-| `BACKUP_SECRET` | the same random secret as `linkulino-backup-config.php` |
+| Minute | `0` |
+| Hour | `3` |
+| Day/Month/Weekday | `*` |
+| Command | `php /full/path/to/docroot/backup/run-backup.php` |
 
-**9d.** Run `installBackupTrigger` once from the editor's Run menu, the same
-way as step 4/7 — this requests the `drive.readonly` scope
-(`apps-script/appsscript.json`, needed to export the sheet as XLSX), so expect
-a fresh consent screen.
+cPanel's Cron Jobs page usually shows which exact `php` command your account
+should use (sometimes a full versioned path like
+`/usr/local/bin/ea-php82`) — use that if plain `php` doesn't resolve.
 
-> ✅ **Check:** run `runScheduledBackup` manually from the editor once — the
-> Execution log should show `Backup uploaded: {"ok":true,...}`, and
-> `linkulino-backups/` on cPanel should have a new `backup-<timestamp>.xlsx`
-> file.
+> ✅ **Check:** don't wait for 3am — SSH in (or use cPanel's Terminal) and
+> run the command by hand once:
+> ```bash
+> php /full/path/to/docroot/backup/run-backup.php
+> # Backup stored: backup-<timestamp>.xlsx
+> ```
+> Then confirm a real `backup-<timestamp>.xlsx` landed in
+> `private/backups/`. cPanel also emails the cron command's output to the
+> account's contact address on every run by default, which doubles as a
+> free daily "did it work" notification — worth knowing about even if you
+> end up filtering those emails.
 
 ## shipping backend changes
 
