@@ -28,7 +28,13 @@
  * Config (spreadsheet id, service account credentials, backups directory,
  * retention counts) lives in a file this script doesn't ship and git never
  * sees — created once by hand, the same way apps-script/.clasp.json holds
- * per-instance values that never get committed.
+ * per-instance values that never get committed. Dev and prod both run on
+ * this one cPanel account (there's no separate "prod cPanel" — prod is just
+ * a different spreadsheet), so each gets its own config file, and the cron
+ * job for each environment passes its filename as the first argument, e.g.
+ * `php run-backup.php linkulino-backup-config-prod.php`. Defaults to
+ * `linkulino-backup-config.php` (the dev cron entry's existing command
+ * keeps working unchanged).
  */
 
 if (isset($_SERVER['REQUEST_METHOD'])) {
@@ -36,7 +42,8 @@ if (isset($_SERVER['REQUEST_METHOD'])) {
     exit("This script only runs from cron, not the web.\n");
 }
 
-$configPath = dirname(__DIR__) . '/private/linkulino-backup-config.php';
+$configFilename = isset($argv[1]) && $argv[1] !== '' ? basename($argv[1]) : 'linkulino-backup-config.php';
+$configPath = dirname(__DIR__) . '/private/' . $configFilename;
 if (!is_file($configPath)) {
     fwrite(STDERR, "Backup not configured — missing $configPath\n");
     exit(1);
