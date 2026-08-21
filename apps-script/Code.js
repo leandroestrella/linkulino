@@ -721,10 +721,15 @@ function runScheduledBackup() {
     throw new Error('Spreadsheet export failed: HTTP ' + exportResponse.getResponseCode())
   }
 
+  // Base64-encoded as plain text rather than posted as raw XLSX bytes with an
+  // openxmlformats content type — cPanel's WAF (Imunify360/mod_security)
+  // blocks that combination as a file-upload false positive, since XLSX is a
+  // ZIP container and the raw payload starts with a ZIP signature. Encoding
+  // sidesteps it; receive.php decodes before writing to disk.
   var uploadResponse = UrlFetchApp.fetch(endpoint, {
     method: 'post',
-    contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    payload: exportResponse.getBlob().getBytes(),
+    contentType: 'text/plain',
+    payload: Utilities.base64Encode(exportResponse.getBlob().getBytes()),
     headers: { 'X-Backup-Secret': secret },
     muteHttpExceptions: true,
   })

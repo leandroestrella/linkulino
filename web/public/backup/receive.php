@@ -2,9 +2,11 @@
 /**
  * Linkulino — spreadsheet backup receiver.
  *
- * Accepts one POST per call: the whole spreadsheet, exported as XLSX, sent by
- * the Apps Script's daily trigger (see apps-script/Code.js's
- * runScheduledBackup). Writes it into docroot/private/ — see
+ * Accepts one POST per call: the whole spreadsheet, exported as XLSX and
+ * base64-encoded as plain text (see the decode step below for why — a raw
+ * XLSX payload trips cPanel's WAF), sent by the Apps Script's daily trigger
+ * (see apps-script/Code.js's runScheduledBackup). Writes it into
+ * docroot/private/ — see
  * docs/deployment.md's "spreadsheet backups" setup — which is web-reachable
  * by path but blocked entirely by a .htaccess deny-all rule inside it (created
  * once by hand, same as the config file below), so the backups are never
@@ -54,10 +56,22 @@ if ($contentLength <= 0 || $contentLength > $maxBytes) {
     exit;
 }
 
-$body = file_get_contents('php://input');
-if ($body === false || strlen($body) === 0) {
+$rawBody = file_get_contents('php://input');
+if ($rawBody === false || strlen($rawBody) === 0) {
     http_response_code(400);
     echo json_encode(['ok' => false, 'error' => 'Empty body']);
+    exit;
+}
+
+// The sender base64-encodes the XLSX bytes as plain text rather than posting
+// them raw (see apps-script/Code.js's runScheduledBackup) — cPanel's WAF
+// blocks a raw ZIP-signature payload (XLSX is a ZIP container) sent with a
+// file content type as a false-positive file upload. $strict rejects
+// anything that isn't valid base64 instead of silently mangling it.
+$body = base64_decode($rawBody, true);
+if ($body === false || strlen($body) === 0) {
+    http_response_code(400);
+    echo json_encode(['ok' => false, 'error' => 'Invalid base64 payload']);
     exit;
 }
 

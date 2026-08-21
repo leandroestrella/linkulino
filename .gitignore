@@ -19,6 +19,12 @@ apps-script/.clasp.dev.json
 apps-script/.clasp.prod.json
 .clasprc.json
 
+# spreadsheet-backup secret — the only real copy belongs on the cPanel server
+# itself, outside git entirely (see docs/deployment.md's "spreadsheet
+# backups" setup); this exists purely as a safety net against a local draft
+# copy landing here by accident.
+linkulino-backup-config.php
+
 # logs
 logs/
 *.log
