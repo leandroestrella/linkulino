@@ -4,14 +4,20 @@
  *
  * Accepts one POST per call: the whole spreadsheet, exported as XLSX, sent by
  * the Apps Script's daily trigger (see apps-script/Code.js's
- * runScheduledBackup). Writes it to a directory OUTSIDE this docroot — see
- * docs/deployment.md's "spreadsheet backups" setup — so the backups
- * themselves are never web-reachable, only this receiving endpoint is.
+ * runScheduledBackup). Writes it into docroot/private/ — see
+ * docs/deployment.md's "spreadsheet backups" setup — which is web-reachable
+ * by path but blocked entirely by a .htaccess deny-all rule inside it (created
+ * once by hand, same as the config file below), so the backups are never
+ * actually servable regardless of the folder name. docroot/private/ is also
+ * excluded from the FTP deploy's sync (.github/workflows/deployTocPanel.yml)
+ * so a future frontend deploy never wipes it — it isn't part of the git-
+ * tracked build output, so without that exclusion the sync would otherwise
+ * see it as removed and delete it.
  *
  * Config (the shared secret, the backups directory, and retention counts)
  * lives in a file this script doesn't ship and git never sees — created once
- * by hand outside the deployed tree, the same way apps-script/.clasp.json
- * holds per-instance values that never get committed.
+ * by hand, the same way apps-script/.clasp.json holds per-instance values
+ * that never get committed.
  */
 
 header('Content-Type: application/json');
@@ -22,10 +28,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// Two levels above web/public/backup/receive.php's deployed location
-// (docroot/backup/receive.php) lands one level above the docroot itself —
-// outside anything Apache serves for this subdomain.
-$configPath = dirname(__DIR__, 2) . '/linkulino-backup-config.php';
+// One level above web/public/backup/receive.php's deployed location
+// (docroot/backup/receive.php) lands in the docroot itself, then into
+// private/ — see the file-level doc comment above for why that's safe.
+$configPath = dirname(__DIR__) . '/private/linkulino-backup-config.php';
 if (!is_file($configPath)) {
     http_response_code(500);
     echo json_encode(['ok' => false, 'error' => 'Backup not configured on this server']);

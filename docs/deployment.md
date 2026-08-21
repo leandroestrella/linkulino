@@ -210,38 +210,85 @@ Without this, the sign-in button silently fails to render on the live site.
 ### 9. Spreadsheet backups (optional)
 
 The Google Sheet is the only copy of your expense data — no snapshotting
-otherwise. This exports it to XLSX daily and stores it on cPanel, in a
-directory outside the web docroot (so the backups themselves are never
-web-reachable — only the receiving endpoint below is), with rotation (last 14
-daily + 6 monthly, configurable).
+otherwise. This exports it to XLSX daily and stores it on cPanel, inside the
+docroot at `private/` but blocked from ever being served — a `.htaccess`
+deny-all rule inside that folder, not its position, is what keeps it private
+— with rotation (last 14 daily + 6 monthly, configurable).
 
-**9a.** On cPanel, via File Manager or SFTP (the deploy's FTP account is
-scoped to the subdomain's docroot itself and can't reach outside it), create
-a config file **one level above** that docroot — a sibling of the docroot
-folder, not inside it:
+**Why inside the docroot, not outside it (the design's first draft):** the
+obvious-sounding alternative — write backups to a directory one or two levels
+*above* the docroot, so Apache structurally can't serve them regardless of
+any config — turned out to be the wrong default here, for two reasons:
+- The FTP account this repo's deploy workflow uses is scoped to the
+  subdomain's docroot itself; it can't write outside it. That's fine, since
+  step 9a is a one-time manual step done through File Manager/SFTP instead —
+  but it meant the "outside the docroot" path also required first figuring
+  out cPanel's actual directory nesting for this subdomain (is the docroot's
+  parent your account home, or is it `public_html/`, i.e. your *main site's*
+  own webroot?) before it was safe to use. That's an easy thing to get wrong
+  once, silently, on a real production server.
+- A `.htaccess` deny-all rule sidesteps the question entirely — it doesn't
+  matter what the docroot's parent directory is, or whether it's someone
+  else's webroot, because the backups are never served regardless of where
+  they physically live. It's also portable: this same `private/` layout
+  works on any host, whereas "N levels above the docroot" depends on a
+  specific, easy-to-misjudge cPanel folder structure.
+
+The trade-off this surfaced: because `private/` now lives inside the docroot
+that the FTP deploy action manages, it had to be explicitly excluded from
+that deploy's sync (`.github/workflows/deployTocPanel.yml`) — otherwise the
+*next* frontend deploy would see `private/` as a folder that exists on the
+server but isn't part of the git-tracked build, and delete it (the action's
+own docs describe `exclude` as covering both the publish and the delete side
+of its sync). That exclusion is already in place; it's called out here so a
+future edit to that workflow step doesn't accidentally drop it.
+
+**9a.** On cPanel, via File Manager or SFTP, create `private/` **inside** the
+subdomain's docroot (a sibling of `backup/`, which the deploy puts there) and
+add a deny-all `.htaccess` to it:
+
+```apache
+# private/.htaccess — blocks every request under this folder, whatever the
+# filename, regardless of Apache version.
+<IfModule mod_authz_core.c>
+  Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+  Order deny,allow
+  Deny from all
+</IfModule>
+```
+
+Then, still inside `private/`, add the config file:
 
 ```php
 <?php
-// /home/<cpanel-user>/linkulino-backup-config.php
+// docroot/private/linkulino-backup-config.php
 return [
   'secret' => 'PASTE_A_RANDOM_SECRET_HERE',   // e.g. `openssl rand -hex 32`
-  'backupsDir' => '/home/<cpanel-user>/linkulino-backups', // created automatically if missing
+  'backupsDir' => '/full/path/to/docroot/private/backups', // created automatically if missing; use the absolute path cPanel shows for this subdomain's docroot
   'dailyKeep' => 14,
   'monthlyKeep' => 6,
 ];
 ```
 
 Keep the secret out of git, same as every other credential in this project.
+`private/` is excluded from the FTP deploy's sync
+(`.github/workflows/deployTocPanel.yml`'s `exclude` list) specifically so a
+future frontend deploy never wipes this folder — it isn't part of the
+git-tracked build output, so without that exclusion the sync would otherwise
+see it as removed and delete it.
 
 **9b.** The receiving endpoint (`web/public/backup/receive.php`) ships with
 every frontend deploy automatically — Vite copies `web/public/` as-is into
 `web/dist/` — landing at `https://<subdomain>/backup/receive.php`. It reads
-the config file above via `dirname(__DIR__, 2)`, i.e. two levels above where
-it's deployed (`docroot/backup/receive.php` → one level above `docroot`),
-which is where step 9a's file needs to sit.
+the config file above via `dirname(__DIR__)`, i.e. the docroot itself
+(`docroot/backup/receive.php` → `docroot/`), then into `private/`.
 
-> ✅ **Check:**
+> ✅ **Check, in order:**
 > ```bash
+> curl -s https://<subdomain>/private/linkulino-backup-config.php
+> # should NOT return the file's contents — confirms .htaccess is blocking it
 > curl -s -X POST -H "X-Backup-Secret: wrong" --data-binary "test" \
 >   https://<subdomain>/backup/receive.php
 > # {"ok":false,"error":"Invalid secret"} — confirms the endpoint is live and secret-checked

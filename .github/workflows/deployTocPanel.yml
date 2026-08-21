@@ -51,6 +51,19 @@ jobs:
           # already *is* the docroot. Point this at the subdomain folder instead
           # if you ever swap in an account scoped to the whole hosting space.
           server-dir: ./
+          # private/ holds the spreadsheet-backup config + backup files (see
+          # docs/deployment.md's "spreadsheet backups" setup) — created by hand
+          # on the server, not part of this git-tracked build. The action
+          # treats `exclude` as covering both the publish AND delete side of
+          # its sync (see its own docs), so without this, the next deploy would
+          # see private/ as "removed" from the source and delete it on the
+          # server. Re-listing the action's own defaults here since setting
+          # `exclude` at all replaces them rather than adding to them.
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/private/**
           # The action defaults to plain FTP, which would put the credentials
           # and the whole payload on the wire in the clear — so require FTPS.
           #
