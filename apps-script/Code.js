@@ -730,7 +730,13 @@ function runScheduledBackup() {
     method: 'post',
     contentType: 'text/plain',
     payload: Utilities.base64Encode(exportResponse.getBlob().getBytes()),
-    headers: { 'X-Backup-Secret': secret },
+    // UrlFetchApp's default User-Agent identifies it as a script/bot, which
+    // some WAFs (cPanel's Imunify360 included) block outright regardless of
+    // payload — a browser-like one gets past that class of rule.
+    headers: {
+      'X-Backup-Secret': secret,
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    },
     muteHttpExceptions: true,
   })
   if (uploadResponse.getResponseCode() !== 200) {
