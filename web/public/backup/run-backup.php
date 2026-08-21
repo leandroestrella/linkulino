@@ -3,14 +3,20 @@
  * Linkulino — spreadsheet backup cron job.
  *
  * Runs from a cPanel cron job (`php .../backup/run-backup.php`), never over
- * HTTP — the CLI-only guard below refuses any web request outright. This
- * replaces an earlier push-based design (Apps Script POSTing to a receiving
- * endpoint here) that hit a wall: cPanel's inbound security layer blocked
- * every request from Google's servers regardless of payload shape, with no
- * way to configure an exception from this cPanel account. Pulling instead —
- * this script reaches out to Google, nothing reaches in — sidesteps that
- * entirely. See docs/deployment.md's "spreadsheet backups" setup for the
- * full one-time setup (Google service account, cron job).
+ * HTTP — the guard below refuses any real web request outright. It checks
+ * for $_SERVER['REQUEST_METHOD'] rather than PHP_SAPI === 'cli': some cPanel
+ * setups (PHP Selector/MultiPHP) run cron's `php` command through a
+ * CGI-flavored binary rather than a true CLI one, which reports a SAPI name
+ * other than "cli" even for a legitimate cron invocation — REQUEST_METHOD is
+ * only ever set by an actual web server handling an actual HTTP request, so
+ * it's the portable signal regardless of which SAPI cron happens to use.
+ * This replaces an earlier push-based design (Apps Script POSTing to a
+ * receiving endpoint here) that hit a wall: cPanel's inbound security layer
+ * blocked every request from Google's servers regardless of payload shape,
+ * with no way to configure an exception from this cPanel account. Pulling
+ * instead — this script reaches out to Google, nothing reaches in —
+ * sidesteps that entirely. See docs/deployment.md's "spreadsheet backups"
+ * setup for the full one-time setup (Google service account, cron job).
  *
  * Auth: a Google service account (not the OAuth-consent flow the app's
  * sign-in uses) — its key-based auth doesn't carry the "testing app"
@@ -25,7 +31,7 @@
  * per-instance values that never get committed.
  */
 
-if (PHP_SAPI !== 'cli') {
+if (isset($_SERVER['REQUEST_METHOD'])) {
     http_response_code(403);
     exit("This script only runs from cron, not the web.\n");
 }
