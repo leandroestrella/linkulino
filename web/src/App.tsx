@@ -79,10 +79,10 @@ function ReadGate() {
 function DemoBanner() {
   const { t } = useTranslation()
   return (
-    <div className="border-primary/30 bg-primary/5 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border px-3 py-2 text-sm">
+    <div className="bg-foreground text-background flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg px-3 py-2 text-sm">
       <span aria-hidden>👋</span>
-      <span className="font-medium">{t('demo.title')}</span>
-      <span className="text-muted-foreground">{t('demo.body')}</span>
+      <span className="font-semibold">{t('demo.title')}</span>
+      <span className="opacity-80">{t('demo.body')}</span>
     </div>
   )
 }
@@ -117,7 +117,7 @@ function Layout({ children }: { children: ReactNode }) {
           hidden && '-translate-y-full',
         )}
       >
-        <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-3 px-4 py-3">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
             {/* The wordmark is the only brand mark up here — it's the link home.
                 The animated mascot lives in the footer (its /about link + hover
@@ -182,7 +182,7 @@ function Layout({ children }: { children: ReactNode }) {
         {/* Always visible (not per-page portaled) so sign-in status shows on every page;
             a page's write-gated admin button portals into the left side (see
             useAdminSlotContainer) so it's always on the same line as sign-in. */}
-        <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-3 px-4 pb-3">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 pb-3 sm:px-6">
           <div ref={setAdminSlot} className="flex items-center gap-2" />
           <AuthBar />
         </div>
@@ -192,7 +192,7 @@ function Layout({ children }: { children: ReactNode }) {
 
       <AdminSlotContext value={adminSlot}>
         <SubHeaderContext value={slot}>
-          <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6">{children}</main>
+          <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6">{children}</main>
         </SubHeaderContext>
       </AdminSlotContext>
 
@@ -207,7 +207,7 @@ function Layout({ children }: { children: ReactNode }) {
           hidden && 'translate-y-full',
         )}
       >
-        <div className="mx-auto grid w-full max-w-2xl grid-cols-3 items-center px-4 py-4">
+        <div className="mx-auto grid w-full max-w-6xl grid-cols-3 items-center px-4 py-4 sm:px-6">
           <a
             href="https://www.leandroestrella.com/"
             target="_blank"

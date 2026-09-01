@@ -174,7 +174,7 @@ export function ExpenseDashboard({
 
       {subHeader &&
         createPortal(
-          <div className="mx-auto w-full max-w-2xl px-4 pb-3">
+          <div className="mx-auto w-full max-w-6xl px-4 pb-3 sm:px-6">
             <div className="flex flex-col gap-3">
               {showFilters && (
                 <ExpenseFilters

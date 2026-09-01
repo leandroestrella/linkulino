@@ -90,7 +90,7 @@ export function TripsPage() {
       {subHeader &&
         !loading &&
         createPortal(
-          <div className="mx-auto w-full max-w-2xl px-4 pb-3">
+          <div className="mx-auto w-full max-w-6xl px-4 pb-3 sm:px-6">
             <VacationsOverallCard summary={vacationsSummary(trips, vacations, participants.length)} />
           </div>,
           subHeader,
