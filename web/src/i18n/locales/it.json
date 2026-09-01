@@ -151,6 +151,7 @@
     "addCategory": "ha aggiunto una categoria"
   },
   "filters": {
+    "search": "cerca per descrizione, categoria o chi ha pagato…",
     "category": "categoria",
     "payer": "pagato da",
     "from": "dal",

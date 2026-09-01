@@ -12,6 +12,8 @@ export type ExpenseSplitFilter = 'common' | 'single' | 'all'
 export type OverheadFilter = 'all' | 'overhead' | 'discretionary'
 
 export interface ExpenseFilterValues {
+  /** Free-text query matched against description/category/payer/notes — see `matchesSearch`. */
+  search: string
   category: string
   payer: string
   /** ISO `YYYY-MM-DD`, inclusive. */
@@ -28,6 +30,7 @@ export interface ExpenseFilterValues {
  * with no UI to undo it.
  */
 export const EMPTY_FILTERS: ExpenseFilterValues = {
+  search: '',
   category: '',
   payer: '',
   from: '',
@@ -44,6 +47,7 @@ export function hasActiveFilters(filters: ExpenseFilterValues): boolean {
 export function activeFilterCount(filters: ExpenseFilterValues, today: Date = new Date()): number {
   const defaultRange = timeframeRange('last90Days', today)
   return [
+    filters.search,
     filters.category,
     filters.payer,
     filters.from !== defaultRange.from ? filters.from : '',
@@ -53,10 +57,27 @@ export function activeFilterCount(filters: ExpenseFilterValues, today: Date = ne
   ].filter(Boolean).length
 }
 
-/** Applies category/payer (case-insensitive)/date-range/split/overhead filters; blank or 'all' values are no-ops. */
+/** Lowercases and strips diacritics, so search matching is both case- and accent-insensitive. */
+export function normalize(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+}
+
+/** Multi-word queries AND together — every word must appear somewhere across description/category/payer/notes. */
+function matchesSearch(expense: Expense, query: string): boolean {
+  const q = normalize(query.trim())
+  if (!q) return true
+  const haystack = [expense.description, expense.category, expense.payer, expense.notes].map(normalize)
+  return q.split(/\s+/).every((term) => haystack.some((field) => field.includes(term)))
+}
+
+/** Applies search/category/payer (case-insensitive)/date-range/split/overhead filters; blank or 'all' values are no-ops. */
 export function filterExpenses(expenses: Expense[], filters: ExpenseFilterValues, categories: Category[] = []): Expense[] {
   const payer = filters.payer.toLowerCase()
   return expenses.filter((e) => {
+    if (!matchesSearch(e, filters.search)) return false
     if (filters.category && e.category !== filters.category) return false
     if (filters.payer && e.payer.toLowerCase() !== payer) return false
     if (filters.from && e.date < filters.from) return false
@@ -79,6 +100,7 @@ export function filtersFromSearchParams(params: URLSearchParams, today: Date = n
   const to = params.get('to')
   const defaultRange = from || to ? null : timeframeRange('last90Days', today)
   return {
+    search: params.get('search') ?? '',
     category: params.get('category') ?? '',
     payer: params.get('payer') ?? '',
     from: from ?? defaultRange?.from ?? '',
@@ -91,6 +113,7 @@ export function filtersFromSearchParams(params: URLSearchParams, today: Date = n
 /** Builds a `?category=...&payer=...` query string for linking into a filtered homepage. */
 export function filtersToSearch(filters: Partial<ExpenseFilterValues>): string {
   const params = new URLSearchParams()
+  if (filters.search) params.set('search', filters.search)
   if (filters.category) params.set('category', filters.category)
   if (filters.payer) params.set('payer', filters.payer)
   if (filters.from) params.set('from', filters.from)

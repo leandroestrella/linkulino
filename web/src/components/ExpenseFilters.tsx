@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { SlidersHorizontalIcon, XIcon } from 'lucide-react'
+import { SearchIcon, SlidersHorizontalIcon, XIcon } from 'lucide-react'
 import type { Category, Participant } from '@/api/types'
 import { PersonIcon } from '@/components/PersonName'
 import {
@@ -38,20 +38,42 @@ export function ExpenseFilters({
 
   return (
     <div className="flex flex-col gap-2">
-      {/* On mobile, the filters live behind a toggle (submenu) instead of always
-          taking up their own space; sm+ always shows the full row. */}
-      <Button
-        type="button"
-        size="sm"
-        variant={activeCount ? 'default' : 'outline'}
-        className="w-full gap-1 sm:hidden"
-        aria-expanded={expanded}
-        onClick={() => setExpanded((v) => !v)}
-      >
-        <SlidersHorizontalIcon className="size-3.5" />
-        {t('filters.title')}
-        {activeCount > 0 && ` (${activeCount})`}
-      </Button>
+      {/* Search stays visible at every width; on mobile the rest of the
+          filters live behind a toggle (submenu) next to it instead of always
+          taking up their own space — sm+ always shows the full row below. */}
+      <div className="flex items-center gap-2">
+        <form
+          className="relative flex-1"
+          onSubmit={(e) => {
+            e.preventDefault()
+            setExpanded(false)
+            e.currentTarget.querySelector('input')?.blur()
+          }}
+        >
+          <SearchIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+          <Input
+            value={filters.search}
+            onChange={(e) => onChange({ ...filters, search: e.target.value })}
+            placeholder={t('filters.search')}
+            className="h-8 pl-9 sm:h-7"
+            type="search"
+            enterKeyHint="search"
+          />
+        </form>
+
+        <Button
+          type="button"
+          size="sm"
+          variant={activeCount ? 'default' : 'outline'}
+          className="shrink-0 gap-1 sm:hidden"
+          aria-expanded={expanded}
+          onClick={() => setExpanded((v) => !v)}
+        >
+          <SlidersHorizontalIcon className="size-3.5" />
+          {t('filters.title')}
+          {activeCount > 0 && ` (${activeCount})`}
+        </Button>
+      </div>
 
       {/* flex-wrap (not nowrap) at every breakpoint — with 7 controls in this row
           now (timeframe, from, to, split, overhead, category, the payer+clear

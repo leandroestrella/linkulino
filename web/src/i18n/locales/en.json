@@ -151,6 +151,7 @@
     "addCategory": "added a category"
   },
   "filters": {
+    "search": "search description, category, or payer…",
     "category": "category",
     "payer": "paid by",
     "from": "from",
