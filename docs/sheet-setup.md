@@ -244,16 +244,18 @@ stacking duplicates.
 ## months and years
 
 There's no per-month tab rotation — the household tab is one continuous
-ledger, forever. The home page's "this month" view is just the household
-expenses whose Data falls in the current calendar month, filtered client-side
-(see `monthFilter` in `ExpenseDashboard.tsx`); the Overview page (`/overview`
-in the SPA) aggregates across every month and year already in the tab.
+ledger, forever. The home page's default view is just the household expenses
+whose Data falls in a trailing last-90-days window, filtered client-side (see
+`filtersFromSearchParams` in `lib/filters.ts`) — any other range, including a
+single calendar month, is one click away via the timeframe dropdown. The
+Overview page (`/overview` in the SPA) aggregates across every month and year
+already in the tab regardless of the home page's active filter.
 
 To test the month rollover (or backfill history) there's nothing special to
 set up: use the app's own "add expense" form and pick a date in a past month
 — the date picker has no restriction to today. It'll show up in the Overview
-page's by-month/by-year breakdowns immediately, and drop out of "this month"
-once its date isn't in the current calendar month.
+page's by-month/by-year breakdowns immediately, and drop out of the home
+page's default last-90-days view once its date falls outside that window.
 
 ## why this shape
 
