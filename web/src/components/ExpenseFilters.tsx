@@ -166,7 +166,7 @@ export function ExpenseFilters({
                   size="icon-sm"
                   className="shrink-0"
                   aria-label={t('filters.clear')}
-                  onClick={() => onChange({ ...EMPTY_FILTERS, split: 'common' })}
+                  onClick={() => onChange(EMPTY_FILTERS)}
                 >
                   <XIcon className="size-3.5" />
                 </Button>

@@ -5,9 +5,6 @@ import { isCommon, isOverheadExpense } from '@/lib/expenses'
 /**
  * `'common'` and `'single'` scope to expenses split between several people vs.
  * covering just one (see `isCommon`); `'all'` applies no split filtering.
- * Deliberately not blank-string like the other fields — `filtersFromSearchParams`
- * treats an absent `split` param as `'common'` (the homepage's default view),
- * so `'all'` has to be written explicitly to opt out of that default.
  */
 export type ExpenseSplitFilter = 'common' | 'single' | 'all'
 
@@ -28,8 +25,7 @@ export interface ExpenseFilterValues {
 /**
  * The neutral, no-filtering state — used by pages with no filter bar (e.g. a
  * trip's dashboard), which should never silently hide single-user expenses
- * with no UI to undo it. The homepage's own "cleared" state has `split:
- * 'common'`, not this — see ExpenseFilters' clear button.
+ * with no UI to undo it.
  */
 export const EMPTY_FILTERS: ExpenseFilterValues = {
   category: '',
@@ -45,13 +41,14 @@ export function hasActiveFilters(filters: ExpenseFilterValues): boolean {
 }
 
 /** How many filter fields are set away from their default — shown as a badge on the mobile filters toggle. */
-export function activeFilterCount(filters: ExpenseFilterValues): number {
+export function activeFilterCount(filters: ExpenseFilterValues, today: Date = new Date()): number {
+  const defaultRange = timeframeRange('last90Days', today)
   return [
     filters.category,
     filters.payer,
-    filters.from,
-    filters.to,
-    filters.split !== 'common' ? filters.split : '',
+    filters.from !== defaultRange.from ? filters.from : '',
+    filters.to !== defaultRange.to ? filters.to : '',
+    filters.split !== 'all' ? filters.split : '',
     filters.overhead !== 'all' ? filters.overhead : '',
   ].filter(Boolean).length
 }
@@ -72,14 +69,21 @@ export function filterExpenses(expenses: Expense[], filters: ExpenseFilterValues
   })
 }
 
-/** For pages with a filter bar — an absent `split` param defaults to `'common'` (see ExpenseSplitFilter). */
-export function filtersFromSearchParams(params: URLSearchParams): ExpenseFilterValues {
+/**
+ * For pages with a filter bar — when both `from` and `to` are absent, they
+ * default to a trailing last-90-days window (see TIMEFRAME_KEYS) rather than
+ * an unbounded range.
+ */
+export function filtersFromSearchParams(params: URLSearchParams, today: Date = new Date()): ExpenseFilterValues {
+  const from = params.get('from')
+  const to = params.get('to')
+  const defaultRange = from || to ? null : timeframeRange('last90Days', today)
   return {
     category: params.get('category') ?? '',
     payer: params.get('payer') ?? '',
-    from: params.get('from') ?? '',
-    to: params.get('to') ?? '',
-    split: (params.get('split') as ExpenseSplitFilter | null) || 'common',
+    from: from ?? defaultRange?.from ?? '',
+    to: to ?? defaultRange?.to ?? '',
+    split: (params.get('split') as ExpenseSplitFilter | null) || 'all',
     overhead: (params.get('overhead') as OverheadFilter | null) || 'all',
   }
 }
@@ -91,7 +95,7 @@ export function filtersToSearch(filters: Partial<ExpenseFilterValues>): string {
   if (filters.payer) params.set('payer', filters.payer)
   if (filters.from) params.set('from', filters.from)
   if (filters.to) params.set('to', filters.to)
-  if (filters.split && filters.split !== 'common') params.set('split', filters.split)
+  if (filters.split && filters.split !== 'all') params.set('split', filters.split)
   if (filters.overhead && filters.overhead !== 'all') params.set('overhead', filters.overhead)
   const search = params.toString()
   return search ? `?${search}` : ''

@@ -76,7 +76,6 @@ export function ExpenseDashboard({
   title,
   addHref,
   editBase,
-  monthFilter = false,
   showFilters = false,
 }: {
   /** Trip id, or undefined for the household budget. */
@@ -85,8 +84,6 @@ export function ExpenseDashboard({
   addHref: string
   /** Base path for an expense's edit link; the expense id is appended. */
   editBase: string
-  /** When true, only shows expenses dated in the current calendar month (household budget only — a trip's own date range already scopes it). Superseded by an explicit date-range filter. */
-  monthFilter?: boolean
   /** When true, shows the category/payer/date-range filter bar, synced to the URL. */
   showFilters?: boolean
 }) {
@@ -129,10 +126,7 @@ export function ExpenseDashboard({
   }, [sheetId])
 
   const filters = showFilters ? filtersFromSearchParams(searchParams) : EMPTY_FILTERS
-  const thisMonth = todayIso().slice(0, 7)
-  const monthScoped =
-    monthFilter && !filters.from && !filters.to ? expenses.filter((e) => e.date.slice(0, 7) === thisMonth) : expenses
-  const scoped = filterExpenses(monthScoped, filters, categories)
+  const scoped = filterExpenses(expenses, filters, categories)
   const total = scoped.reduce((sum, e) => sum + e.amount, 0)
   const commonTotal = scoped.filter(isCommon).reduce((sum, e) => sum + e.amount, 0)
   const singleUserTotal = total - commonTotal
@@ -156,19 +150,15 @@ export function ExpenseDashboard({
   }
 
   // For the filterable (household budget) dashboard, the card title tracks the
-  // active timeframe filter instead of always saying "this month" — falls back
-  // to the given `title` when there's no filter bar (e.g. a trip's dashboard).
+  // active timeframe filter — falls back to the given `title` when there's no
+  // filter bar (e.g. a trip's dashboard).
   let cardTitle = title
   if (showFilters) {
-    if (!filters.from && !filters.to) {
-      cardTitle = t('home.thisMonth')
-    } else {
-      const timeframeKey = matchingTimeframeKey(filters)
-      if (timeframeKey) cardTitle = t(`filters.${timeframeKey}`)
-      else if (filters.from && filters.to) cardTitle = `${filters.from} → ${filters.to}`
-      else if (filters.from) cardTitle = `${t('filters.from')} ${filters.from}`
-      else cardTitle = `${t('filters.to')} ${filters.to}`
-    }
+    const timeframeKey = matchingTimeframeKey(filters)
+    if (timeframeKey) cardTitle = t(`filters.${timeframeKey}`)
+    else if (filters.from && filters.to) cardTitle = `${filters.from} → ${filters.to}`
+    else if (filters.from) cardTitle = `${t('filters.from')} ${filters.from}`
+    else if (filters.to) cardTitle = `${t('filters.to')} ${filters.to}`
   }
 
   return (

@@ -56,7 +56,7 @@ export function HomePage() {
           })}
         </div>
       )}
-      <ExpenseDashboard title={t('home.thisMonth')} addHref="/add" editBase="/expense" monthFilter showFilters />
+      <ExpenseDashboard title={t('home.thisMonth')} addHref="/add" editBase="/expense" showFilters />
     </div>
   )
 }
