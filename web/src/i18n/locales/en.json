@@ -16,6 +16,7 @@
     "settings": "settings"
   },
   "auth": {
+    "signIn": "sign in",
     "signOut": "sign out",
     "authorized": "authorized",
     "notAuthorized": "not on the allowlist",

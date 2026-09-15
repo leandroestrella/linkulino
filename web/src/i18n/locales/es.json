@@ -16,6 +16,7 @@
     "settings": "ajustes"
   },
   "auth": {
+    "signIn": "iniciar sesión",
     "signOut": "cerrar sesión",
     "authorized": "autorizado",
     "notAuthorized": "no está en la lista de permitidos",

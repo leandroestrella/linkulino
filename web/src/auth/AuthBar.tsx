@@ -23,12 +23,12 @@ function GoogleButton() {
 }
 
 /**
- * Sign-in control for the header: the Google button for anonymous visitors, an
+ * Sign-in control for the header: a sign-in button (then the Google one) for anonymous visitors, an
  * identity badge once signed in. Cosmetic only — the backend enforces who may
  * read or write.
  */
 export function AuthBar() {
-  const { status, user, authorized, configured, googleReady, error, signOut } = useAuth()
+  const { status, user, authorized, configured, googleReady, googleLoading, error, signOut, startSignIn } = useAuth()
   const { t } = useTranslation()
 
   if (!configured) {
@@ -63,7 +63,15 @@ export function AuthBar() {
 
   return (
     <div key="anonymous" className="flex min-w-0 flex-col items-end gap-1">
-      {googleReady && <GoogleButton />}
+      {/* Google's script only loads after this click (LNDR-154); the official
+          button replaces the plain one once it's ready. */}
+      {googleReady ? (
+        <GoogleButton />
+      ) : (
+        <Button variant="outline" size="sm" className="shrink-0" onClick={startSignIn} disabled={googleLoading}>
+          {t('auth.signIn')}
+        </Button>
+      )}
       {error && <span className="text-destructive text-xs">{error}</span>}
     </div>
   )

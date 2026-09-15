@@ -57,9 +57,13 @@ export interface AuthContextValue {
   canWrite: boolean
   /** Whether the GIS library has loaded and initialized. */
   googleReady: boolean
+  /** Whether the GIS library is being loaded after a "sign in" click. */
+  googleLoading: boolean
   error: string | null
   /** Triggers the Google account chooser / One Tap. */
   signIn: () => void
+  /** Loads Google sign-in on demand (never on page load, see LNDR-154). */
+  startSignIn: () => void
   signOut: () => void
   /** Renders the official Google button into the given element. */
   renderButton: (el: HTMLElement | null) => void
@@ -119,15 +123,32 @@ function loadGsi(): Promise<void> {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const configured = config.googleClientId.length > 0
-  const [status, setStatus] = useState<AuthStatus>(hasBackend && configured ? 'loading' : 'anonymous')
+  const [status, setStatus] = useState<AuthStatus>(() => {
+    if (!hasBackend || !configured) return 'anonymous'
+    // A still-valid stored token is re-validated by the effect below.
+    const stored = localStorage.getItem(TOKEN_STORAGE_KEY)
+    if (stored && !tokenUnusable(stored)) return 'loading'
+    if (stored) localStorage.removeItem(TOKEN_STORAGE_KEY)
+    // No session to restore: open straight into the demo. The API client has
+    // to be switched to the fixtures here, during the first render, not in
+    // an effect: child effects (the data providers' first fetch) run before
+    // this component's, so anything later would let that fetch hit the real
+    // backend. setDemoMode is idempotent, so React re-running this
+    // initializer in development is harmless.
+    setDemoMode(true)
+    return 'anonymous'
+  })
   const [user, setUser] = useState<AuthUser | null>(null)
   const [authorized, setAuthorized] = useState(false)
   const [participantName, setParticipantName] = useState('')
   const [runwayEnabled, setRunwayEnabled] = useState(false)
   const [savings, setSavings] = useState(0)
   const [googleReady, setGoogleReady] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const tokenRef = useRef<string | null>(null)
+  /** Set once GIS loading has started, so repeated clicks don't reload it. */
+  const gsiStartedRef = useRef(false)
   /** True while a stored token is being re-validated, to keep GIS from racing it. */
   const restoringRef = useRef(false)
 
@@ -220,24 +241,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStatus('signed-in')
   }, [])
 
-  // Backend mode: load + initialize Google Identity Services.
+  // Backend mode: re-validate a stored session (the initializer above already
+  // opened the demo when there is none). Google Identity Services is
+  // deliberately NOT loaded here: google.accounts.id.initialize() writes
+  // Google's g_state cookie and every load of the script contacts Google, for
+  // visitors who never sign in. It waits until someone asks to (startSignIn
+  // below, LNDR-154). Restoring only needs the stored token and the backend.
   useEffect(() => {
     if (!hasBackend || !configured) return
-    let cancelled = false
-
-    // Restore a still-valid session from a previous tab/visit, so a refresh
-    // or a fresh tab doesn't drop back to signed-out.
     const stored = localStorage.getItem(TOKEN_STORAGE_KEY)
-    if (stored && !tokenUnusable(stored)) {
-      restoringRef.current = true
-      void handleCredential(stored, true)
-    } else if (stored) {
-      localStorage.removeItem(TOKEN_STORAGE_KEY)
-    }
+    if (!stored || tokenUnusable(stored)) return
+    restoringRef.current = true
+    void handleCredential(stored, true)
+  }, [configured, handleCredential])
 
+  /**
+   * Loads and initializes Google Identity Services on demand, the first time
+   * a visitor clicks "sign in". Once it's ready, AuthBar swaps its plain
+   * button for the official Google one.
+   */
+  const startSignIn = useCallback(() => {
+    if (gsiStartedRef.current) return
+    gsiStartedRef.current = true
+    setGoogleLoading(true)
     loadGsi()
       .then(() => {
-        if (cancelled || !window.google) return
+        if (!window.google) throw new Error('failed to load Google sign-in')
         window.google.accounts.id.initialize({
           client_id: config.googleClientId,
           callback: (resp) => void handleCredential(resp.credential),
@@ -245,24 +274,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           cancel_on_tap_outside: true,
         })
         setGoogleReady(true)
-        // GIS is ready long before a restore round-trips. Flipping to anonymous
-        // here would flash the demo AND switch the API client over to the
-        // fixtures while the real fetchMe is still in flight, so leave a
-        // pending restore to settle the status itself.
-        // A restore that already landed leaves a token behind; don't undo it.
-        if (!restoringRef.current && !tokenRef.current) enterDemo()
       })
       .catch((err) => {
+        // Let the visitor try again.
+        gsiStartedRef.current = false
         setError(String(err))
-        // Same reasoning as above: a failed GIS load doesn't invalidate a
-        // session we're already restoring.
-        // A restore that already landed leaves a token behind; don't undo it.
-        if (!restoringRef.current && !tokenRef.current) enterDemo()
       })
-    return () => {
-      cancelled = true
-    }
-  }, [configured, handleCredential, enterDemo])
+      .finally(() => setGoogleLoading(false))
+  }, [handleCredential])
 
   // Nobody signed in (but a real backend exists) → show the sample data rather
   // than a locked door. `!hasBackend` is deliberately excluded: that's already
@@ -336,8 +355,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       demo,
       canWrite,
       googleReady,
+      googleLoading,
       error,
       signIn,
+      startSignIn,
       signOut,
       renderButton,
     }),
@@ -353,8 +374,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       demo,
       canWrite,
       googleReady,
+      googleLoading,
       error,
       signIn,
+      startSignIn,
       signOut,
       renderButton,
     ],
