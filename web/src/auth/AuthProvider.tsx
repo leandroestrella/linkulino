@@ -62,7 +62,7 @@ export interface AuthContextValue {
   error: string | null
   /** Triggers the Google account chooser / One Tap. */
   signIn: () => void
-  /** Loads Google sign-in on demand (never on page load, see LNDR-154). */
+  /** Loads Google sign-in on demand (never on page load). */
   startSignIn: () => void
   signOut: () => void
   /** Renders the official Google button into the given element. */
@@ -246,7 +246,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // deliberately NOT loaded here: google.accounts.id.initialize() writes
   // Google's g_state cookie and every load of the script contacts Google, for
   // visitors who never sign in. It waits until someone asks to (startSignIn
-  // below, LNDR-154). Restoring only needs the stored token and the backend.
+  // below). Restoring only needs the stored token and the backend.
   useEffect(() => {
     if (!hasBackend || !configured) return
     const stored = localStorage.getItem(TOKEN_STORAGE_KEY)

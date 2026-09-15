@@ -63,7 +63,7 @@ export function AuthBar() {
 
   return (
     <div key="anonymous" className="flex min-w-0 flex-col items-end gap-1">
-      {/* Google's script only loads after this click (LNDR-154); the official
+      {/* Google's script only loads after this click; the official
           button replaces the plain one once it's ready. */}
       {googleReady ? (
         <GoogleButton />

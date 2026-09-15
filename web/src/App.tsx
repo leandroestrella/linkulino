@@ -224,7 +224,7 @@ function Layout({ children }: { children: ReactNode }) {
                 className="size-6 rounded-sm"
               />
             </a>
-            {/* privacy notice for this site, in the visitor's language (LNDR-156) */}
+            {/* privacy notice for this site, in the visitor's language */}
             <a
               href={privacyHref}
               target="_blank"
