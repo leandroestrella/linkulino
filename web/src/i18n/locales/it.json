@@ -4,6 +4,7 @@
     "loadError": "impossibile contattare il backend — controlla la connessione e riprova."
   },
   "nav": {
+    "privacy": "privacy",
     "about": "informazioni su linkulino",
     "repo": "codice sorgente su github",
     "portfolio": "leandro estrella — portfolio",

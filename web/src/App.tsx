@@ -96,7 +96,8 @@ function DemoBanner() {
  * out of the way while scrolling down, and return on scroll-up.
  */
 function Layout({ children }: { children: ReactNode }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const privacyHref = `https://leandroestrella.com/${i18n.resolvedLanguage === 'it' ? 'privacy-it' : 'privacy'}.html#linkulino`
   const { status, authorized } = useAuth()
   const { busy } = useBusy()
   const [slot, setSlot] = useState<HTMLDivElement | null>(null)
@@ -208,20 +209,33 @@ function Layout({ children }: { children: ReactNode }) {
         )}
       >
         <div className="mx-auto grid w-full max-w-6xl grid-cols-3 items-center px-4 py-4 sm:px-6">
-          <a
-            href="https://www.leandroestrella.com/"
-            target="_blank"
-            rel="noreferrer"
-            aria-label={t('nav.portfolio')}
-            title={t('nav.portfolio')}
-            className="justify-self-start opacity-70 transition-opacity hover:opacity-100"
-          >
-            <img
-              src="https://www.leandroestrella.com/img/favicon.ico"
-              alt=""
-              className="size-6 rounded-sm"
-            />
-          </a>
+          <div className="flex items-center gap-3 justify-self-start">
+            <a
+              href="https://www.leandroestrella.com/"
+              target="_blank"
+              rel="noreferrer"
+              aria-label={t('nav.portfolio')}
+              title={t('nav.portfolio')}
+              className="opacity-70 transition-opacity hover:opacity-100"
+            >
+              <img
+                src="https://www.leandroestrella.com/img/favicon.ico"
+                alt=""
+                className="size-6 rounded-sm"
+              />
+            </a>
+            {/* privacy notice for this site, in the visitor's language (LNDR-156) */}
+            <a
+              href={privacyHref}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={t('nav.privacy')}
+              title={t('nav.privacy')}
+              className="text-xl leading-none opacity-70 transition-opacity hover:opacity-100"
+            >
+              🛡️
+            </a>
+          </div>
           {/* The mascot's own /about link + hover lightbox (frameless — just the
               gif), suppressed via avatarHoverDisabled while something more
               important is on screen (see above). */}

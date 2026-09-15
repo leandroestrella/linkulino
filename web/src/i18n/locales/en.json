@@ -4,6 +4,7 @@
     "loadError": "couldn't reach the backend — check your connection and try again."
   },
   "nav": {
+    "privacy": "privacy",
     "about": "about linkulino",
     "repo": "source on github",
     "portfolio": "leandro estrella — portfolio",

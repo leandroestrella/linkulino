@@ -4,6 +4,7 @@
     "loadError": "no se pudo conectar con el backend — comprueba tu conexión e inténtalo de nuevo."
   },
   "nav": {
+    "privacy": "privacidad",
     "about": "acerca de linkulino",
     "repo": "código fuente en github",
     "portfolio": "leandro estrella — portfolio",
