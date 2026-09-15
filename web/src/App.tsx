@@ -178,6 +178,21 @@ function Layout({ children }: { children: ReactNode }) {
               </TooltipTrigger>
               <TooltipContent>{t('nav.settings')}</TooltipContent>
             </Tooltip>
+            {/* privacy notice for this site, in the visitor's language */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <a
+                  href={privacyHref}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={t('nav.privacy')}
+                  className="hover:bg-accent rounded-md p-2 text-lg leading-none"
+                >
+                  🛡️
+                </a>
+              </TooltipTrigger>
+              <TooltipContent>{t('nav.privacy')}</TooltipContent>
+            </Tooltip>
           </div>
         </div>
         {/* Always visible (not per-page portaled) so sign-in status shows on every page;
@@ -223,17 +238,6 @@ function Layout({ children }: { children: ReactNode }) {
                 alt=""
                 className="size-6 rounded-sm"
               />
-            </a>
-            {/* privacy notice for this site, in the visitor's language */}
-            <a
-              href={privacyHref}
-              target="_blank"
-              rel="noreferrer"
-              aria-label={t('nav.privacy')}
-              title={t('nav.privacy')}
-              className="text-xl leading-none opacity-70 transition-opacity hover:opacity-100"
-            >
-              🛡️
             </a>
           </div>
           {/* The mascot's own /about link + hover lightbox (frameless — just the
