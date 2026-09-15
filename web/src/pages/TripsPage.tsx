@@ -17,7 +17,7 @@ import { Label } from '@/components/ui/label'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useAdminAction } from '@/hooks/useAdminAction'
 import { todayIso } from '@/lib/date'
-import { vacationsSummary } from '@/lib/vacations'
+import { sortTripsNewestFirst, vacationsSummary } from '@/lib/vacations'
 
 export function TripsPage() {
   const { t } = useTranslation()
@@ -75,6 +75,7 @@ export function TripsPage() {
     { key: 'upcoming', label: t('trips.upcoming') },
     { key: 'past', label: t('trips.past') },
   ]
+  const sortedTrips = sortTripsNewestFirst(trips)
 
   return (
     <div className="flex flex-col gap-6">
@@ -150,7 +151,7 @@ export function TripsPage() {
 
       {!loading &&
         groups.map(({ key, label }) => {
-          const inGroup = trips.filter((trip) => tripStatus(trip) === key)
+          const inGroup = sortedTrips.filter((trip) => tripStatus(trip) === key)
           if (inGroup.length === 0) return null
           return (
             <section key={key} className="flex flex-col gap-2">

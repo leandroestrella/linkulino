@@ -8,6 +8,16 @@ export function tripDays(trip: Trip): number {
   return Math.max(Math.round((end - start) / 86_400_000) + 1, 0)
 }
 
+/**
+ * Trips newest first: by start date, then end date, both descending. Trips
+ * missing a date sort after the dated ones. ISO `YYYY-MM-DD` strings compare
+ * chronologically, so plain string comparison is enough.
+ */
+export function sortTripsNewestFirst(trips: Trip[]): Trip[] {
+  const desc = (a: string, b: string) => (a && b ? b.localeCompare(a) : a ? -1 : b ? 1 : 0)
+  return [...trips].sort((a, b) => desc(a.startDate, b.startDate) || desc(a.endDate, b.endDate))
+}
+
 export interface VacationsSummary {
   total: number
   tripCount: number
