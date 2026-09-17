@@ -9,6 +9,19 @@ Options -Indexes
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
   # HTTPS only; google sign-in requires a secure origin.
   Header always set Strict-Transport-Security "max-age=31536000"
+
+  # index.html names the current build's hashed asset files, so it must never be
+  # cached: a stale copy points a returning visitor at chunks a later deploy
+  # deleted. The internal SPA rewrite below also serves index.html for client
+  # routes, so this keeps those responses fresh too.
+  <FilesMatch "^index\.html$">
+    Header always set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+  # Build assets carry a content hash in their name (/assets/index-<hash>.js), so
+  # a given URL never changes contents and can cache for a year.
+  <If "%{REQUEST_URI} =~ m#^/assets/#">
+    Header always set Cache-Control "public, max-age=31536000, immutable"
+  </If>
 </IfModule>
 
 # SPA fallback for Apache/cPanel: serve real files, otherwise hand everything to
@@ -18,7 +31,17 @@ Options -Indexes
   RewriteEngine On
   RewriteBase /
   RewriteRule ^index\.html$ - [L]
+
+  # A hashed build asset the browser asks for but that no longer exists — an old
+  # client requesting a chunk a newer deploy already deleted — must return a real
+  # 404, not the index.html shell. Serving HTML in place of the .js trips the
+  # nosniff header above, the browser refuses the module script, and #root never
+  # mounts (blank page). Excluding /assets/ and the static asset extensions lets
+  # those misses 404 cleanly, while unknown *routes* still fall through to
+  # index.html.
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_URI} !^/assets/
+  RewriteCond %{REQUEST_URI} !\.(?:js|mjs|css|map|json|woff2?|ttf|otf|eot|png|jpe?g|gif|svg|webp|avif|ico)$ [NC]
   RewriteRule . /index.html [L]
 </IfModule>

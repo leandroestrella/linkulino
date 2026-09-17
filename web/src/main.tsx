@@ -4,9 +4,12 @@ import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from '@/auth/AuthProvider'
 import { BusyProvider } from '@/components/BusyProvider'
 import { LoadingOverlay } from '@/components/LoadingOverlay'
+import { installStaleChunkReload } from '@/lib/staleChunkReload'
 import '@/i18n'
 import './index.css'
 import App from './App.tsx'
+
+installStaleChunkReload()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
