@@ -1,0 +1,35 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "linkulino",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-09-01",
+  "workers_dev": true,
+  // Keeps each request's CPU time and outcome in the dashboard's logs.
+  "observability": { "enabled": true },
+  // The first of each month, 05:00 UTC: recreates the recurring household
+  // expenses. Remove it on an instance that shouldn't (a development copy).
+  "triggers": { "crons": ["0 5 1 * *"] },
+  // Every value below is per-instance: fill in your own (see server/README.md).
+  "vars": {
+    // The Google OAuth client ID the SPA signs in with (public by design).
+    "GOOGLE_CLIENT_ID": "",
+    // The SPA's origins, comma-separated, allowed to call the API from a browser.
+    "ALLOWED_ORIGINS": "http://localhost:5173",
+    // Emails that are always admins, comma-separated; how the first person gets in.
+    "ADMIN_EMAILS": "",
+    // The expenses spreadsheet's ID, from its address; empty for no sync.
+    "SHEET_ID": ""
+  },
+  // Secrets, set with `wrangler secret put`, never written here:
+  //   GOOGLE_SERVICE_ACCOUNT  the service account's key file, as JSON
+  //   SYNC_SECRET             what the sheet's "Sync now" script sends
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "linkulino",
+      // From `npx wrangler d1 create linkulino`.
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "name": "linkulino-server",
+  "version": "1.0.0",
+  "private": true,
+  "license": "MIT",
+  "description": "Linkulino backend — a Cloudflare Worker with a D1 database, built on pomuku, kept in sync both ways with the expenses spreadsheet.",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev -c wrangler.local.jsonc",
+    "deploy": "wrangler deploy -c wrangler.local.jsonc",
+    "migrations": "pomuku-migrations --schema src/schema.ts",
+    "migrate": "wrangler d1 migrations apply linkulino --remote -c wrangler.local.jsonc",
+    "migrate:local": "wrangler d1 migrations apply linkulino --local -c wrangler.local.jsonc",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@lndrstrll/pomuku-server": "^0.1.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261002.1",
+    "@types/node": "^25",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3",
+    "wrangler": "^4.147.0"
+  }
+}

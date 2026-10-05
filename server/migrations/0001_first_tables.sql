@@ -1,0 +1,12 @@
+CREATE TABLE users (id TEXT PRIMARY KEY, name TEXT, language TEXT, role TEXT, icon TEXT, persona TEXT, enable_runway INTEGER, savings REAL, rev INTEGER NOT NULL DEFAULT 1, updated_at TEXT NOT NULL);
+CREATE TABLE expenses (id TEXT PRIMARY KEY, date TEXT, description TEXT, category TEXT, payer TEXT, amount REAL, split_a REAL, split_b REAL, recurring INTEGER, notes TEXT, trip TEXT, rev INTEGER NOT NULL DEFAULT 1, updated_at TEXT NOT NULL);
+CREATE TABLE trips (id TEXT PRIMARY KEY, name TEXT, emoji TEXT, start_date TEXT, end_date TEXT, rev INTEGER NOT NULL DEFAULT 1, updated_at TEXT NOT NULL);
+CREATE TABLE categories (id TEXT PRIMARY KEY, name TEXT, icon TEXT, overhead INTEGER, rev INTEGER NOT NULL DEFAULT 1, updated_at TEXT NOT NULL);
+CREATE TABLE sessions (token_hash TEXT PRIMARY KEY, email TEXT NOT NULL, created_at TEXT NOT NULL, expires_at TEXT NOT NULL);
+CREATE TABLE tokens (id TEXT PRIMARY KEY, name TEXT NOT NULL, secret_hash TEXT NOT NULL, scope TEXT NOT NULL, created_at TEXT NOT NULL, created_by TEXT NOT NULL, last_used_on TEXT, revoked_at TEXT);
+CREATE TABLE history (seq INTEGER PRIMARY KEY, at TEXT NOT NULL, actor TEXT NOT NULL, actor_kind TEXT NOT NULL, action TEXT NOT NULL, entity TEXT NOT NULL, entity_id TEXT NOT NULL, label TEXT NOT NULL, changes TEXT NOT NULL, request_id TEXT);
+CREATE TABLE outbox (seq INTEGER PRIMARY KEY, entity TEXT NOT NULL, entity_id TEXT NOT NULL, op TEXT NOT NULL, at TEXT NOT NULL);
+CREATE TABLE snapshot (key TEXT PRIMARY KEY, data TEXT NOT NULL);
+CREATE TABLE sync_state (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+CREATE INDEX sessions_by_email ON sessions (email);
+CREATE INDEX history_by_request ON history (request_id) WHERE request_id IS NOT NULL;
