@@ -5,14 +5,15 @@
  * sending the requests, and prints what Cloudflare recorded for each. The free
  * plan allows 10 ms of CPU per request.
  *
- *   npm run measure -- [times] --token <access token> [--base <worker origin>] [--config <wrangler settings file>]
+ *   npm run measure -- [times] --token <access token> [--base <worker origin>] [--config <wrangler settings file>] [--reads-only]
  *
  * First a "Sync now" (asked until done, as the sheet's menu does — on an empty
  * database this is the first import), then the reads the app makes when it
  * opens, `times` times each (5 by default), then a save and the push to the
  * sheet that follows it: a note set on the first expense, then put back as it
  * was. Nothing here is public, so it needs a write access token (`pmt_…`, made
- * by an admin with `POST /tokens`).
+ * by an admin with `POST /tokens`); with `--reads-only` nothing is saved and a
+ * read token is enough.
  *
  * `--config` names the settings file of the Worker whose logs to follow
  * (`wrangler.local.jsonc` when left out); `--base` is that Worker's address.
@@ -136,7 +137,7 @@ for (let i = 0; i < times; i++) {
 
 // --- a save and its push ---------------------------------------------------------
 const all = await send('GET /expenses', 'GET', '/expenses', { headers: authorization })
-const expense = all.rows?.[0]
+const expense = process.argv.includes('--reads-only') ? null : all.rows?.[0]
 for (let i = 0; expense && i < times; i++) {
   await send('PATCH /expenses/:id (a note) + push', 'PATCH', `/expenses/${expense.id}`, { headers: authorization, body: { notes: 'measure' } })
   await sleep(4000)

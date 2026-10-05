@@ -141,6 +141,29 @@ categories tab, `Role` and `Persona` on the users tab. The old tabs are left as
 they were, for you to delete once you trust the new ones; it refuses to run
 twice. Then run **Sync → Sync now** for the first import.
 
+## What it costs on the free plan
+
+Cloudflare's free plan allows 10 ms of CPU per request, and D1 caps the rows
+read (5 million) and written (100,000) per day. Measured on the deployed Workers
+from Cloudflare's own logs (`npm run measure`), with 227 expenses and 7 trips:
+
+| Request | CPU | Rows read | Rows written |
+| --- | --- | --- | --- |
+| `GET /expenses` (56 KB) | 5 ms, 6 at most | one per expense | 0 |
+| `GET /trips`, `/categories`, `/participants` | 2 ms | 3–10 | 0 |
+| `GET /history` (100 entries) | 4 ms | 103 | 0 |
+| a save, with the push to the sheet that follows it | 13 ms, 25 at most | about 12 | about 9 |
+| a visit, the last look at the sheet recent | 0 ms | 0 | 0 |
+| a pull of the `Spese` tab, nothing changed | 11–35 ms | two per expense | 1 |
+| a pull of `Viaggi`, `Categorie` or `Users` | 5–10 ms | 7–22 | 1 |
+| the first import, 100 expenses per request | not measured | | about 500 |
+
+A save with its push, and a pull of the `Spese` tab, take more CPU than the plan
+allows. Cloudflare let every request finish (it tolerates occasional overruns),
+a pull only runs when the sheet has changed, and a household saves a handful of
+expenses a day. A ledger several times this size, or a sheet edited all day,
+should expect to need the paid plan.
+
 ## Commands
 
 ```bash
