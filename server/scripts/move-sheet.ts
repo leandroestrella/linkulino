@@ -345,7 +345,8 @@ async function main() {
         values: [[
           '={"Quota "&Riepilogo!$B$1&" (€)";ARRAYFORMULA(IF(F2:F="",,F2:F*G2:G/100))}',
           '={"Quota "&Riepilogo!$B$2&" (€)";ARRAYFORMULA(IF(F2:F="",,F2:F*H2:H/100))}',
-          '={"Saldo (+ = "&Riepilogo!$B$2&" deve a "&Riepilogo!$B$1&")";ARRAYFORMULA(IF((E2:E="")+(F2:F=""),,IF(LOWER(E2:E)=LOWER(Riepilogo!$B$1),M2:M,-L2:L)))}',
+          // paid by A: B owes their share; paid by B: A owes theirs; paid by anyone else: nothing between the two
+          '={"Saldo (+ = "&Riepilogo!$B$2&" deve a "&Riepilogo!$B$1&")";ARRAYFORMULA(IF((E2:E="")+(F2:F=""),,IF(LOWER(E2:E)=LOWER(Riepilogo!$B$1),M2:M,IF(LOWER(E2:E)=LOWER(Riepilogo!$B$2),-L2:L,))))}',
         ]],
       },
       {
