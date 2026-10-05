@@ -138,7 +138,8 @@ describe('an expense', () => {
     expect(added.status).toBe(201)
     await settle()
     const id = added.json.row.id
-    expect([cell(id, 'Data'), cell(id, 'Importo (€)'), cell(id, 'Viaggio'), cell(id, 'Saldo')]).toEqual(['2026-06-14', 54.5, 'cala-gonone', ''])
+    // the day is a date cell: the sheet's own day count
+    expect([cell(id, 'Data'), cell(id, 'Importo (€)'), cell(id, 'Viaggio'), cell(id, 'Saldo')]).toEqual([46187, 54.5, 'cala-gonone', ''])
     const { json } = await call('GET', '/history?limit=1', { token: maria })
     expect(json.entries[0]).toMatchObject({ actor: 'maria', action: 'create', entity: 'expenses', entityId: id, label: 'cena' })
   })
@@ -194,7 +195,7 @@ describe('recurring expenses', () => {
     clock = new Date('2026-10-01T05:00:00Z')
     const created = await app.recurring(env)
     expect(created).toMatchObject([{ date: '2026-10-01', description: 'affitto', amount: 700, recurring: true, notes: 'landlord: mr. keys', trip: null }])
-    expect(cell(created[0]!.id, 'Data')).toBe('2026-10-01')
+    expect(cell(created[0]!.id, 'Data')).toBe(46296)
     expect(await app.recurring(env)).toEqual([])
     const { json } = await call('GET', '/history?limit=1', { token: maria })
     expect(json.entries[0]).toMatchObject({ actor: 'linkulino', action: 'create', label: 'affitto' })
