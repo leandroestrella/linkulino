@@ -11,12 +11,14 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
-          cache-dependency-path: web/package-lock.json
+          cache-dependency-path: |
+            web/package-lock.json
+            server/package-lock.json
 
-      # Without VITE_API_URL the client falls back to mock mode (see
-      # web/src/api/client.ts) and would ship a fake-data app to production
+      # Without VITE_API_URL the app runs on its sample data only (see
+      # web/src/backend.ts) and would ship a fake-data app to production
       # rather than failing — so check before spending a build on it.
       - name: Check backend config is present
         env:
@@ -32,6 +34,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
         working-directory: web
+
+      # The SPA imports the backend's schema (server/src/schema.ts) for its row
+      # types and ID rule, and that file's own imports resolve from server/.
+      - name: Install the backend's dependencies
+        run: npm ci
+        working-directory: server
 
       - name: Build SPA
         run: npm run build
