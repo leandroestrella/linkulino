@@ -11,6 +11,7 @@
     "migrations": "pomuku-migrations --schema src/schema.ts",
     "migrate": "wrangler d1 migrations apply linkulino --remote -c wrangler.local.jsonc",
     "migrate:local": "wrangler d1 migrations apply linkulino --local -c wrangler.local.jsonc",
+    "measure": "node scripts/measure.mjs",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

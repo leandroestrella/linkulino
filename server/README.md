@@ -13,6 +13,7 @@ src/worker.ts          the app: pomuku's routes plus Linkulino's own, and the mo
 src/testing.ts         the backend as tests run it; the SPA's tests use it too
 migrations/            the database's tables, generated from the schema
 scripts/move-sheet.ts  moves a spreadsheet from the first layout (one tab per trip) to this one
+scripts/measure.mjs    CPU time and rows per request, from the deployed worker's logs
 ```
 
 ## What it answers
@@ -149,4 +150,5 @@ npm run typecheck
 npm run migrations   # after changing src/schema.ts: writes the next migration file
 npm run migrate      # applies migrations to the deployed database
 npm run deploy
+npm run measure      # CPU time and rows per request, from the deployed worker's logs; see scripts/measure.mjs
 ```
