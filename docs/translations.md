@@ -8,27 +8,31 @@ strings in components, so translating the app means editing JSON, not JSX.
 
 | path | what it is |
 | --- | --- |
-| `web/src/i18n/index.ts` | i18next setup: the `LANGUAGES` list, detection order, storage key |
+| `web/src/i18n/index.ts` | hands the app's strings to pomuku's i18next setup |
 | `web/src/i18n/locales/en.json` | the reference locale — add new keys here first |
 | `web/src/i18n/locales/it.json`, `es.json` | the translations |
-| `web/src/i18n/LanguageSwitcher.tsx` | the flag dropdown in the header |
+| [`@lndrstrll/pomuku-i18n`](https://github.com/leandroestrella/pomuku/tree/master/packages/i18n) | the setup itself: the list of languages, the detection order, and the strings every pomuku app shares (`common.*`, `auth.*`, `data.*`, `nav.*`) |
+| `@lndrstrll/pomuku-ui` | the flag dropdown in the header |
 
-Language is resolved in this order (see `detection` in `index.ts`):
+The app's strings are laid over the shared ones, key by key: giving a shared
+key in the app's locale files rewords it (`common.loading` is one the app
+rewords).
+
+Language is resolved in this order:
 
 1. `?lng=es` in the URL — handy for sharing a link in a specific language, and
    for testing without changing your own setting
 2. the saved choice in `localStorage` under `linkulino.lang`
 3. the browser's own language
 
-`load: 'languageOnly'` means `it-IT` and `it-CH` both resolve to `it`.
-Anything unrecognised falls back to `en`.
+`it-IT` and `it-CH` both resolve to `it`. Anything unrecognised falls back to
+`en`.
 
-For a signed-in participant, that `localStorage` choice is also mirrored to
-the `Users` tab's optional `Language` column (see
-[sheet-setup.md](sheet-setup.md#users)) — applied on sign-in (so it follows
-them to a new device) and updated whenever they switch languages from the
-flag menu. This is a background sync only; it never overrides an explicit
-`?lng=` link, and there's no UI beyond the existing flag dropdown.
+For a signed-in participant, that choice is also saved on their account — the
+`Users` tab's `Language` column (see [sheet-setup.md](sheet-setup.md#users)) —
+applied on sign-in (so it follows them to a new device) and updated whenever
+they switch languages from the flag menu. It never overrides an explicit
+`?lng=` link, and there's no UI beyond the flag dropdown.
 
 ## changing existing wording
 
@@ -65,32 +69,27 @@ Pick the suffixes the target language actually needs — i18next's plural rules
 are per-language (Italian and Spanish use the same `_one`/`_other` pair as
 English; other languages may need `_few`, `_many`, and so on).
 
-Note that `interpolation.escapeValue` is `false` in `index.ts`. That's safe
+Note that `interpolation.escapeValue` is `false` in pomuku's setup. That's safe
 here because interpolated values only ever land in React text nodes (which
 escape on their own), but it does mean you must not feed a translated string
 into `dangerouslySetInnerHTML`.
 
 ## adding a language
 
-1. Copy `en.json` to `web/src/i18n/locales/<code>.json` and translate every
-   value.
-2. Register it in `web/src/i18n/index.ts` — import the file, add it to
-   `resources`, and add an entry to `LANGUAGES` with its `code`, `label` and
-   `flag` emoji. The switcher and `supportedLngs` both read from that list, so
-   there's nothing else to wire up.
+The list of languages is pomuku's, shared by every app built on it, along with
+the strings those apps have in common. So a new language starts there:
+
+1. In pomuku's `packages/i18n`: add the language to `LANGUAGES` (its `code`,
+   `label` and `flag` emoji) and translate the shared strings
+   (`src/locales/<code>.ts`); its tests check that every language has the same
+   keys. Publish it and update `@lndrstrll/pomuku-i18n` here.
+2. Copy `en.json` to `web/src/i18n/locales/<code>.json`, translate every value,
+   and hand it over in `web/src/i18n/index.ts`:
 
 ```ts
 import fr from './locales/fr.json'
 
-export const LANGUAGES = [
-  // …
-  { code: 'fr', label: 'Français', flag: '🇫🇷' },
-] as const
-
-resources: {
-  // …
-  fr: { translation: fr },
-}
+export const i18n = createI18n({ app: 'linkulino', resources: { en, it, es, fr } })
 ```
 
 3. Translate the README too — copy `README.md` to `README.<code>.md` at the
@@ -126,9 +125,8 @@ Both lists should be empty for every locale.
 Data from the sheet — category names, participant names, expense descriptions,
 trip names — is passed through verbatim. If you want those in a given
 language, write them that way in the sheet. The same goes for the sheet's own
-row-1 type markers (`casa` / `viaggio`), which are configurable but live in
-`apps-script/sheet.js`, not in the locale files — see
-[sheet-setup.md](sheet-setup.md#tab-discovery).
+tab names and headers, which are the backend's contract with the sheet (see
+[sheet-setup.md](sheet-setup.md)), not text of the interface.
 
 Everything else — the app UI and the About page's rendered README — is
 translated (see below for the README).
