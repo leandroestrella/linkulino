@@ -3,6 +3,9 @@
     "tagline": "spese condivise, divise in modo equo, sempre in sincro.",
     "loadError": "impossibile contattare il backend — controlla la connessione e riprova."
   },
+  "common": {
+    "loading": "caricamento"
+  },
   "nav": {
     "privacy": "privacy",
     "about": "informazioni su linkulino",
@@ -17,11 +20,7 @@
     "settings": "impostazioni"
   },
   "auth": {
-    "signIn": "accedi",
-    "signOut": "esci",
-    "authorized": "autorizzato",
-    "notAuthorized": "non nella lista consentiti",
-    "notConfigured": "accesso non configurato"
+    "notAuthorized": "non nella lista consentiti"
   },
   "demo": {
     "title": "stai vedendo una demo.",
@@ -39,7 +38,6 @@
     "runwayDepleted": "già esaurita",
     "runwayIndefinite": "indefinita — nessuna spesa in corso",
     "addExpense": "aggiungi spesa",
-    "loading": "caricamento",
     "empty": "nessuna spesa ancora — aggiungi la prima.",
     "paidByPrefix": "pagato da",
     "owesConnector": "deve a",

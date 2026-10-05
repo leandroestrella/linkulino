@@ -3,8 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { I18nextProvider } from 'react-i18next'
 import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from '@/auth/AuthProvider'
-import { BusyProvider } from '@/components/BusyProvider'
-import { LoadingOverlay } from '@/components/LoadingOverlay'
+import { BusyProvider, LoadingOverlay, MascotProvider } from '@lndrstrll/pomuku-ui'
 import { installStaleChunkReload } from '@/lib/staleChunkReload'
 import { visit } from '@/backend'
 import { i18n } from '@/i18n'
@@ -18,16 +17,21 @@ installStaleChunkReload()
 // asking. Once per page load; never fails.
 visit()
 
+// Linkulino in every size the shared components draw a mascot at.
+const MASCOT = { still: '/linkulino.gif', footer: '/linkulino.gif', large: '/linkulino.gif' }
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <I18nextProvider i18n={i18n}>
       <BrowserRouter>
-        <AuthProvider>
+        <MascotProvider images={MASCOT}>
           <BusyProvider>
-            <App />
-            <LoadingOverlay />
+            <AuthProvider>
+              <App />
+              <LoadingOverlay />
+            </AuthProvider>
           </BusyProvider>
-        </AuthProvider>
+        </MascotProvider>
       </BrowserRouter>
     </I18nextProvider>
   </StrictMode>,

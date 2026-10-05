@@ -4,11 +4,16 @@ import { useTranslation } from 'react-i18next'
 import { deleteTrip, getTrips, updateTrip } from '@/api/client'
 import { useAuth } from '@/auth/AuthProvider'
 import { BackLink } from '@/components/BackLink'
-import { LoadingAvatar } from '@/components/LoadingAvatar'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import {
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Input,
+  Label,
+  LoadingAvatar,
+} from '@lndrstrll/pomuku-ui'
 import { useAdminAction } from '@/hooks/useAdminAction'
 
 export function TripEditPage() {

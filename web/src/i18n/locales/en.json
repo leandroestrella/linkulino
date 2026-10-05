@@ -3,6 +3,9 @@
     "tagline": "shared expenses, split fairly, kept in sync.",
     "loadError": "couldn't reach the backend — check your connection and try again."
   },
+  "common": {
+    "loading": "loading"
+  },
   "nav": {
     "privacy": "privacy",
     "about": "about linkulino",
@@ -17,11 +20,7 @@
     "settings": "settings"
   },
   "auth": {
-    "signIn": "sign in",
-    "signOut": "sign out",
-    "authorized": "authorized",
-    "notAuthorized": "not on the allowlist",
-    "notConfigured": "sign-in not configured"
+    "notAuthorized": "not on the allowlist"
   },
   "demo": {
     "title": "you're looking at a demo.",
@@ -39,7 +38,6 @@
     "runwayDepleted": "already depleted",
     "runwayIndefinite": "indefinite — no ongoing spend",
     "addExpense": "add expense",
-    "loading": "loading",
     "empty": "no expenses yet — add the first one.",
     "paidByPrefix": "paid by",
     "owesConnector": "owes",

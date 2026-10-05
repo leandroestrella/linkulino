@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Category, Expense } from '@/api/types'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@lndrstrll/pomuku-ui'
 import { type ExpenseFilterValues, filtersToSearch } from '@/lib/filters'
 import { formatAmount } from '@/lib/format'
 

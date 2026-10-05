@@ -3,6 +3,9 @@
     "tagline": "gastos compartidos, repartidos de forma justa, siempre sincronizados.",
     "loadError": "no se pudo conectar con el backend — comprueba tu conexión e inténtalo de nuevo."
   },
+  "common": {
+    "loading": "cargando"
+  },
   "nav": {
     "privacy": "privacidad",
     "about": "acerca de linkulino",
@@ -17,11 +20,7 @@
     "settings": "ajustes"
   },
   "auth": {
-    "signIn": "iniciar sesión",
-    "signOut": "cerrar sesión",
-    "authorized": "autorizado",
-    "notAuthorized": "no está en la lista de permitidos",
-    "notConfigured": "inicio de sesión no configurado"
+    "notAuthorized": "no está en la lista de permitidos"
   },
   "demo": {
     "title": "estás viendo una demo.",
@@ -39,7 +38,6 @@
     "runwayDepleted": "ya agotada",
     "runwayIndefinite": "indefinida — sin gasto continuado",
     "addExpense": "añadir gasto",
-    "loading": "cargando",
     "empty": "todavía no hay gastos — añade el primero.",
     "paidByPrefix": "pagado por",
     "owesConnector": "le debe a",

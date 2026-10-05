@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { PencilIcon } from 'lucide-react'
@@ -7,14 +6,20 @@ import { createTrip, getExpenses, getParticipants, getTrips } from '@/api/client
 import type { Expense, Participant } from '@/api/types'
 import { tripStatus, type Trip, type TripStatus } from '@/api/types'
 import { useAuth } from '@/auth/AuthProvider'
-import { LoadingAvatar } from '@/components/LoadingAvatar'
-import { useAdminSlotContainer, useSubHeaderContainer } from '@/components/subheader'
+import {
+  Button,
+  Card,
+  CardContent,
+  HeaderAction,
+  Input,
+  Label,
+  LoadingAvatar,
+  SubHeader,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@lndrstrll/pomuku-ui'
 import { VacationsOverallCard } from '@/components/VacationsOverallCard'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useAdminAction } from '@/hooks/useAdminAction'
 import { todayIso } from '@/lib/date'
 import { sortTripsNewestFirst, vacationsSummary } from '@/lib/vacations'
@@ -22,8 +27,6 @@ import { sortTripsNewestFirst, vacationsSummary } from '@/lib/vacations'
 export function TripsPage() {
   const { t } = useTranslation()
   const { canWrite } = useAuth()
-  const subHeader = useSubHeaderContainer()
-  const adminSlot = useAdminSlotContainer()
 
   const [trips, setTrips] = useState<Trip[]>([])
   const [vacations, setVacations] = useState<Expense[]>([])
@@ -79,23 +82,21 @@ export function TripsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      {adminSlot &&
-        canWrite &&
-        createPortal(
+      {canWrite && (
+        <HeaderAction>
           <Button size="sm" onClick={() => setShowForm((s) => !s)}>
             {t('trips.new')}
-          </Button>,
-          adminSlot,
-        )}
+          </Button>
+        </HeaderAction>
+      )}
 
-      {subHeader &&
-        !loading &&
-        createPortal(
-          <div className="mx-auto w-full max-w-6xl px-4 pb-3 sm:px-6">
+      {!loading && (
+        <SubHeader>
+          <div className="pb-3">
             <VacationsOverallCard summary={vacationsSummary(trips, vacations, participants.length)} />
-          </div>,
-          subHeader,
-        )}
+          </div>
+        </SubHeader>
+      )}
 
       <h2 className="text-xl font-semibold">{t('trips.title')}</h2>
 

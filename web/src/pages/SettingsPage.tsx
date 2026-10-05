@@ -3,12 +3,17 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { getExpenses, getParticipants, getTrips, updateRunwaySettings } from '@/api/client'
 import { useAuth } from '@/auth/AuthProvider'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Input } from '@/components/ui/input'
+import {
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Checkbox,
+  Input,
+  Label,
+} from '@lndrstrll/pomuku-ui'
 import { InfoTooltip } from '@/components/InfoTooltip'
-import { Label } from '@/components/ui/label'
 import { useAdminAction } from '@/hooks/useAdminAction'
 import { todayIso } from '@/lib/date'
 import { downloadFile, expensesToCsv, type ExportableExpense } from '@/lib/csv'

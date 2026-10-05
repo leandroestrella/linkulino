@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useBusy } from '@/components/BusyProvider'
+import { useBusy } from '@lndrstrll/pomuku-ui'
 
 /**
  * The shared "run a write" pattern duplicated across every admin control

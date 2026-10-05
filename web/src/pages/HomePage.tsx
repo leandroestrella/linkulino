@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { getTrips } from '@/api/client'
 import { tripStatus, type Trip } from '@/api/types'
 import { ExpenseDashboard } from '@/components/ExpenseDashboard'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent } from '@lndrstrll/pomuku-ui'
 
 export function HomePage() {
   const { t } = useTranslation()

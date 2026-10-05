@@ -15,23 +15,28 @@ import type { Category, Participant } from '@/api/types'
 import { useAuth } from '@/auth/AuthProvider'
 import { BackLink } from '@/components/BackLink'
 import { InfoTooltip } from '@/components/InfoTooltip'
-import { LoadingAvatar } from '@/components/LoadingAvatar'
-import { PersonIcon } from '@/components/PersonName'
-import { useAdminAction } from '@/hooks/useAdminAction'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Checkbox,
+  Input,
+  Label,
+  LoadingAvatar,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+  Textarea,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@lndrstrll/pomuku-ui'
+import { PersonIcon } from '@/components/PersonName'
+import { useAdminAction } from '@/hooks/useAdminAction'
 import { todayIso as today } from '@/lib/date'
 
 /** Splits 100% evenly across participants, rounding the remainder onto the first one. */

@@ -12,10 +12,18 @@ import {
   timeframeRange,
   type ExpenseFilterValues,
 } from '@/lib/filters'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  Button,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@lndrstrll/pomuku-ui'
 
 /** Sentinel for "no filter" — shadcn's Select doesn't allow an empty-string item value. */
 const ALL = '__all__'

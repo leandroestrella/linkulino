@@ -1,19 +1,27 @@
 import { useEffect, useState } from 'react'
-import { createPortal } from 'react-dom'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { DownloadIcon, RepeatIcon, PencilIcon, StickyNoteIcon } from 'lucide-react'
 import { getCategories, getExpenses, getParticipants } from '@/api/client'
 import type { Category, Expense, Participant } from '@/api/types'
 import { useAuth } from '@/auth/AuthProvider'
-import { Button } from '@/components/ui/button'
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Button,
+  Card,
+  CardAction,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  HeaderAction,
+  LoadingAvatar,
+  SubHeader,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@lndrstrll/pomuku-ui'
 import { ExpenseFilters } from '@/components/ExpenseFilters'
 import { InfoTooltip } from '@/components/InfoTooltip'
-import { LoadingAvatar } from '@/components/LoadingAvatar'
 import { findParticipant, PersonName } from '@/components/PersonName'
-import { useAdminSlotContainer, useSubHeaderContainer } from '@/components/subheader'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { downloadFile, expensesToCsv, type ExportableExpense } from '@/lib/csv'
 import { todayIso } from '@/lib/date'
 import { isCommon } from '@/lib/expenses'
@@ -89,8 +97,6 @@ export function ExpenseDashboard({
 }) {
   const { t } = useTranslation()
   const { canWrite, participantName, runwayEnabled, savings } = useAuth()
-  const subHeader = useSubHeaderContainer()
-  const adminSlot = useAdminSlotContainer()
   const [searchParams, setSearchParams] = useSearchParams()
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [participants, setParticipants] = useState<Participant[]>([])
@@ -163,106 +169,103 @@ export function ExpenseDashboard({
 
   return (
     <div className="flex flex-col gap-6">
-      {adminSlot &&
-        canWrite &&
-        createPortal(
+      {canWrite && (
+        <HeaderAction>
           <Button asChild size="sm">
             <Link to={addHref}>{t('home.addExpense')}</Link>
-          </Button>,
-          adminSlot,
-        )}
+          </Button>
+        </HeaderAction>
+      )}
 
-      {subHeader &&
-        createPortal(
-          <div className="mx-auto w-full max-w-6xl px-4 pb-3 sm:px-6">
-            <div className="flex flex-col gap-3">
-              {showFilters && (
-                <ExpenseFilters
-                  categories={categories}
-                  participants={participants}
-                  filters={filters}
-                  onChange={(next) => setSearchParams(new URLSearchParams(filtersToSearch(next)))}
-                />
-              )}
-              <Card>
-                <CardHeader>
-                  <CardTitle>{cardTitle}</CardTitle>
-                  <CardAction>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-sm"
-                          aria-label={t('home.exportCsv')}
-                          onClick={handleExport}
-                        >
-                          <DownloadIcon className="size-3.5" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>{t('home.exportCsv')}</TooltipContent>
-                    </Tooltip>
-                  </CardAction>
-                </CardHeader>
-                <CardContent className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-muted-foreground text-sm">{t('home.total')}</p>
-                    <p className="text-xl font-medium">{formatAmount(total)}</p>
-                    {total > 0 && (
-                      <div className="mt-1 flex flex-col gap-0.5">
-                        <p className="text-muted-foreground flex items-center gap-1 text-xs">
-                          {t('home.common')} {formatAmount(commonTotal)}
-                          <InfoTooltip>{t('home.commonInfo')}</InfoTooltip>
-                        </p>
-                        <p className="text-muted-foreground flex items-center gap-1 text-xs">
-                          {t('home.singleUser')} {formatAmount(singleUserTotal)}
-                          <InfoTooltip>{t('home.singleUserInfo')}</InfoTooltip>
-                        </p>
-                      </div>
-                    )}
-                    {runway && (
-                      <p className="text-muted-foreground mt-1 flex items-center gap-1 text-xs">
-                        {t('home.runway')} {runwayText(runway, t)}
-                        <InfoTooltip>{t('home.runwayInfo')}</InfoTooltip>
+      <SubHeader>
+        <div className="pb-3">
+          <div className="flex flex-col gap-3">
+            {showFilters && (
+              <ExpenseFilters
+                categories={categories}
+                participants={participants}
+                filters={filters}
+                onChange={(next) => setSearchParams(new URLSearchParams(filtersToSearch(next)))}
+              />
+            )}
+            <Card>
+              <CardHeader>
+                <CardTitle>{cardTitle}</CardTitle>
+                <CardAction>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={t('home.exportCsv')}
+                        onClick={handleExport}
+                      >
+                        <DownloadIcon className="size-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>{t('home.exportCsv')}</TooltipContent>
+                  </Tooltip>
+                </CardAction>
+              </CardHeader>
+              <CardContent className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-muted-foreground text-sm">{t('home.total')}</p>
+                  <p className="text-xl font-medium">{formatAmount(total)}</p>
+                  {total > 0 && (
+                    <div className="mt-1 flex flex-col gap-0.5">
+                      <p className="text-muted-foreground flex items-center gap-1 text-xs">
+                        {t('home.common')} {formatAmount(commonTotal)}
+                        <InfoTooltip>{t('home.commonInfo')}</InfoTooltip>
                       </p>
-                    )}
-                  </div>
-                  <div className="text-right">
-                    {balance ? (
-                      <>
-                        <p className="text-muted-foreground text-sm">
-                          <PersonName person={balance.debtor} /> {t('home.owesConnector')}{' '}
-                          <PersonName person={balance.creditor} />
+                      <p className="text-muted-foreground flex items-center gap-1 text-xs">
+                        {t('home.singleUser')} {formatAmount(singleUserTotal)}
+                        <InfoTooltip>{t('home.singleUserInfo')}</InfoTooltip>
+                      </p>
+                    </div>
+                  )}
+                  {runway && (
+                    <p className="text-muted-foreground mt-1 flex items-center gap-1 text-xs">
+                      {t('home.runway')} {runwayText(runway, t)}
+                      <InfoTooltip>{t('home.runwayInfo')}</InfoTooltip>
+                    </p>
+                  )}
+                </div>
+                <div className="text-right">
+                  {balance ? (
+                    <>
+                      <p className="text-muted-foreground text-sm">
+                        <PersonName person={balance.debtor} /> {t('home.owesConnector')}{' '}
+                        <PersonName person={balance.creditor} />
+                      </p>
+                      <p className="text-xl font-medium">{formatAmount(balance.amount)}</p>
+                    </>
+                  ) : (
+                    <p className="text-muted-foreground text-sm">{t('home.settledUp')}</p>
+                  )}
+                  {showFilters && (
+                    <div className="mt-1 flex flex-col items-end gap-0.5">
+                      <p className="text-muted-foreground flex items-center justify-end gap-1 text-xs">
+                        {t('home.allTime')}:
+                        <InfoTooltip>{t('home.allTimeBalanceInfo')}</InfoTooltip>
+                      </p>
+                      {allTimeBalance ? (
+                        <p className="text-muted-foreground text-xs">
+                          <PersonName person={allTimeBalance.debtor} /> {t('home.owesConnector')}{' '}
+                          <PersonName person={allTimeBalance.creditor} />{' '}
+                          <span className="font-semibold">{formatAmount(allTimeBalance.amount)}</span>
                         </p>
-                        <p className="text-xl font-medium">{formatAmount(balance.amount)}</p>
-                      </>
-                    ) : (
-                      <p className="text-muted-foreground text-sm">{t('home.settledUp')}</p>
-                    )}
-                    {showFilters && (
-                      <div className="mt-1 flex flex-col items-end gap-0.5">
-                        <p className="text-muted-foreground flex items-center justify-end gap-1 text-xs">
-                          {t('home.allTime')}:
-                          <InfoTooltip>{t('home.allTimeBalanceInfo')}</InfoTooltip>
-                        </p>
-                        {allTimeBalance ? (
-                          <p className="text-muted-foreground text-xs">
-                            <PersonName person={allTimeBalance.debtor} /> {t('home.owesConnector')}{' '}
-                            <PersonName person={allTimeBalance.creditor} />{' '}
-                            <span className="font-semibold">{formatAmount(allTimeBalance.amount)}</span>
-                          </p>
-                        ) : (
-                          <p className="text-muted-foreground text-xs">{t('home.settledUp')}</p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>,
-          subHeader,
-        )}
+                      ) : (
+                        <p className="text-muted-foreground text-xs">{t('home.settledUp')}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </SubHeader>
 
       <section className="flex flex-col gap-2">
         {loading && <LoadingAvatar />}

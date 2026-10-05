@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { InfoTooltip } from '@/components/InfoTooltip'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@lndrstrll/pomuku-ui'
 import type { VacationsSummary } from '@/lib/vacations'
 import { formatAmount } from '@/lib/format'
 

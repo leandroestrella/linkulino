@@ -1,5 +1,5 @@
 import { InfoIcon } from 'lucide-react'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@lndrstrll/pomuku-ui'
 
 /** A small (i) icon that reveals an explanation of how an adjacent calculated value was derived. */
 export function InfoTooltip({ children }: { children: React.ReactNode }) {

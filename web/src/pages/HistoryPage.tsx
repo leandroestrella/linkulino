@@ -3,9 +3,8 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { getHistory, getParticipants } from '@/api/client'
 import type { HistoryEntry, Participant } from '@/api/types'
-import { LoadingAvatar } from '@/components/LoadingAvatar'
+import { Card, CardContent, LoadingAvatar } from '@lndrstrll/pomuku-ui'
 import { findParticipant, PersonName } from '@/components/PersonName'
-import { Card, CardContent } from '@/components/ui/card'
 import { formatAmount, formatDateTime } from '@/lib/format'
 
 /** `t('history.addExpense')`, `t('history.deleteTrip')`, etc. — one combined phrase per action+entity pair. */
