@@ -1,42 +1,17 @@
-import i18n from 'i18next'
-import { initReactI18next } from 'react-i18next'
-import LanguageDetector from 'i18next-browser-languagedetector'
+import { createI18n, LANGUAGES, type LanguageCode } from '@lndrstrll/pomuku-i18n'
 import en from './locales/en.json'
 import it from './locales/it.json'
 import es from './locales/es.json'
 
-/** The languages the UI ships in, with the flag shown in the switcher. */
-export const LANGUAGES = [
-  { code: 'en', label: 'English', flag: '🇬🇧' },
-  { code: 'it', label: 'Italiano', flag: '🇮🇹' },
-  { code: 'es', label: 'Español', flag: '🇪🇸' },
-] as const
+/**
+ * The UI's translations: i18next, set up by pomuku in English, Italiano and
+ * Español. The language is, in order: `?lng=` in the address (shareable links),
+ * the choice saved on this device, the browser's own. Linkulino's strings are
+ * laid over the ones every pomuku app shares (loading, sign-in, try again), so
+ * giving the same key here rewords a shared string.
+ */
+export const i18n = createI18n({ app: 'linkulino', resources: { en, it, es } })
 
-export type LanguageCode = (typeof LANGUAGES)[number]['code']
-
-const STORAGE_KEY = 'linkulino.lang'
-
-void i18n
-  .use(LanguageDetector)
-  .use(initReactI18next)
-  .init({
-    resources: {
-      en: { translation: en },
-      it: { translation: it },
-      es: { translation: es },
-    },
-    fallbackLng: 'en',
-    supportedLngs: LANGUAGES.map((l) => l.code),
-    // Match only the base language (so "it-IT" resolves to "it").
-    load: 'languageOnly',
-    detection: {
-      // `?lng=es` wins (shareable links), then the saved choice, then the browser.
-      order: ['querystring', 'localStorage', 'navigator'],
-      caches: ['localStorage'],
-      lookupQuerystring: 'lng',
-      lookupLocalStorage: STORAGE_KEY,
-    },
-    interpolation: { escapeValue: false },
-  })
-
+export { LANGUAGES }
+export type { LanguageCode }
 export default i18n

@@ -1,486 +1,126 @@
 /**
- * Typed API client for the Linkulino backend.
+ * Typed API client for the Linkulino backend: a Cloudflare Worker with a JSON
+ * API under `/api/v1` (see `server/README.md`). Pages call the functions here
+ * and never the network themselves.
  *
- * Three modes:
- *  - **backend mode** (a `VITE_API_URL` is configured): reads via GET, writes
- *    via POST to the Apps Script web app.
- *  - **mock mode** (no backend): serves and mutates an in-memory copy of the
- *    fixtures so the whole UI works offline. Mutations persist for the session.
- *  - **demo mode** (a backend exists, but nobody is signed in): serves those
- *    same fixtures, so a visitor lands in a working app rather than a locked
- *    door. Unlike the other two this is a *runtime* switch — `hasBackend` is
- *    fixed at build time, but whether anyone is signed in is not (see
- *    setDemoMode, driven by AuthProvider).
+ * Which backend answers is `backend.ts`'s business: the real one for someone
+ * signed in, the in-page demo over the sample fixtures for everyone else (and
+ * for everything, when no backend is configured).
  *
- * Expenses live on either the household tab or a trip tab; pass a trip's `id`
- * as `sheetId` to address its expenses instead of the household ones.
+ * Reads are kept on the device by the underlying client, so a page opens on
+ * the last copy while the fresh one is on its way, and a save changes those
+ * copies in place. A save made from an outdated copy is refused by the
+ * backend.
+ *
+ * The backend keeps every expense in one table, a trip's expenses naming
+ * their trip; pass a trip's `id` as `sheetId` to address its expenses instead
+ * of the household ones. `rows.ts` turns the backend's rows into the shapes
+ * the pages have always had.
  */
-import { config, hasBackend } from '@/config'
-import { diffExpense, diffTrip, expenseLabel, formatCategorySummary, formatTripSummary } from '@/lib/history'
-import type {
-  Category,
-  Expense,
-  ExpenseInput,
-  HistoryEntry,
-  NewCategory,
-  NewTrip,
-  Participant,
-  RunwaySettings,
-  Trip,
-} from './types'
+import { ApiError as BackendError, type Row, type TableClient } from '@lndrstrll/pomuku-data'
+import { backend } from '@/backend'
 import {
-  MOCK_CATEGORIES,
-  MOCK_EXPENSES,
-  MOCK_HISTORY,
-  MOCK_PARTICIPANTS,
-  MOCK_TRIPS,
-  MOCK_TRIP_EXPENSES,
-} from './mock'
+  categoryFields, expenseFields, toCategory, toExpense, toHistory, toTrip, tripFields,
+  type LogEntry, type ParticipantRow,
+} from './rows'
+import type { Category, Expense, ExpenseInput, HistoryEntry, NewCategory, NewTrip, Participant, RunwaySettings, Trip } from './types'
 
-/** Attributed to every mock/demo-mode action — there's no real sign-in to name an actor after (see fetchMe). */
-const MOCK_ACTOR = 'dev'
+/** Raised when the backend refuses a request or can't be reached. */
+export { BackendError as ApiError }
 
-/**
- * The mock/demo "signed-in" identity is attributed to this participant
- * (rather than a name like "dev" that matches nobody in MOCK_PARTICIPANTS)
- * so participant-scoped features — the runway estimate, "paid by" defaults —
- * compute against real mock data instead of always landing on zero.
- */
-export const MOCK_PARTICIPANT_NAME = MOCK_PARTICIPANTS[0].name
-
-/** Shape of every backend JSON response. */
-type ApiEnvelope<T> = ({ ok: true } & T) | { ok: false; error: string }
-
-/** Raised when the backend returns `{ ok: false }` or the request fails. */
-export class ApiError extends Error {}
-
-/** Supplies the current signed-in ID token; wired up by AuthProvider. */
-let getIdToken: () => string | null = () => null
-
-/** Registers the provider used to obtain the ID token for reads and writes. */
-export function setIdTokenProvider(provider: () => string | null): void {
-  getIdToken = provider
-}
-
-let mock = freshMockStore()
-
-function freshMockStore() {
-  return {
-    expenses: clone(MOCK_EXPENSES),
-    tripExpenses: clone(MOCK_TRIP_EXPENSES),
-    participants: clone(MOCK_PARTICIPANTS),
-    categories: clone(MOCK_CATEGORIES),
-    trips: clone(MOCK_TRIPS),
-    history: clone(MOCK_HISTORY),
-    // On by default with a sample savings figure, so the demo shows the
-    // feature actually working rather than a toggle that does nothing —
-    // fetchMe's mock branch attributes it to MOCK_PARTICIPANTS[0] ('momra'),
-    // who has real spend in MOCK_EXPENSES, so the estimate is a real date.
-    runway: { enableRunway: true, savings: 8000 } as RunwaySettings,
-    // '' — mock mode has no saved preference; i18next's own detection
-    // (localStorage/browser) already covers it, same as a real account with
-    // no Language column filled in yet.
-    language: '',
-  }
-}
-
-type MockHistoryInput = Pick<HistoryEntry, 'action' | 'entity' | 'label'> &
-  Partial<Pick<HistoryEntry, 'entityId' | 'sheetId' | 'category' | 'amount' | 'date' | 'changes'>>
-
-/** Prepends a mock history entry (newest-first, matching getHistory_'s server-side ordering). */
-function logMockHistory(entry: MockHistoryInput): void {
-  mock.history.unshift({
-    timestamp: new Date().toISOString(),
-    actor: MOCK_ACTOR,
-    entityId: '',
-    sheetId: '',
-    category: '',
-    amount: 0,
-    date: '',
-    changes: '',
-    ...entry,
-  })
-}
-
-function mockExpensesFor(sheetId?: string): Expense[] {
-  if (!sheetId) return mock.expenses
-  return (mock.tripExpenses[sheetId] ??= [])
-}
-
-// ---------------------------------------------------------------------------
-// Demo mode
-// ---------------------------------------------------------------------------
-
-let demoMode = false
-
-/**
- * Turns the sample-data demo on or off. On means every read and write is
- * answered from the in-memory fixtures instead of the network, even though a
- * real backend is configured — so a signed-out visitor gets a working app
- * without ever touching (or being able to touch) somebody's real sheet.
- *
- * Entering resets the fixtures, so each visit starts from the same clean
- * sample rather than inheriting the last visitor's edits. Either direction
- * clears the read cache, so demo data can never be served to a signed-in user
- * or vice versa.
- */
-export function setDemoMode(on: boolean): void {
-  if (demoMode === on) return
-  demoMode = on
-  clearReadCache()
-  if (on) mock = freshMockStore()
-}
-
-/** True when this call should be answered from the fixtures rather than the network. */
-function servingMock(): boolean {
-  return !hasBackend || demoMode
-}
-
-// ---------------------------------------------------------------------------
-// Read cache (backend mode only)
-// ---------------------------------------------------------------------------
-
-/**
- * Every read hits a real Apps Script web app, which has a fixed ~1s latency
- * floor regardless of what it's reading (see docs/deployment.md) — so
- * switching between pages that mostly want the same reference data
- * (participants, categories, trips) paid that cost again on every
- * navigation. Cached reads are re-fetched at most once per TTL window, and
- * a write invalidates only the entries it can affect, so the UI never shows
- * stale data after the user's own change.
- */
-const CACHE_TTL_MS = 30_000
-const cache = new Map<string, { value: unknown; expires: number }>()
-
-/** Clears every cached read — called on sign-out so a later sign-in never sees a stale reply. */
-export function clearReadCache(): void {
-  cache.clear()
-}
-
-function invalidate(key: string): void {
-  cache.delete(key)
-}
-
-async function cached<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
-  const entry = cache.get(key)
-  if (entry && entry.expires > Date.now()) return clone(entry.value as T)
-  const value = await fetcher()
-  cache.set(key, { value, expires: Date.now() + CACHE_TTL_MS })
-  return clone(value)
-}
-
-function expensesCacheKey(sheetId?: string): string {
-  return `expenses:${sheetId ?? ''}`
+/** The `rev` of the device's copy of a row, so a save made from an outdated copy is refused. */
+function revOf<R extends Row>(table: TableClient<R>, id: string): number | undefined {
+  return table.peek()?.find((row) => row.id === id)?.rev || undefined
 }
 
 // ---------------------------------------------------------------------------
 // Reads
 // ---------------------------------------------------------------------------
 
-export async function getExpenses(sheetId?: string): Promise<Expense[]> {
-  if (servingMock()) return clone(mockExpensesFor(sheetId))
-  const action = sheetId ? `expenses&sheet=${encodeURIComponent(sheetId)}` : 'expenses'
-  return cached(expensesCacheKey(sheetId), async () => {
-    const data = await get<{ expenses: Expense[] }>(action)
-    return data.expenses
-  })
+/** The two participants with which share is whose, Persona A first. */
+async function participantRows(): Promise<ParticipantRow[]> {
+  const { participants } = await backend().client.read<{ participants: ParticipantRow[] }>('participants', '/participants', 'account')
+  return participants
 }
 
 export async function getParticipants(): Promise<Participant[]> {
-  if (servingMock()) return clone(mock.participants)
-  return cached('participants', async () => {
-    const data = await get<{ participants: Participant[] }>('participants')
-    return data.participants
-  })
+  return (await participantRows()).map(({ name, icon }) => ({ name, icon }))
+}
+
+export async function getExpenses(sheetId?: string): Promise<Expense[]> {
+  const [rows, people] = await Promise.all([backend().expenses.list(), participantRows()])
+  return rows.filter((row) => (row.trip ?? '') === (sheetId ?? '')).map((row) => toExpense(row, people))
 }
 
 export async function getCategories(): Promise<Category[]> {
-  if (servingMock()) return clone(mock.categories)
-  return cached('categories', async () => {
-    const data = await get<{ categories: Category[] }>('categories')
-    return data.categories
-  })
+  return (await backend().categories.list()).map(toCategory)
 }
 
 export async function getTrips(): Promise<Trip[]> {
-  if (servingMock()) return clone(mock.trips)
-  return cached('trips', async () => {
-    const data = await get<{ trips: Trip[] }>('trips')
-    return data.trips
-  })
+  return (await backend().trips.list()).map(toTrip)
 }
 
 /** Every logged add/edit/delete action, newest first. */
 export async function getHistory(): Promise<HistoryEntry[]> {
-  if (servingMock()) return clone(mock.history)
-  return cached('history', async () => {
-    const data = await get<{ history: HistoryEntry[] }>('history')
-    return data.history
-  })
+  const from = backend()
+  const [{ entries }, expenses, trips, people] = await Promise.all([
+    from.client.request<{ entries: LogEntry[] }>('GET', '/history?limit=500'),
+    from.expenses.list(),
+    from.trips.list(),
+    participantRows(),
+  ])
+  return toHistory(entries, expenses, trips, people)
 }
 
-/** The caller's authorization status, resolved server-side from their ID token. */
-export interface Me {
-  authorized: boolean
-  email: string
-  name: string
-  reason: string
-  /** The caller's own runway settings (see RunwaySettings) — never a partner's. */
-  enableRunway: boolean
-  savings: number
-  /** The caller's saved UI language (e.g. "en"), or '' if none saved yet — see updateLanguage. */
-  language: string
-}
-
-/**
- * Asks the backend whether the current ID token belongs to an allowed
- * participant. In mock mode (offline dev) there is no sign-in, so we grant
- * authorization to keep the write UI reachable against the in-memory store.
- */
-export async function fetchMe(): Promise<Me> {
-  if (servingMock()) {
-    return {
-      authorized: true,
-      email: 'dev@local',
-      name: MOCK_PARTICIPANT_NAME,
-      reason: 'mock mode',
-      ...mock.runway,
-      language: mock.language,
-    }
-  }
-  return post<Me>({ action: 'me' })
-}
-
-/** Updates the CALLER'S OWN runway settings (enable flag + savings amount). */
-export async function updateRunwaySettings(settings: RunwaySettings): Promise<RunwaySettings> {
-  if (servingMock()) {
-    mock.runway = settings
-    // No history entry — see updateRunway_ in Code.js for why runway changes
-    // are never logged (they're private, unlike every other write here).
-    return settings
-  }
-  const data = await post<{ runway: RunwaySettings }>({ action: 'updateRunway', runway: settings })
-  return data.runway
-}
-
-/**
- * Persists the caller's own UI language choice — best-effort background
- * sync, never awaited by the caller for its result: see LanguageSwitcher,
- * which fires this alongside the immediate local i18next.changeLanguage.
- */
-export async function updateLanguage(language: string): Promise<string> {
-  if (servingMock()) {
-    mock.language = language
-    return language
-  }
-  const data = await post<{ language: string }>({ action: 'updateLanguage', language })
-  return data.language
+/** The caller's OWN runway settings (enable flag + savings amount) — never a partner's. */
+export async function getRunwaySettings(): Promise<RunwaySettings> {
+  return (await backend().client.request<{ runway: RunwaySettings }>('GET', '/runway')).runway
 }
 
 // ---------------------------------------------------------------------------
 // Writes
 // ---------------------------------------------------------------------------
 
+/** Updates the CALLER'S OWN runway settings. */
+export async function updateRunwaySettings(settings: RunwaySettings): Promise<RunwaySettings> {
+  return (await backend().client.request<{ runway: RunwaySettings }>('PATCH', '/runway', settings)).runway
+}
+
 /** Creates an expense; the backend assigns its ID. */
 export async function addExpense(expense: ExpenseInput, sheetId?: string): Promise<Expense> {
-  if (servingMock()) {
-    const created: Expense = { ...expense, id: crypto.randomUUID() }
-    const list = mockExpensesFor(sheetId)
-    list.push(created)
-    logMockHistory({
-      action: 'add',
-      entity: 'expense',
-      entityId: created.id,
-      sheetId,
-      label: expenseLabel(created),
-      category: created.category,
-      amount: created.amount,
-      date: created.date,
-    })
-    return created
-  }
-  const data = await post<{ expense: Expense }>({ action: 'addExpense', expense, sheet: sheetId })
-  invalidate(expensesCacheKey(sheetId))
-  invalidate('history')
-  return data.expense
+  const people = await participantRows()
+  return toExpense(await backend().expenses.create(expenseFields(expense, people, sheetId)), people)
 }
 
 /** Updates an existing expense in place. */
 export async function updateExpense(id: string, expense: ExpenseInput, sheetId?: string): Promise<Expense> {
-  if (servingMock()) {
-    const list = mockExpensesFor(sheetId)
-    const index = list.findIndex((e) => e.id === id)
-    const before = index === -1 ? null : list[index]
-    const updated: Expense = { ...expense, id }
-    if (index === -1) list.push(updated)
-    else list[index] = updated
-    logMockHistory({
-      action: 'update',
-      entity: 'expense',
-      entityId: updated.id,
-      sheetId,
-      label: expenseLabel(updated),
-      category: updated.category,
-      amount: updated.amount,
-      date: updated.date,
-      changes: diffExpense(before, updated),
-    })
-    return updated
-  }
-  const data = await post<{ expense: Expense }>({ action: 'updateExpense', id, expense, sheet: sheetId })
-  invalidate(expensesCacheKey(sheetId))
-  invalidate('history')
-  return data.expense
+  const people = await participantRows()
+  const { expenses } = backend()
+  return toExpense(await expenses.update(id, expenseFields(expense, people, sheetId), revOf(expenses, id)), people)
 }
 
 /** Deletes an existing expense. */
-export async function deleteExpense(id: string, sheetId?: string): Promise<void> {
-  if (servingMock()) {
-    const list = mockExpensesFor(sheetId)
-    const index = list.findIndex((e) => e.id === id)
-    if (index !== -1) {
-      const [deleted] = list.splice(index, 1)
-      // No entityId: the mock list has already dropped this expense, so
-      // there's nothing left to link to (matches the real backend's behavior).
-      logMockHistory({
-        action: 'delete',
-        entity: 'expense',
-        sheetId,
-        label: expenseLabel(deleted),
-        category: deleted.category,
-        amount: deleted.amount,
-        date: deleted.date,
-      })
-    }
-    return
-  }
-  await post({ action: 'deleteExpense', id, sheet: sheetId })
-  invalidate(expensesCacheKey(sheetId))
-  invalidate('history')
+export async function deleteExpense(id: string, _sheetId?: string): Promise<void> {
+  await backend().expenses.remove(id)
 }
 
 /** Creates a new expense category. */
 export async function addCategory(category: NewCategory): Promise<Category> {
-  if (servingMock()) {
-    mock.categories = [...mock.categories, category]
-    // No entityId: there's no per-category page to link to.
-    logMockHistory({ action: 'add', entity: 'category', label: formatCategorySummary(category) })
-    return category
-  }
-  const data = await post<{ category: Category }>({ action: 'addCategory', category })
-  invalidate('categories')
-  invalidate('history')
-  return data.category
+  return toCategory(await backend().categories.create(categoryFields(category)))
 }
 
-/** Creates a new trip tab (duplicated from the template) and returns its metadata. */
+/** Creates a trip; the backend makes its ID from its name, once. */
 export async function createTrip(trip: NewTrip): Promise<Trip> {
-  if (servingMock()) {
-    const created: Trip = { ...trip, id: `${trip.emoji} ${trip.name}` }
-    mock.trips = [...mock.trips, created]
-    logMockHistory({ action: 'add', entity: 'trip', entityId: created.id, label: formatTripSummary(created) })
-    return created
-  }
-  const data = await post<{ trip: Trip }>({ action: 'createTrip', trip })
-  invalidate('trips')
-  invalidate('history')
-  return data.trip
+  return toTrip(await backend().trips.create(tripFields(trip)))
 }
 
-/** Updates an existing trip's metadata. Renaming or re-emoji-ing changes its id. */
+/** Updates an existing trip's name, emoji or dates. Its ID stays as it is. */
 export async function updateTrip(id: string, trip: NewTrip): Promise<Trip> {
-  if (servingMock()) {
-    const before = mock.trips.find((t) => t.id === id) ?? null
-    const updated: Trip = { ...trip, id: `${trip.emoji} ${trip.name}` }
-    mock.trips = mock.trips.map((t) => (t.id === id ? updated : t))
-    if (updated.id !== id) {
-      mock.tripExpenses[updated.id] = mock.tripExpenses[id] ?? []
-      delete mock.tripExpenses[id]
-    }
-    logMockHistory({
-      action: 'update',
-      entity: 'trip',
-      entityId: updated.id,
-      label: formatTripSummary(updated),
-      changes: diffTrip(before, trip),
-    })
-    return updated
-  }
-  const data = await post<{ trip: Trip }>({ action: 'updateTrip', id, trip })
-  invalidate('trips')
-  invalidate('history')
-  invalidate(expensesCacheKey(id))
-  invalidate(expensesCacheKey(data.trip.id))
-  return data.trip
+  const { trips } = backend()
+  return toTrip(await trips.update(id, tripFields(trip), revOf(trips, id)))
 }
 
-/** Deletes a trip and every expense on it. */
+/** Deletes a trip and every expense on it (the backend does both as one). */
 export async function deleteTrip(id: string): Promise<void> {
-  if (servingMock()) {
-    const deleted = mock.trips.find((t) => t.id === id) ?? null
-    mock.trips = mock.trips.filter((t) => t.id !== id)
-    delete mock.tripExpenses[id]
-    // No entityId: the tab is gone.
-    if (deleted) logMockHistory({ action: 'delete', entity: 'trip', label: formatTripSummary(deleted) })
-    return
-  }
-  await post({ action: 'deleteTrip', id })
-  invalidate('trips')
-  invalidate('history')
-  invalidate(expensesCacheKey(id))
-}
-
-// ---------------------------------------------------------------------------
-// HTTP transport (backend mode)
-// ---------------------------------------------------------------------------
-
-// A bound so a genuinely hung request can't wedge the UI forever — NOT a
-// latency target. Measured against the live deployment, a cold start can take
-// 25s just to return an auth rejection, so anything tighter aborts healthy
-// requests and surfaces them as "couldn't reach the backend". Keep this well
-// clear of the worst observed round-trip.
-const FETCH_TIMEOUT_MS = 45_000
-
-async function get<T>(action: string): Promise<T> {
-  // Reads are gated the same as writes (see apps-script/Code.js) — GET has no
-  // body, so the token rides along as a query param instead.
-  const token = getIdToken()
-  const url = `${config.apiUrl}?action=${action}${token ? `&idToken=${encodeURIComponent(token)}` : ''}`
-  try {
-    const res = await fetch(url, { method: 'GET', signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) })
-    // Inside the try: aborting mid-response rejects the body read too, and a
-    // half-streamed body is just as much a network failure as a dead socket.
-    return unwrap<T>(await res.json())
-  } catch (err) {
-    if (err instanceof ApiError) throw err
-    throw new ApiError(`Network error contacting the backend: ${String(err)}`)
-  }
-}
-
-async function post<T>(body: Record<string, unknown>): Promise<T> {
-  const token = getIdToken()
-  const payload = token ? { ...body, idToken: token } : body
-  try {
-    // text/plain avoids a CORS preflight, which Apps Script web apps can't answer.
-    const res = await fetch(config.apiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-    })
-    return unwrap<T>(await res.json())
-  } catch (err) {
-    if (err instanceof ApiError) throw err
-    throw new ApiError(`Network error contacting the backend: ${String(err)}`)
-  }
-}
-
-function unwrap<T>(envelope: ApiEnvelope<T>): T {
-  if (!envelope.ok) throw new ApiError(envelope.error)
-  const { ok: _ok, ...rest } = envelope
-  return rest as T
-}
-
-function clone<T>(value: T): T {
-  return structuredClone(value)
+  await backend().trips.remove(id)
 }

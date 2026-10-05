@@ -10,6 +10,11 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+    // pomuku's packages must use this app's copy of React and i18next, not one
+    // of their own: two copies of either break hooks and translations. npm
+    // already installs a single copy; this also holds when a package is linked
+    // from a local checkout while working on it.
+    dedupe: ['react', 'react-dom', 'react-i18next', 'i18next'],
   },
   server: {
     fs: {

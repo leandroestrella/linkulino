@@ -39,7 +39,7 @@ export function AuthBar() {
     return (
       <div key="signed-in" className="flex min-w-0 items-center gap-2 sm:gap-3">
         <div className="hidden min-w-0 text-right leading-tight sm:block">
-          <div className="truncate text-sm">{user.email || user.name}</div>
+          <div className="truncate text-sm">{user.name}</div>
           <div className="text-muted-foreground text-xs">
             {authorized ? t('auth.authorized') : t('auth.notAuthorized')}
           </div>
@@ -48,8 +48,8 @@ export function AuthBar() {
         {user.picture && (
           <img
             src={user.picture}
-            alt={user.email}
-            title={user.email}
+            alt=""
+            title={user.name}
             className="size-7 shrink-0 rounded-full sm:size-8"
             referrerPolicy="no-referrer"
           />

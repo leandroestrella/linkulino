@@ -3,13 +3,10 @@
  * local runtime, a pretend Google for sign-in, and a spreadsheet kept in memory
  * shaped like the real one (same tabs, same headers, hand-edited quirks).
  */
-import { d1, migrate, type Cell } from '@lndrstrll/pomuku-server'
-import { memorySheets, testD1, testGoogle } from '@lndrstrll/pomuku-server/testing'
+import type { Cell } from '@lndrstrll/pomuku-server'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { schema } from './schema.js'
-import { linkulino } from './worker.js'
+import { testBackend } from './testing.js'
 
-const SECRET = 'a-long-sync-secret'
 const MARIA = 'maria@example.com'
 const LEANDRO = 'leandro@example.com'
 
@@ -44,55 +41,27 @@ const TABS: Record<string, Cell[][]> = {
   ],
 }
 
-let env: { DB: D1Database; GOOGLE_CLIENT_ID: string; SYNC_SECRET: string }
-let google: Awaited<ReturnType<typeof testGoogle>>
-let dispose: () => Promise<void>
-let sheet: ReturnType<typeof memorySheets>
-let app: ReturnType<typeof linkulino>
+let backend: Awaited<ReturnType<typeof testBackend>>
+let env: (typeof backend)['env']
+let google: (typeof backend)['google']
+let sheet: (typeof backend)['sheet']
+let app: (typeof backend)['app']
+let call: (typeof backend)['call']
+let settle: (typeof backend)['settle']
+let syncNow: (typeof backend)['syncNow']
+let signIn: (typeof backend)['signIn']
 let maria: string
 let leandro: string
 /** Set by a test that needs a particular day; the real time otherwise. */
 let clock: Date | null = null
-const deferred: Promise<unknown>[] = []
-const context = { waitUntil: (work: Promise<unknown>) => void deferred.push(work), passThroughOnException() {} } as unknown as ExecutionContext
-
-async function call(method: string, path: string, options: { token?: string; body?: unknown; secret?: string } = {}) {
-  const headers: Record<string, string> = {}
-  if (options.token) headers.authorization = `Bearer ${options.token}`
-  if (options.secret) headers['x-sync-secret'] = options.secret
-  if (options.body !== undefined) headers['content-type'] = 'application/json'
-  const response = await app.fetch(
-    new Request(`https://api.example/api/v1${path}`, { method, headers, body: options.body === undefined ? undefined : JSON.stringify(options.body) }),
-    env,
-    context,
-  )
-  return { status: response.status, json: (await response.json()) as any }
-}
-/** Waits for whatever was left running after the answers so far (the push to the sheet). */
-const settle = async () => {
-  while (deferred.length) await deferred.shift()
-}
-/** The sheet's "Sync now": asks until there is nothing more. */
-async function syncNow() {
-  for (let round = 0; round < 20; round++) {
-    const { json } = await call('POST', '/sync', { secret: SECRET })
-    if (json.done !== false) return json
-  }
-}
-const signIn = async (email: string) => (await call('POST', '/session', { body: { credential: await google.sign({ email }) } })).json.token as string
 const sheetRow = (tab: string, id: string) => sheet.tabs[tab]!.find((row) => row[0] === id)
 const cell = (id: string, header: string) => sheetRow('Spese', id)?.[SPESE.indexOf(header)]
 
 beforeAll(async () => {
-  const database = await testD1()
-  dispose = database.dispose
-  google = await testGoogle()
-  env = { DB: database.binding, GOOGLE_CLIENT_ID: google.clientId, SYNC_SECRET: SECRET }
-  await migrate(d1(env.DB), schema)
-  sheet = memorySheets(TABS)
-  app = linkulino({ verifyGoogleToken: google.verify, sheets: () => sheet, now: () => clock ?? new Date() })
+  backend = await testBackend(TABS, { now: () => clock ?? new Date() })
+  ;({ env, google, sheet, app, call, settle, syncNow, signIn } = backend)
 })
-afterAll(() => dispose?.())
+afterAll(() => backend?.dispose())
 
 describe('the first import', () => {
   it('builds the database from the existing sheet, keeping ids and giving one to a row without', async () => {

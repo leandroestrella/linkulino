@@ -1,9 +1,9 @@
 /**
  * Mock data for offline development.
  *
- * A small, representative fixture so the whole UI works without a live sheet.
- * The SPA falls back to this whenever no backend is configured (`hasBackend`
- * in config.ts). Not the source of truth — the sheet is.
+ * A small, representative fixture so the whole UI works without a backend. The
+ * SPA runs on it whenever no backend is configured (`hasBackend` in config.ts)
+ * and, with one, for a visitor who isn't signed in (see api/demo.ts).
  *
  * Dates are computed relative to today (not hardcoded) so "this month"/"last
  * month", the timeframe presets (last 7/30/90 days, this/last year…), and a
@@ -51,9 +51,9 @@ export const MOCK_CATEGORIES: Category[] = [
 ]
 
 export const MOCK_TRIPS: Trip[] = [
-  { id: '🏖️ seaside', name: 'seaside', emoji: '🏖️', startDate: daysFromToday(-80), endDate: daysFromToday(-73) },
-  { id: '🏔️ mountains', name: 'mountains', emoji: '🏔️', startDate: daysFromToday(-8), endDate: daysFromToday(6) },
-  { id: '🎡 city break', name: 'city break', emoji: '🎡', startDate: daysFromToday(100), endDate: daysFromToday(104) },
+  { id: 'seaside', name: 'seaside', emoji: '🏖️', startDate: daysFromToday(-80), endDate: daysFromToday(-73) },
+  { id: 'mountains', name: 'mountains', emoji: '🏔️', startDate: daysFromToday(-8), endDate: daysFromToday(6) },
+  { id: 'city-break', name: 'city break', emoji: '🎡', startDate: daysFromToday(100), endDate: daysFromToday(104) },
 ]
 
 export const MOCK_EXPENSES: Expense[] = [
@@ -173,7 +173,7 @@ export const MOCK_EXPENSES: Expense[] = [
 ]
 
 export const MOCK_TRIP_EXPENSES: Record<string, Expense[]> = {
-  '🏔️ mountains': [
+  mountains: [
     {
       id: 'trip-exp-1',
       date: daysFromToday(-7),
@@ -186,7 +186,7 @@ export const MOCK_TRIP_EXPENSES: Record<string, Expense[]> = {
     notes: '',
     },
   ],
-  '🏖️ seaside': [
+  seaside: [
     {
       id: 'trip-exp-2',
       date: daysFromToday(-79),
@@ -204,7 +204,7 @@ export const MOCK_TRIP_EXPENSES: Record<string, Expense[]> = {
 /**
  * A small, plausible-looking activity log so a fresh demo visit lands with
  * something to show on the activity page, instead of "no activity yet" — the
- * entries reference real mock ids (exp-4b, exp-4, 🎡 city break) so clicking
+ * entries reference real mock ids (exp-4b, exp-4, city-break) so clicking
  * through actually lands on that expense/trip, same as a real logged action.
  * Newest first, matching how logMockHistory prepends new entries in client.ts.
  */
@@ -253,7 +253,7 @@ export const MOCK_HISTORY: HistoryEntry[] = [
     actor: 'mara',
     action: 'add',
     entity: 'trip',
-    entityId: '🎡 city break',
+    entityId: 'city-break',
     sheetId: '',
     label: '🎡 city break',
     category: '',

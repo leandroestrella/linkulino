@@ -1,6 +1,6 @@
 {
   "name": "linkulino-web",
-  "description": "Linkulino — shared expense tracker SPA (Vite + React), reads/writes a Google Sheet via an Apps Script backend.",
+  "description": "Linkulino — shared expense tracker SPA (Vite + React), built on pomuku's shared packages; reads and writes through the Worker backend in ../server.",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -14,10 +14,16 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",
+    "@lndrstrll/pomuku-auth": "^0.1.1",
+    "@lndrstrll/pomuku-data": "^0.1.1",
+    "@lndrstrll/pomuku-i18n": "^0.1.1",
+    "@lndrstrll/pomuku-ui": "^0.1.1",
     "@tailwindcss/vite": "^4.3.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -45,6 +51,7 @@
     "oxlint": "^1.71.0",
     "shadcn": "^4.15.0",
     "typescript": "~6.0.2",
-    "vite": "^8.1.1"
+    "vite": "^8.1.1",
+    "vitest": "^4.1.11"
   }
 }

@@ -26,5 +26,7 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  // Runs the client against the backend itself (../server), whose types are a Worker's, not a page's.
+  "exclude": ["src/**/*.backend.test.ts"]
 }

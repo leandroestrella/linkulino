@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { updateLanguage } from '@/api/client'
+import { useAuth } from '@/auth/AuthProvider'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -12,6 +12,7 @@ import { LANGUAGES } from './index'
 /** Flag menu to switch UI language; the choice is persisted (i18next → localStorage). */
 export function LanguageSwitcher() {
   const { i18n } = useTranslation()
+  const { setLanguage } = useAuth()
   const current = LANGUAGES.find((l) => l.code === i18n.resolvedLanguage) ?? LANGUAGES[0]
 
   return (
@@ -27,11 +28,10 @@ export function LanguageSwitcher() {
             key={lang.code}
             onClick={() => {
               void i18n.changeLanguage(lang.code)
-              // Best-effort background sync to the account (see
-              // docs/translations.md) — swallow failures (anonymous/demo
-              // visitor, no Language column yet) since the language switch
-              // itself already succeeded locally regardless.
-              void updateLanguage(lang.code).catch(() => {})
+              // A signed-in person's choice is saved on their account too (see
+              // docs/translations.md), so the app opens in it on their next
+              // device. Best-effort: the switch itself already happened here.
+              void setLanguage(lang.code).catch(() => {})
             }}
             className={lang.code === current.code ? 'font-semibold' : undefined}
           >

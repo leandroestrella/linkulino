@@ -1,26 +1,24 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import type { ReactNode } from 'react'
+import { createContext, use, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { AuthProvider as SessionProvider, useAuth as useSession } from '@lndrstrll/pomuku-auth'
+import { getRunwaySettings } from '@/api/client'
+import { MOCK_PARTICIPANT_NAME } from '@/api/demo'
+import { auth } from '@/backend'
 import { config, hasBackend } from '@/config'
-import { clearReadCache, fetchMe, MOCK_PARTICIPANT_NAME, setDemoMode, setIdTokenProvider } from '@/api/client'
-import i18n, { LANGUAGES } from '@/i18n'
 
 /**
- * Applies a participant's saved language (from `Me.language`) to this
- * device, so it follows them across devices instead of staying a per-device
- * localStorage choice — but never overrides an explicit `?lng=` link (that's
- * for sharing a page in a specific language regardless of anyone's saved
- * preference — see docs/translations.md) or a value i18next doesn't
- * recognize (a saved preference from before a language was added/removed).
+ * Sign-in for the SPA. Google vouches for a person once; the backend trades
+ * Google's ID token for a session, which every later request carries and which
+ * is remembered on this device — so the next visit opens signed in at once and
+ * re-checks with the backend in the background. Google's own script is not
+ * loaded with the page, only when someone asks to sign in.
+ *
+ * All of that lives in pomuku's auth package; this file shapes it for
+ * Linkulino's pages and adds what is Linkulino's own: the demo a signed-out
+ * visitor gets, and the signed-in participant's own runway settings.
  */
-function applyServerLanguage(language: string): void {
-  if (!language || new URLSearchParams(window.location.search).has('lng')) return
-  if (!LANGUAGES.some((l) => l.code === language)) return
-  if (language !== i18n.resolvedLanguage) void i18n.changeLanguage(language)
-}
 
-/** The signed-in person's public profile (decoded from the Google ID token). */
+/** The signed-in person as the header shows them. The email never reaches the page. */
 export interface AuthUser {
-  email: string
   name: string
   picture: string
 }
@@ -30,16 +28,16 @@ type AuthStatus = 'loading' | 'anonymous' | 'signed-in'
 export interface AuthContextValue {
   status: AuthStatus
   user: AuthUser | null
-  /** True when the backend confirmed this user is on the participant allowlist. */
+  /** True when the backend confirmed this person is on the `Users` tab. */
   authorized: boolean
-  /** The allowlisted name mapped from this participant's email (e.g. `Alex`). */
+  /** Their name on the `Users` tab (e.g. `alex`); in the demo, the sample participant's. */
   participantName: string
   /** This participant's OWN runway settings — never their partner's (see lib/runway.ts). */
   runwayEnabled: boolean
   savings: number
-  /** Re-fetches the caller's own runway settings (e.g. after saving them in Settings) without a full sign-in round-trip. */
+  /** Re-fetches the caller's own runway settings (e.g. after saving them in Settings). */
   refreshRunway: () => Promise<void>
-  /** Whether Google sign-in is configured (a client ID is present). */
+  /** Whether Google sign-in is configured (a client ID is present, and there is a backend to sign in to). */
   configured: boolean
   /**
    * True when the app is showing sample data to a signed-out visitor. The app
@@ -48,347 +46,91 @@ export interface AuthContextValue {
    */
   demo: boolean
   /**
-   * Whether to offer the write UI (add/edit/delete). True for an allowlisted
-   * signed-in user, for local mock dev, and in the demo — where the writes are
+   * Whether to offer the write UI (add/edit/delete). True for someone on the
+   * `Users` tab, for local mock dev, and in the demo — where the writes are
    * real as far as the UI is concerned but land in the in-memory fixtures.
-   * The backend re-checks authorization on every write regardless; this only
-   * decides whether the controls are worth showing.
+   * The backend re-checks every write regardless; this only decides whether
+   * the controls are worth showing.
    */
   canWrite: boolean
-  /** Whether the GIS library has loaded and initialized. */
+  /** Whether Google's sign-in library has loaded and initialized. */
   googleReady: boolean
-  /** Whether the GIS library is being loaded after a "sign in" click. */
+  /** Whether Google's sign-in library is being loaded after a "sign in" click. */
   googleLoading: boolean
   error: string | null
-  /** Triggers the Google account chooser / One Tap. */
-  signIn: () => void
   /** Loads Google sign-in on demand (never on page load). */
   startSignIn: () => void
   signOut: () => void
+  /** Saves the language on the account, so the app opens in it on the next device too. */
+  setLanguage: (language: string) => Promise<void>
   /** Renders the official Google button into the given element. */
   renderButton: (el: HTMLElement | null) => void
 }
 
-const AuthContext = createContext<AuthContextValue | null>(null)
-
-const GSI_SRC = 'https://accounts.google.com/gsi/client'
-const TOKEN_STORAGE_KEY = 'linkulino.idToken'
-
-/** Decodes the payload of a JWT (no verification — display only). */
-function decodeJwt(token: string): Record<string, unknown> {
-  const part = token.split('.')[1] ?? ''
-  const base64 = part.replace(/-/g, '+').replace(/_/g, '/')
-  const json = decodeURIComponent(
-    atob(base64)
-      .split('')
-      .map((ch) => '%' + ch.charCodeAt(0).toString(16).padStart(2, '0'))
-      .join(''),
-  )
-  return JSON.parse(json)
+interface Runway {
+  runwayEnabled: boolean
+  savings: number
+  refreshRunway: () => Promise<void>
 }
+
+const RunwayContext = createContext<Runway | null>(null)
 
 /**
- * Whether a stored token is unusable. Treats "expires in the next minute" as
- * already expired, so we don't restore a session only for the very next
- * request to be rejected mid-flight.
+ * The current participant's own runway settings: the signed-in person's, or
+ * the demo's sample ones. Read again whenever who that is changes.
  */
-function tokenUnusable(token: string): boolean {
-  try {
-    const exp = Number(decodeJwt(token).exp ?? 0)
-    return !exp || exp * 1000 <= Date.now() + 60_000
-  } catch {
-    return true
-  }
-}
+function RunwayProvider({ children }: { children: ReactNode }) {
+  const { status, authorized } = useSession()
+  const [settings, setSettings] = useState({ enableRunway: false, savings: 0 })
 
-/** Loads the GIS client script once; resolves when `window.google` is ready. */
-function loadGsi(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (window.google?.accounts?.id) return resolve()
-    const existing = document.querySelector<HTMLScriptElement>(`script[src="${GSI_SRC}"]`)
-    if (existing) {
-      existing.addEventListener('load', () => resolve())
-      existing.addEventListener('error', () => reject(new Error('failed to load Google sign-in')))
-      return
-    }
-    const script = document.createElement('script')
-    script.src = GSI_SRC
-    script.async = true
-    script.defer = true
-    script.onload = () => resolve()
-    script.onerror = () => reject(new Error('failed to load Google sign-in'))
-    document.head.appendChild(script)
-  })
+  const refreshRunway = useCallback(async () => {
+    setSettings(await getRunwaySettings())
+  }, [])
+
+  useEffect(() => {
+    if (status === 'loading' || (status === 'signed-in' && !authorized)) return
+    // Off until the answer is in: one person's settings must never show for the next.
+    setSettings({ enableRunway: false, savings: 0 })
+    void refreshRunway().catch(() => undefined)
+  }, [status, authorized, refreshRunway])
+
+  const value = useMemo(() => ({ runwayEnabled: settings.enableRunway, savings: settings.savings, refreshRunway }), [settings, refreshRunway])
+  return <RunwayContext value={value}>{children}</RunwayContext>
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const configured = config.googleClientId.length > 0
-  const [status, setStatus] = useState<AuthStatus>(() => {
-    if (!hasBackend || !configured) return 'anonymous'
-    // A still-valid stored token is re-validated by the effect below.
-    const stored = localStorage.getItem(TOKEN_STORAGE_KEY)
-    if (stored && !tokenUnusable(stored)) return 'loading'
-    if (stored) localStorage.removeItem(TOKEN_STORAGE_KEY)
-    // No session to restore: open straight into the demo. The API client has
-    // to be switched to the fixtures here, during the first render, not in
-    // an effect: child effects (the data providers' first fetch) run before
-    // this component's, so anything later would let that fetch hit the real
-    // backend. setDemoMode is idempotent, so React re-running this
-    // initializer in development is harmless.
-    setDemoMode(true)
-    return 'anonymous'
-  })
-  const [user, setUser] = useState<AuthUser | null>(null)
-  const [authorized, setAuthorized] = useState(false)
-  const [participantName, setParticipantName] = useState('')
-  const [runwayEnabled, setRunwayEnabled] = useState(false)
-  const [savings, setSavings] = useState(0)
-  const [googleReady, setGoogleReady] = useState(false)
-  const [googleLoading, setGoogleLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const tokenRef = useRef<string | null>(null)
-  /** Set once GIS loading has started, so repeated clicks don't reload it. */
-  const gsiStartedRef = useRef(false)
-  /** True while a stored token is being re-validated, to keep GIS from racing it. */
-  const restoringRef = useRef(false)
-
-  // Writes carry the current ID token; register the provider once.
-  useEffect(() => {
-    setIdTokenProvider(() => tokenRef.current)
-  }, [])
-
-  /**
-   * Drop to the signed-out demo, flipping the API client to the fixtures in the
-   * same breath. The `demo` effect below can't be relied on to do that part:
-   * child effects run before parent ones, so the page mounted by this very
-   * status change fires its first fetch first — and with the demo off and no
-   * token, that request hits the real backend unauthenticated and fails.
-   */
-  const enterDemo = useCallback(() => {
-    setDemoMode(true)
-    setStatus('anonymous')
-    // Demo mode never goes through handleCredential (there's no real sign-in
-    // to decode), so nothing else populates participantName/runway — without
-    // this, anything scoped to "the current participant" (e.g. the homepage
-    // runway line) would silently stay off. servingMock() is already true by
-    // this point, so this resolves from the in-memory fixtures, no network.
-    void fetchMe().then((me) => {
-      setParticipantName(me.name)
-      setRunwayEnabled(me.enableRunway)
-      setSavings(me.savings)
-    })
-  }, [])
-
-  /**
-   * `restored` marks a token replayed from a previous visit rather than one the
-   * user just consented to. The distinction only matters when re-validation
-   * fails: an interactive sign-in that fails deserves a visible error, while a
-   * stale stored token should quietly drop back to the demo.
-   */
-  const handleCredential = useCallback(async (credential: string, restored = false) => {
-    tokenRef.current = credential
-    // Leave the demo BEFORE asking the backend who we are: fetchMe answers
-    // from the fixtures while demo is on, and its canned reply says
-    // "authorized" — which would wrongly admit a real, non-allowlisted user.
-    setDemoMode(false)
-    try {
-      const claims = decodeJwt(credential)
-      setUser({
-        email: String(claims.email ?? ''),
-        name: String(claims.name ?? claims.email ?? ''),
-        picture: String(claims.picture ?? ''),
-      })
-      const me = await fetchMe()
-      setAuthorized(me.authorized)
-      setParticipantName(me.name)
-      setRunwayEnabled(me.enableRunway)
-      setSavings(me.savings)
-      applyServerLanguage(me.language)
-      setStatus('signed-in')
-      setError(me.authorized ? null : `Signed in, but not on the allowlist (${me.reason}).`)
-      // Only worth replaying a token the backend actually accepted.
-      if (me.authorized) localStorage.setItem(TOKEN_STORAGE_KEY, credential)
-      else localStorage.removeItem(TOKEN_STORAGE_KEY)
-    } catch (err) {
-      if (restored) {
-        // Revoked, expired server-side, or the backend is unreachable. Showing
-        // a locked door here would be wrong — the visitor never asked to sign
-        // in on this load. Bin the token and fall through to the demo.
-        tokenRef.current = null
-        localStorage.removeItem(TOKEN_STORAGE_KEY)
-        setUser(null)
-        setError(null)
-        enterDemo()
-      } else {
-        setError(String(err))
-        setStatus('signed-in')
-      }
-    } finally {
-      restoringRef.current = false
-    }
-  }, [enterDemo])
-
-  // Offline mock mode: no sign-in, treat the local dev as authorized.
-  useEffect(() => {
-    if (hasBackend) return
-    setUser({ email: 'dev@local', name: MOCK_PARTICIPANT_NAME, picture: '' })
-    setAuthorized(true)
-    setParticipantName(MOCK_PARTICIPANT_NAME)
-    // Matches freshMockStore's sample runway default, so local dev (no
-    // backend at all) shows the same working demo as the live site's demo mode.
-    setRunwayEnabled(true)
-    setSavings(8000)
-    setStatus('signed-in')
-  }, [])
-
-  // Backend mode: re-validate a stored session (the initializer above already
-  // opened the demo when there is none). Google Identity Services is
-  // deliberately NOT loaded here: google.accounts.id.initialize() writes
-  // Google's g_state cookie and every load of the script contacts Google, for
-  // visitors who never sign in. It waits until someone asks to (startSignIn
-  // below). Restoring only needs the stored token and the backend.
-  useEffect(() => {
-    if (!hasBackend || !configured) return
-    const stored = localStorage.getItem(TOKEN_STORAGE_KEY)
-    if (!stored || tokenUnusable(stored)) return
-    restoringRef.current = true
-    void handleCredential(stored, true)
-  }, [configured, handleCredential])
-
-  /**
-   * Loads and initializes Google Identity Services on demand, the first time
-   * a visitor clicks "sign in". Once it's ready, AuthBar swaps its plain
-   * button for the official Google one.
-   */
-  const startSignIn = useCallback(() => {
-    if (gsiStartedRef.current) return
-    gsiStartedRef.current = true
-    setGoogleLoading(true)
-    loadGsi()
-      .then(() => {
-        if (!window.google) throw new Error('failed to load Google sign-in')
-        window.google.accounts.id.initialize({
-          client_id: config.googleClientId,
-          callback: (resp) => void handleCredential(resp.credential),
-          auto_select: false,
-          cancel_on_tap_outside: true,
-        })
-        setGoogleReady(true)
-      })
-      .catch((err) => {
-        // Let the visitor try again.
-        gsiStartedRef.current = false
-        setError(String(err))
-      })
-      .finally(() => setGoogleLoading(false))
-  }, [handleCredential])
-
-  // Nobody signed in (but a real backend exists) → show the sample data rather
-  // than a locked door. `!hasBackend` is deliberately excluded: that's already
-  // mock mode for local dev, and badging it "demo" would just be noise.
-  // Backstop. `status` gates the entire app behind a spinner (see ReadGate), so
-  // any path that leaves it on 'loading' takes the whole UI down with it. The
-  // individual causes are bounded now, but this guarantees the outcome rather
-  // than relying on having found every one of them. Must sit above the API
-  // client's own timeout, or it fires while a legitimate slow fetchMe is still
-  // in flight and yanks a real session into the demo.
-  useEffect(() => {
-    if (status !== 'loading') return
-    const id = setTimeout(() => {
-      restoringRef.current = false
-      enterDemo()
-    }, 50_000)
-    return () => clearTimeout(id)
-  }, [status, enterDemo])
-
-  const demo = hasBackend && status === 'anonymous'
-  const canWrite = demo || !configured || (status === 'signed-in' && authorized)
-
-  // Keep the API client in step, so its reads/writes go to the fixtures for
-  // exactly as long as the UI is showing the demo.
-  useEffect(() => {
-    setDemoMode(demo)
-  }, [demo])
-
-  const signIn = useCallback(() => {
-    window.google?.accounts.id.prompt()
-  }, [])
-
-  const signOut = useCallback(() => {
-    tokenRef.current = null
-    localStorage.removeItem(TOKEN_STORAGE_KEY)
-    clearReadCache()
-    window.google?.accounts.id.disableAutoSelect()
-    setUser(null)
-    setAuthorized(false)
-    setParticipantName('')
-    setRunwayEnabled(false)
-    setSavings(0)
-    setError(null)
-    enterDemo()
-  }, [enterDemo])
-
-  /** Re-fetches the caller's own runway settings without a full sign-in round-trip (see fetchMe). */
-  const refreshRunway = useCallback(async () => {
-    const me = await fetchMe()
-    setRunwayEnabled(me.enableRunway)
-    setSavings(me.savings)
-  }, [])
-
-  const renderButton = useCallback((el: HTMLElement | null) => {
-    if (el && window.google) {
-      el.innerHTML = ''
-      window.google.accounts.id.renderButton(el, { theme: 'outline', size: 'medium', shape: 'pill' })
-    }
-  }, [])
-
-  const value = useMemo<AuthContextValue>(
-    () => ({
-      status,
-      user,
-      authorized,
-      participantName,
-      runwayEnabled,
-      savings,
-      refreshRunway,
-      configured,
-      demo,
-      canWrite,
-      googleReady,
-      googleLoading,
-      error,
-      signIn,
-      startSignIn,
-      signOut,
-      renderButton,
-    }),
-    [
-      status,
-      user,
-      authorized,
-      participantName,
-      runwayEnabled,
-      savings,
-      refreshRunway,
-      configured,
-      demo,
-      canWrite,
-      googleReady,
-      googleLoading,
-      error,
-      signIn,
-      startSignIn,
-      signOut,
-      renderButton,
-    ],
+  return (
+    <SessionProvider auth={auth} googleClientId={config.googleClientId}>
+      <RunwayProvider>{children}</RunwayProvider>
+    </SessionProvider>
   )
-
-  return <AuthContext value={value}>{children}</AuthContext>
 }
 
 /** Access the auth state. Must be used within an {@link AuthProvider}. */
 export function useAuth(): AuthContextValue {
-  const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuth must be used within an AuthProvider')
-  return ctx
+  const session = useSession()
+  const runway = use(RunwayContext)
+  if (!runway) throw new Error('useAuth must be used within an AuthProvider')
+  // Nobody signed in, but a real backend exists: the sample data, rather than
+  // a locked door. With no backend at all the app is already running as a
+  // sample participant, and badging that "demo" would just be noise.
+  const demo = hasBackend && session.status === 'anonymous'
+  const signedIn = session.status === 'signed-in'
+  return {
+    status: session.status,
+    user: signedIn ? { name: session.name, picture: session.picture } : null,
+    authorized: session.authorized,
+    participantName: demo ? MOCK_PARTICIPANT_NAME : session.authorized ? session.name : '',
+    ...runway,
+    configured: session.configured,
+    demo,
+    canWrite: demo || (signedIn && session.authorized),
+    googleReady: session.googleReady,
+    googleLoading: session.googleLoading,
+    error: session.error,
+    startSignIn: session.startSignIn,
+    signOut: session.signOut,
+    setLanguage: session.setLanguage,
+    renderButton: session.renderButton,
+  }
 }
