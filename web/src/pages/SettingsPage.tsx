@@ -22,7 +22,7 @@ import { downloadFile, expensesToCsv, type ExportableExpense } from '@/lib/csv'
  * Self-service settings for the signed-in participant only — currently just
  * their private runway estimate (enable flag + savings amount). Never shows
  * or edits a partner's row; the backend enforces that server-side too (see
- * updateRunway_ in Code.js), this is just the matching UI.
+ * the `/runway` routes in server/src/worker.ts), this is just the matching UI.
  */
 export function SettingsPage() {
   const { t } = useTranslation()

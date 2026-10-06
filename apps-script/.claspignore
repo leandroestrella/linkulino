@@ -1,8 +1,5 @@
-# Only push the Apps Script sources + manifest. Everything else stays local.
+# Only push the sheet's script + manifest. Everything else stays local.
 **/**
 
 !appsscript.json
-!Code.js
-!sheet.js
-!auth.js
 !sync.js
